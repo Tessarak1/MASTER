@@ -1,0 +1,100 @@
+load robot .
+load time-inf .
+load map .
+load growing-loc .
+omod TIMED-FARM is
+    protecting ROBOT .
+    protecting TIME-INF .
+    protecting MAP .
+    protecting GROWING-LOC .
+
+    sort ClockedConfiguration .
+    op timedTest : -> ClockedConfiguration .
+    op  _@_ : Configuration Time -> ClockedConfiguration [ctor] .
+    
+    var CONF : Configuration .
+    var T : Time .
+    var O : Object .
+    var S : String .
+    vars X X2 Y Y2 SP : Int .
+    var N N' N2 N2' : Nat .
+    var LL : List-Location .
+
+    ***Increases the time for each object in the configuration with the given amount of time.
+    op increaseTimeGlobal : Configuration Time -> Configuration .
+    eq increaseTimeGlobal(none, T) = none .
+    eq increaseTimeGlobal(< S : Map | > CONF, T) = increaseTimeGlobal(CONF, T) < S : Map | > .
+    eq increaseTimeGlobal(< S : Robot | > CONF, T)  = increaseTime(< S : Robot | >, T) increaseTimeGlobal(CONF, T) .
+    eq increaseTimeGlobal(< S : Growing-loc | > CONF, T) = increaseTime(< S : Growing-loc | >, T) increaseTimeGlobal(CONF, T) .
+
+    ***Returns a configuration with all objects that are relevant for deciding how much time the config can progress.
+    op maxTimeIncreaseHelper : Configuration -> Configuration .
+    eq maxTimeIncreaseHelper(none) = none .
+    eq maxTimeIncreaseHelper(< S : Map | > CONF) = maxTimeIncreaseHelper(CONF) .
+    eq maxTimeIncreaseHelper(< S : Robot | > CONF) = < S : Robot | > maxTimeIncreaseHelper(CONF) .
+    eq maxTimeIncreaseHelper(< S : Growing-loc | > CONF) = < S : Growing-loc | > maxTimeIncreaseHelper(CONF) .
+
+    ***Used on a configuration and returns the max permissible time the conf can progress.
+    op maxTimeIncreaseGlobal : Configuration -> Time .
+    eq maxTimeIncreaseGlobal(none) = inf .
+    eq maxTimeIncreaseGlobal(< S : Robot | > CONF) = min(maxTimeIncrease(< S : Robot | >),maxTimeIncreaseGlobal(CONF)) .
+    eq maxTimeIncreaseGlobal(< S : Growing-loc | > CONF) = min(maxTimeIncrease(< S : Growing-loc | >),maxTimeIncreaseGlobal(CONF)) .
+
+    op increaseTime : Object Nat -> Object .
+    op maxTimeIncrease : Object -> Time .
+    ***maxTimeIncrease on robots returns a natural number based on how many times the robot can move until it reaches the next intersection in its path
+    ***Ignore robots that are finished with their path.
+    eq maxTimeIncrease(< S : Robot | remainingPath : nil >)
+        =
+        inf .
+    eq maxTimeIncrease(< S : Robot | location : (X, Y), speed : SP, remainingPath : (X2, Y2) LL >)
+        =
+        distance((X,Y), (X2,Y2)) / SP  .
+    ***maxTimeIncrease for growing-loc is the amount of time until one of the timer reaches 0.
+    eq maxTimeIncrease(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2 >) = min(N2,min(N,N')) .
+
+    ***Uses an if to ensure that the robot doesnt move past its destination.
+    eq increaseTime(< S : Robot | remainingPath : nil >, N)
+        =
+        < S : Robot | > .
+    eq increaseTime(< S : Robot | location : (X , Y), direction : north, speed : SP, remainingPath : (X2,Y2) LL >, N)
+        =
+        if Y + (SP * N) > Y2
+        then
+            < S : Robot | location : (X , Y2) > 
+        else
+            < S : Robot | location : (X, Y + (N * SP)) >  
+        fi .
+    eq increaseTime(< S : Robot | location : (X , Y), direction : east, speed : SP, remainingPath : (X2,Y2) LL >, N)
+        =
+        if X + (SP * N) > X2
+        then
+            < S : Robot | location : (X2 , Y) >
+        else
+            < S : Robot | location : (X + (SP * N), Y) >
+        fi .   
+    eq increaseTime(< S : Robot | location : (X , Y), direction : south, speed : SP, remainingPath : (X2,Y2) LL >, N)
+        =
+        if Y - (SP * N) < Y2
+        then
+            < S : Robot | location : (X, Y2) >
+        else
+            < S : Robot | location : (X, Y - (SP * N)) >
+        fi .
+    eq increaseTime(< S : Robot | location : (X , Y), direction : west, speed : SP, remainingPath : (X2, Y2) LL >, N)
+        =
+        if X - (SP * N) < X2
+        then
+            < S : Robot | location : (X2, Y) >
+        else
+            < S : Robot | location : (X - (SP * N), Y) >
+        fi .
+
+    eq increaseTime(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2 >, N2') = < S : Growing-loc | waterTimer : N - N2', fertilizerTimer : N' - N2', growTimer : N2 - N2' > .
+    crl [increaseTime] :
+        CONF @ T
+        =>
+        increaseTimeGlobal(CONF, maxTimeIncreaseGlobal(maxTimeIncreaseHelper(CONF))) @ (T + maxTimeIncreaseGlobal(maxTimeIncreaseHelper(CONF)))
+        if maxTimeIncreaseGlobal(maxTimeIncreaseHelper(CONF)) > 0 .
+endom
+

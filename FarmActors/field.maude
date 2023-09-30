@@ -1,0 +1,12 @@
+(omod FIELD is
+    ***data types for status etc.
+    protecting CONTENT .
+    protecting WATER .
+    protecting FERTILIZER .
+    
+    sort FieldState .
+    op harvest, growing, empty : -> FieldState .
+    
+    class Field | contents : Content, state : FieldState,  .
+
+endom)

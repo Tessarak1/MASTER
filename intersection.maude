@@ -1,0 +1,31 @@
+load location.maude
+
+omod INTERSECTION is
+    protecting LOCATION .
+    protecting STRING .
+    sort IntersectionSet .
+    sorts IntersectionId IntersectionIdSet .
+    subsort IntersectionId < IntersectionIdSet .
+    subsort String < IntersectionId < Oid .
+    class Intersection | location : Location, neighbors : IntersectionIdSet .
+
+    var O : Oid .
+    var C : Cid .
+    var AS : AttributeSet .
+    vars S S' : String .
+    vars L L' : Location .
+
+    ops I1 I2 : -> Object .
+
+    op none : -> IntersectionIdSet [ctor] .
+    op __ : IntersectionIdSet IntersectionIdSet -> IntersectionIdSet [ctor assoc comm id: none] .
+
+    ***Set functionality to be used in Map
+    op nil : -> IntersectionSet [ctor] .
+    
+    op Oid : Object -> Oid .
+    eq Oid(< O : Intersection | >) = O .
+
+    op distance : Object Object -> Nat [comm] .
+    eq distance(< S : Intersection | location : L >, < S' : Intersection | location : L' >) = distance(L, L') .
+endom

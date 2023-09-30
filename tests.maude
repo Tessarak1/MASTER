@@ -1,0 +1,94 @@
+***(
+load pathfinder .
+omod PATHFINDER-TESTS is
+  protecting PATHFINDER .
+
+  op putTests : -> PQueue .
+  op deleteTests : -> PQueue .
+  op PQueueTests : -> PQueue .
+  ops I1 I2 I3 I4 I5 : -> Object .
+  ops T1 T2 : -> PQueue .
+  op map : -> Object .
+
+  op intersections : -> Configuration .
+  op pairs : -> PQueue .
+  op config : -> PQueue .
+
+  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" > .
+  eq I2 = < "I2" : Intersection | location : (5,0), neighbors : "I1" "I5" > .
+  eq I3 = < "I3" : Intersection | location : (0,5), neighbors : "I1" "I4" > .
+  eq I4 = < "I4" : Intersection | location : (10, 5), neighbors : "I3" "I5" > .
+  eq I5 = < "I5" : Intersection | location : (10,0), neighbors : "I2" "I4" > .  
+
+  eq T1 = convert(I1, I1) .
+  eq T2 = convert(I1, I2) .
+
+  eq map = < "Map" : Map | allIntersections : I1 I2 I3 I4 I5 > .
+
+
+  eq intersections = I1 I2 I3 I4 I5 .
+  eq config = convert(intersections, I1) .
+  eq putTests = put(T1, config) .
+  eq deleteTests = delete(T1, putTests) .
+
+  ops step1 step2 step3 step4 step5 : -> PQueue .
+  eq step1 = recurNeighborSearch(first(config), deleteFirst(config)) .
+  eq step2 = recurNeighborSearch(first(step1), deleteFirst(step1)) .
+endom
+)***
+load message .
+load growing-loc .
+load robot .
+omod MESSAGE-TESTS is
+  protecting MESSAGE .
+  protecting GROWING-LOC .
+  protecting ROBOT .
+  ops I1 I2 I3 I4 I5 : -> Object .
+  op G1 : -> Object .
+  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" > .
+  eq I2 = < "I2" : Intersection | location : (5,0), neighbors : "I1" "I5" > .
+  eq I3 = < "I3" : Intersection | location : (0,5), neighbors : "I1" "I4" > .
+  eq I4 = < "I4" : Intersection | location : (10, 5), neighbors : "I3" "I5" > .
+  eq I5 = < "I5" : Intersection | location : (10,0), neighbors : "I2" "I4" "G1" > .
+  eq G1 = < "G1" : Greenhouse | location : (15, 0), neighbors : "I5", state : growing, waterLevel : good, fertilizerLevel : good, content : pepper > .
+
+  op init : -> Configuration .
+  eq init = G1
+  < "R1" : Worker | location : (0,0), direction : north, speed : 0, remainingPath : nil, cargoLevel : full, curCargo : water, movementType : ground >
+  < "Map" : Map | allIntersections : I1 I2 I3 I4 I5 G1 >
+  (msg water "G1" from "G1" to worker) .
+endom
+***(
+load map .
+omod MAP-TESTS is
+  protecting MAP .
+  op init : -> Configuration .
+  eq init = < "Map" : Map | allIntersections : < "I2" : Intersection | location : (5,0), neighbors : "I1" "I5" > 
+    < "I2" : Intersection | location : (5,0), neighbors : "I1" "I5" > > .
+endom
+)***
+***(  red returnByLocation(< "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" >
+ < "I2" : Intersection | location : (5,0), neighbors : "I1" "I5" >, (5, 0)) . 
+red returnByName(< "I2" : Intersection | location : (5,0), neighbors : "I1" "I5" > 
+  < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" >, "I1") .
+  red returnByName(< "I2" : Intersection | location : (5,0), neighbors : "I1" "I5" > 
+  < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" >, "I5") . )***
+
+load timedFarm .
+omod TIMED-TESTS is
+  protecting TIMED-FARM .
+  op init : -> ClockedConfiguration .
+  ops I1 I2 I3 I4 I5 : -> Object .
+  op G1 : -> Object .
+  op R1 : -> Object .
+  op Map : -> Object .
+  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" > .
+  eq I2 = < "I2" : Intersection | location : (5,0), neighbors : "I1" "I5" > .
+  eq I3 = < "I3" : Intersection | location : (0,5), neighbors : "I1" "I4" > .
+  eq I4 = < "I4" : Intersection | location : (10, 5), neighbors : "I3" "I5" > .
+  eq I5 = < "I5" : Intersection | location : (10,0), neighbors : "I2" "I4" "G1" > .
+  eq G1 = < "G1" : Greenhouse | location : (15, 0), neighbors : "I5", state : growing, waterLevel : good, fertilizerLevel : good, content : pepper, waterTimer : 100, fertilizerTimer : 100, growTimer : 100 > .
+  eq R1 = < "R1" : Worker | location : (0,0), direction : north, speed : 1, remainingPath : nil, cargoLevel : full, curCargo : water, movementType : ground > .
+  eq Map =   < "Map" : Map | allIntersections : I1 I2 I3 I4 I5 G1 > .
+  eq init = (Map R1 G1 (msg water "G1" from "G1" to worker)) @ 0 .
+endom

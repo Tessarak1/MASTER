@@ -1,0 +1,23 @@
+***This file contains the sorts that are used in multiple other modules.
+omod SORTS is
+    protecting STRING .
+    sort Level .
+    sorts Water Fertilizer .
+    sorts FieldContent GreenhouseContent
+    sorts Grain Vegetable Fruit GreenhouseVegetable FieldVegetable .
+    sort Empty .
+    sort Full .
+    subsort FieldVegetable GreenhouseVegetable < Vegetable .
+    subsorts Empty Grain FieldVegetable < FieldContent .
+    subsorts Empty Fruit GreenhouseVegetable < GreenhouseContent .
+    subsort String < Oid .
+    ops low good : -> Level [ctor] .
+    op empty : -> Empty [ctor] .
+    op full : -> Full [ctor] .
+    op water : -> Water [ctor] .
+    op fertilizer : -> Fertilizer [ctor] .
+    ops salad potatoes turnips : -> FieldVegetable .
+    ops pepper tomatoes cucumbers : -> GreenhouseVegetable .
+    ops wheat rye : -> Grain .
+    op peaches : -> Fruit .
+endom

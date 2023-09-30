@@ -1,0 +1,63 @@
+3 path segments.
+4 fields
+1 collection point
+2 Greenhouse
+supply point for water and fertilizer?
+
+Each robot also needs a list of paths to represent when they are moving somewhere.
+If the list is empty then it represents them being idle and waiting for something.
+Perhaps a value for a current location as well.
+
+
+We assume that there is no central controlling element, how should a robot have an understanding of the map?
+
+
+
+***TODO
+LOCATION
+    ***Figure out how to calculate distance between two coordinate points.
+        ***need to use the square root function.
+    ROBOT
+        maxTimeIncrease tick rule
+        prevent the robot from moving past the intersection
+        changes in state made by rule.
+        need to differantiate between worker and transporter robots.
+
+
+General
+    Implement the canTimeIncrease operation.
+    For now, time cant increase if there a robot has arrived at its location.
+    replace some of the equations with rules, but which?
+    need to implement Time-Inf for timedFarm
+    need to implement Nat-Inf for djikstra
+
+Pathfinding
+Doing dijkstra:
+    a start location and the graph.
+    maintain a list of distances from start location to the other nodes in the graph.
+
+Messagesending
+ msg_from_to_
+ some messages should only be received by Workers and some by harvesters. How do we differentiate?
+ based on content or based on "wrapper", probably wrapper.
+ Do we send to a specific robot, or just broadcast to a certain set?
+ I think it makes most sense that a resource sends a message with what it requires 
+ MESSAGE CONTENT
+    fertilize
+    water
+ broadcast msg
+
+
+Field or greenhouse is low on water or fertilizer
+it sends message requesting a refill of the corresponding resource
+a robot of the correct type picks up the message, only one robot should receive the message
+robot moves to a refill station and picks up resource
+robot moves to field and deposits resource.
+
+TODO
+decide on message formatting. Design of message content and message wrapper
+messages should have one sender and one receiver, can have special broadcast operation to send to more receivers.
+Between field&greenhouse and robots first. Need to include the Oid of field or greenhouse as well as what needs to be done there.
+    What needs to be done can be defined by operations. water_ fertilize_, takes Oid as argument. 
+decide which robot receives the message. first one that is not busy does it.
+What about category of robot? need to differantiate between worker and transporter robots.

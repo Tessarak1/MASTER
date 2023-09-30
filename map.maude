@@ -1,0 +1,22 @@
+load intersection.maude 
+
+***allIntersections is a config, that consist exclusively of Intersection objects
+omod MAP is 
+    protecting INTERSECTION .
+    class Map | allIntersections : Configuration .
+
+    vars X X' Y Y' : Int .
+    vars S S' : String .
+    var CONF : Configuration .
+
+    ***return intersection with given location.
+    op returnByLocation : Configuration Location -> Configuration .
+    eq returnByLocation(none, (X , Y)) = none .
+    eq returnByLocation(< S : Intersection | location : (X, Y) > CONF, (X' , Y')) = if X == X' and Y == Y' then < S : Intersection | > else returnByLocation(CONF, (X', Y')) fi .
+
+    ***return intersection with given name.
+    op returnByName : Configuration Oid -> Configuration .
+    eq returnByName(none, S) = none .
+    eq returnByName(< S : Intersection | > CONF, S') = if S == S' then < S : Intersection | > else returnByName(CONF, S') fi .
+endom
+

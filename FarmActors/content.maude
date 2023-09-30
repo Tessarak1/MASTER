@@ -1,0 +1,4 @@
+fmod CONTENT is
+    sort Content .
+    op peppers, salad, turnips, potatoes, wheat, rye, empty : -> Content .
+endfm
