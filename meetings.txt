@@ -1,0 +1,7 @@
+INF sort for natural numbers
+op min : natInf NatInf 
+Time domain.
+create maps and speeds so that rest speed doesnt become a problem for now
+map as wrapper for intersection objects
+have two maps, one static which is the map that is used at the start of simulation
+one dynamic which is changed with obstacles or crashes.

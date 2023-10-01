@@ -1,0 +1,135 @@
+load list-location .
+load intersection .
+load map .
+load nat-inf .
+
+***Combination of intersection, shortest distance to that intersection, and previous intersection in the shortest path to that intersection
+omod INTERSECTION-TRIPLE is
+    protecting NAT-INF .
+    protecting INTERSECTION .
+    sort INPTriple .
+    op [_,_,_] : Object Nat-Inf Object -> INPTriple [ctor] .
+    vars I I' : Object .
+    var NI : Nat-Inf .
+    op getCurDist : INPTriple -> Nat-Inf .
+    eq getCurDist([I, NI, I']) = NI .
+    op getBaseIntersection : INPTriple -> Object .
+    eq getBaseIntersection([I, NI, I']) = I .
+endom
+
+***Priority queue sorting INPairs based on Nat value.
+omod INPTRIPLE-QUEUE is
+    protecting INTERSECTION-TRIPLE .
+    sort PQueue .
+    subsort INPTriple < PQueue .
+    op nil : -> PQueue [ctor] .
+    op __ : PQueue PQueue -> PQueue [assoc id: nil ctor] .
+
+    var INP INP' : INPTriple .
+    var PQ : PQueue .
+    vars S S' S2 : String .
+    vars NI NI2 : Nat-Inf .
+    vars I I' I2 I2' : Object .
+
+    op put : INPTriple PQueue -> PQueue .
+    eq put(nil, PQ) = PQ .
+    eq put(INP, nil) = INP . 
+    eq put(INP, INP' PQ) = if getCurDist(INP) < getCurDist(INP') then INP INP' PQ else INP' put(INP, PQ) fi .
+
+    op delete : INPTriple PQueue -> PQueue .
+    eq delete(INP, nil) = nil .
+    eq delete(INP, INP PQ) = PQ .
+    eq delete(INP, INP' PQ)= INP' delete(INP, PQ) .
+
+    ***Take in a string and return the matching INPTriple.
+    op get : String PQueue -> INPTriple .
+    eq get(S, nil) = nil .
+    eq get(S, [< S : Intersection | >, NI, I] PQ) = [< S : Intersection | >, NI, I] .
+    eq get(S, [< S' : Intersection | >, NI, I] PQ) = get(S, PQ) .
+
+    op in : INPTriple PQueue -> Bool .
+    eq in(INP, nil) = false .
+    eq in(INP, INP PQ) = true .
+    eq in(INP, INP' PQ) = in(INP, PQ) .
+
+    ***Version of in used when checking if the id of an intersection is within the priority queue.
+    op idIn : String PQueue -> Bool .
+    eq idIn(S, nil) = false .
+    eq idIn(S, [< S : Intersection | >, NI, < S' : Intersection | >] PQ) = true .
+    eq idIn(S, [< S' : Intersection | >, NI, < S2 : Intersection | >] PQ) = idIn(S, PQ) .
+    
+    ***Set new value for the first INPTriple to the second.
+    op update : INPTriple INPTriple PQueue -> PQueue .
+    eq update(INP, INP', nil) = nil .
+    eq update(INP, INP, PQ) = PQ .
+    eq update([I, NI, I'], [I, NI2, I2'], PQ) = if in([I, NI, I'],PQ) then put([I, NI2, I2'], delete([I, NI, I'], PQ)) else PQ fi .
+
+    ***Returns first value of queue
+    op first : PQueue -> INPTriple .
+    eq first(nil) = nil .
+    eq first(INP PQ) = INP .
+
+    op deleteFirst : PQueue -> PQueue .
+    eq deleteFirst(nil) = nil .
+    eq deleteFirst(INP PQ) = PQ .
+endom
+
+omod PATHFINDER is
+    protecting INPTRIPLE-QUEUE .
+    protecting LIST-LOCATION .
+    protecting MAP .
+    protecting INTERSECTION .
+
+    var M : Map .
+    vars I I' I2 I2' : Object .
+    vars INP INP' : INPTriple .
+    vars S S' S2 S2' : String .
+    vars X Y : Int .
+    vars X2 Y2 : Int .
+    var LL : List-Location .
+    var CONF : Configuration .
+    var NI NI2 : Nat-Inf .
+    var PQ : PQueue .
+    var ID : IntersectionId .
+    var ISET : IntersectionIdSet .
+    op placeholder : -> Object .
+    eq placeholder = < "Placeholder" : Intersection | > .
+    ***convert a list of intersections into a priority queue with starting intersection 
+    ***Having distance 0 and the others distance Inf.
+    ***INPUT: set of Intersections that make up the map, and a starting intersection
+    ***OUTPUT: Priority queue consisting of the intersections that were used as argument. The INPTriple matching the starting intersection
+    ***has distance 0, the others have distance Inf.
+    op convert : Configuration Object -> PQueue .
+    eq convert(none, I ) = nil .
+    eq convert(I CONF, I) = put([I, 0, placeholder], convert(CONF, I)) .
+    eq convert(I CONF, I') = put([I, Inf, placeholder], convert(CONF, I' )) .
+    
+    ***Used in recurNeighborSearch, takes in two INPTriples, the first being the one whose neighbors we are updating, the second being a neighbor  and the priority queue. update distance if applicable.
+    op oneNeighbor : INPTriple INPTriple PQueue -> PQueue .
+    eq oneNeighbor([< S : Intersection | >, NI, < S' : Intersection | >], [< S2 : Intersection | >, NI2, I], PQ) = if distance(< S : Intersection | >, < S2 : Intersection | > ) + NI < NI2 then update([< S2 : Intersection | >, NI2, I], [< S2 : Intersection | >, distance(< S : Intersection | >, < S2 : Intersection | >) + NI, < S : Intersection | >], PQ) else PQ fi .
+
+    ***Go through all of the neighbors of an intersection and update distances
+    ***In each iteration it returns the 
+    op recurNeighborSearch : INPTriple PQueue -> PQueue .
+    eq recurNeighborSearch([ < S : Intersection | neighbors : none >, NI, < S' : Intersection | > ], PQ) = PQ .
+    eq recurNeighborSearch([ < S : Intersection | neighbors : ID ISET >, NI, < S' : Intersection | >], PQ) = if idIn(ID, PQ) then recurNeighborSearch([ < S : Intersection | neighbors : ISET >, NI, < S' : Intersection | >], oneNeighbor([ < S : Intersection | neighbors : ID ISET >, NI, < S' : Intersection | >], get(ID,PQ), PQ)) else
+        recurNeighborSearch([ < S : Intersection | neighbors : ISET >, NI, < S' : Intersection | >], PQ) fi .
+
+    op recurDijkstraSearch : PQueue -> PQueue .
+    eq recurDijkstraSearch(nil) = nil .
+    eq recurDijkstraSearch(INP PQ) = INP recurDijkstraSearch(recurNeighborSearch(INP, PQ)) .
+
+    op buildPath : PQueue INPTriple INPTriple -> List-Location .
+    eq buildPath(PQ, INP, INP) = nil .
+    eq buildPath(PQ, INP, [< S : Intersection | location : (X,Y) >, NI, < S' : Intersection | >]) = buildPath(PQ, INP, get(S', PQ)) (X,Y) .
+
+
+    ***DijkstraSearch takes in a set of intersections and two intersections, one representing the start point and one representing the goal.
+    op dijkstraSearch : Configuration Object Object -> List-Location .
+    eq dijkstraSearch(CONF, I, I) = nil .
+    eq dijkstraSearch(CONF, < S : Intersection | >, < S' : Intersection | >) =
+        buildPath(recurDijkstraSearch(convert(CONF, < S : Intersection | >)),
+            get(S, recurDijkstraSearch(convert(CONF, < S : Intersection | >))),
+            get(S', recurDijkstraSearch(convert(CONF, < S : Intersection | >)))) .
+        
+endom

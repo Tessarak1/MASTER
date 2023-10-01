@@ -1,0 +1,48 @@
+***This file is the superclass for fields and greenhouses. The only notable difference between the two is the
+***type of crops that are grown there
+load intersection .
+load message .
+load sorts .
+omod GROWING-LOC is
+    protecting SORTS .
+    protecting INTERSECTION .
+    protecting MESSAGE .
+
+    sort State .
+
+    ops empty growing harvest : -> State .
+    ***Since this is a real-time system we need to keep some semblance of time.
+    ***WaterTimer, FertilizerTimer and timeToGrow change waterLevel fertilizerLevel and state respectively.
+    class Growing-loc | state : State, waterLevel : Level, fertilizerLevel : Level, waterTimer : Nat, fertilizerTimer : Nat, growTimer : Nat .
+    ***Only difference is what contents there are.
+    class Field | content : FieldContent .
+    class Greenhouse | content : GreenhouseContent .
+    subclass Greenhouse Field < Growing-loc < Intersection .
+
+    var S : String .
+
+    rl [depletedWater] :
+        < S : Growing-loc | waterLevel : good, waterTimer : 0 >
+        =>
+        < S : Growing-loc | waterLevel : low > .
+    rl [depletedFertilizer] :
+        < S : Growing-loc | fertilizerLevel : good, fertilizerTimer : 0 >
+        =>
+        < S : Growing-loc | fertilizerLevel : low > .
+    rl [finishedGrowth] :
+        < S : Growing-loc | state : growing, growTimer : 0 >
+        =>
+        < S : Growing-loc | state : harvest > .
+
+    rl [requestWater] :
+        < S : Growing-loc | waterLevel : low >
+        =>
+        < S : Growing-loc | > 
+        (msg water S from S to worker) .
+    
+    rl [requestFertilizer] :
+        < S : Growing-loc | fertilizerLevel : low >
+        =>
+        < S : Growing-loc | >
+        (msg fertilize S from S to worker) .
+endom

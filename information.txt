@@ -1,0 +1,1 @@
+Identificator for intersection nodes is an integer.

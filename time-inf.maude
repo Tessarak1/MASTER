@@ -1,0 +1,28 @@
+fmod TIME-INF is 
+    protecting RAT .
+    sorts Time TimeInf NatInf NNRat .
+    subsorts  PosRat Zero < NNRat < Time < TimeInf .
+    subsort Nat < NNRat .
+    op inf : -> TimeInf [ctor] .
+
+    op _<_ : TimeInf TimeInf -> Bool [ditto] .
+    op _<=_ : TimeInf TimeInf -> Bool [ditto] .
+    op _>_ : TimeInf TimeInf -> Bool [ditto] .
+    op _>=_ : TimeInf TimeInf -> Bool [ditto] .
+
+    var T : Time .
+    vars INF INF' : TimeInf .
+
+    eq T < inf = true .
+    eq inf < INF = false .
+    eq INF <= inf = true .
+    eq inf <= T = false .
+    eq inf > T = true . 
+    eq INF > inf = false .
+    eq inf >= INF = true .
+    eq T >= inf = false .
+    
+    ops min max : TimeInf TimeInf -> TimeInf [ditto] .
+    eq max(INF, inf) = inf .
+    eq min(INF, inf) = INF .
+endfm 

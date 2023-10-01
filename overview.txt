@@ -1,0 +1,6 @@
+Files that work in isolation:
+Intersection
+List-location
+location
+map
+robot
