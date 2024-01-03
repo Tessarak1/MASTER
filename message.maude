@@ -4,9 +4,9 @@ omod MESSAGE-WRAPPER is
   sort MsgContent .
   sort Receiver .
   ***For now, a message can be picked up by harvesters or receivers.
-  ops worker, harvester : -> Receiver [ctor] .
+  ops worker harvester : -> Receiver [ctor] .
   subsort Oid < Receiver .
-  op msg_from_to_ : MsgContent Oid Oid -> Msg [ctor] .
+  op msg_from_to_ : MsgContent Oid Receiver -> Msg [ctor] .
 endom
 
 
@@ -18,5 +18,6 @@ omod MESSAGE is including MESSAGE-WRAPPER .
     ***water a resource
     op water_ : Oid -> MsgContent .
     op fertilize_ : Oid -> MsgContent .
+    op harvest_ : Oid -> MsgContent .
     
 endom

@@ -1,6 +1,5 @@
 ***This file is the superclass for fields and greenhouses. The only notable difference between the two is the
 ***type of crops that are grown there
-load intersection .
 load message .
 load sorts .
 omod GROWING-LOC is
@@ -9,14 +8,22 @@ omod GROWING-LOC is
     protecting MESSAGE .
 
     sort State .
-
     ops empty growing harvest : -> State .
+    ***Since the map is defined as a set of points, and growing locations need to cover an area there is one point that designates the "entrance" to the field or greenhouse
+    ***I assume that growing locations are squares or rectangles.
+    ***The growing loc is an object that has an attribute "area" which consists of four locations, denoting the corners of the area.
+    ***The location therefore represents the entrance to the growing location, while the four points in area denotes the actual space that the growing location occupies.
     ***Since this is a real-time system we need to keep some semblance of time.
     ***WaterTimer, FertilizerTimer and timeToGrow change waterLevel fertilizerLevel and state respectively.
-    class Growing-loc | state : State, waterLevel : Level, fertilizerLevel : Level, waterTimer : Nat, fertilizerTimer : Nat, growTimer : Nat .
-    ***Only difference is what contents there are.
-    class Field | content : FieldContent .
-    class Greenhouse | content : GreenhouseContent .
+    class Growing-loc | state : State, waterLevel : Level, fertilizerLevel : Level, waterTimer : Nat, fertilizerTimer : Nat, growTimer : Nat, growingArea : Area, content : Content .
+    ***Only difference is what contents there are. However, maude does not have built-in attribute overloading for subclasses . This means that it is not possible to have
+    ***general rules for the superclass regarding the attribute, and also constrain that attribute's sort to a certain subsort in a subclass.
+    ***This is relevant here since the only difference between a Field and a Greenhouse is the sort of produce that can grow there.
+    ***It is not possible without modifying class behavior to have a general rule for Growing-loc regardless of content, while constraining the
+    ***sort of content for field and greenhouse. This means that in the spec a field can technically have the same contents as a greenhouse.
+    ***However, in practice the rules are designed to check for which class it is, to ensure that the correct seed is planted.
+    class Field .
+    class Greenhouse .
     subclass Greenhouse Field < Growing-loc < Intersection .
 
     var S : String .
@@ -34,15 +41,22 @@ omod GROWING-LOC is
         =>
         < S : Growing-loc | state : harvest > .
 
+***(
     rl [requestWater] :
         < S : Growing-loc | waterLevel : low >
         =>
         < S : Growing-loc | > 
         (msg water S from S to worker) .
     
-    rl [requestFertilizer] :
+    rl [requestFertilizer] : 
         < S : Growing-loc | fertilizerLevel : low >
         =>
         < S : Growing-loc | >
         (msg fertilize S from S to worker) .
+    rl [requestHarvest] :
+        < S : Growing-loc | state : harvest >
+        =>
+        < S : Growing-loc | >
+        (msg harvest S from S to worker) .
+)***
 endom

@@ -1,7 +1,6 @@
-
 fmod LOCATION is 
     protecting INT . protecting NAT . protecting FLOAT .
-    sort Location .
+    sorts Location Area .
     op (_ , _) : Int Int -> Location [ctor] .
 
     ***Gives the distance between two points, only works on points that are aligned at at least one of the axes.
@@ -22,4 +21,17 @@ fmod LOCATION is
         else
             X2 - X
         fi .
+endfm
+
+fmod LIST-LOCATION is
+    protecting LOCATION .
+    sort List-Location .
+    subsort Location < List-Location .
+    var LL : List-Location .
+    var L : Location .
+    op nil : -> List-Location [ctor] .
+    op __ : List-Location List-Location -> List-Location [assoc id: nil ctor] .
+    op last : List-Location -> List-Location .
+    eq last(nil) = nil .
+    eq last(LL L) = L .
 endfm

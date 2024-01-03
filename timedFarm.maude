@@ -1,9 +1,9 @@
 load robot .
+load collectionPoint .
 load time-inf .
-load map .
-load growing-loc .
 omod TIMED-FARM is
     protecting ROBOT .
+    protecting CPOINT .
     protecting TIME-INF .
     protecting MAP .
     protecting GROWING-LOC .
@@ -19,11 +19,22 @@ omod TIMED-FARM is
     vars X X2 Y Y2 SP : Int .
     var N N' N2 N2' : Nat .
     var LL : List-Location .
+    
+    ***operators to ignore certain values when checking for maxTimeIncrease, and to ensure that a timer doesn to go to the negative.
+    vars I I2 : Int .
+    vars NI NI2 : Nat-Inf .
+    op minusToZero : Int Int -> Nat .
+    eq minusToZero(I, I2) = if (I - I2) < 0 then 0 else I - I2 fi .
+    op minIgnoreZero : Nat-Inf Nat-Inf -> Nat-Inf [assoc comm] .
+    eq minIgnoreZero(0,0) = Inf .
+    eq minIgnoreZero(0, NI) = NI .
+    eq minIgnoreZero(NI, NI2) = min(NI, NI2) .
 
     ***Increases the time for each object in the configuration with the given amount of time.
     op increaseTimeGlobal : Configuration Time -> Configuration .
     eq increaseTimeGlobal(none, T) = none .
     eq increaseTimeGlobal(< S : Map | > CONF, T) = increaseTimeGlobal(CONF, T) < S : Map | > .
+    eq increaseTimeGlobal(< S : CPoint | > CONF, T) = increaseTimeGlobal(CONF, T) < S : CPoint | > .
     eq increaseTimeGlobal(< S : Robot | > CONF, T)  = increaseTime(< S : Robot | >, T) increaseTimeGlobal(CONF, T) .
     eq increaseTimeGlobal(< S : Growing-loc | > CONF, T) = increaseTime(< S : Growing-loc | >, T) increaseTimeGlobal(CONF, T) .
 
@@ -31,6 +42,7 @@ omod TIMED-FARM is
     op maxTimeIncreaseHelper : Configuration -> Configuration .
     eq maxTimeIncreaseHelper(none) = none .
     eq maxTimeIncreaseHelper(< S : Map | > CONF) = maxTimeIncreaseHelper(CONF) .
+    eq maxTimeIncreaseHelper(< S : CPoint | > CONF) = maxTimeIncreaseHelper(CONF) .
     eq maxTimeIncreaseHelper(< S : Robot | > CONF) = < S : Robot | > maxTimeIncreaseHelper(CONF) .
     eq maxTimeIncreaseHelper(< S : Growing-loc | > CONF) = < S : Growing-loc | > maxTimeIncreaseHelper(CONF) .
 
@@ -44,14 +56,14 @@ omod TIMED-FARM is
     op maxTimeIncrease : Object -> Time .
     ***maxTimeIncrease on robots returns a natural number based on how many times the robot can move until it reaches the next intersection in its path
     ***Ignore robots that are finished with their path.
-    eq maxTimeIncrease(< S : Robot | remainingPath : nil >)
-        =
-        inf .
-    eq maxTimeIncrease(< S : Robot | location : (X, Y), speed : SP, remainingPath : (X2, Y2) LL >)
-        =
-        distance((X,Y), (X2,Y2)) / SP  .
+    eq maxTimeIncrease(< S : Robot | remainingPath : nil >) = inf .
+    eq maxTimeIncrease(< S : Robot | location : (X, Y), speed : SP, remainingPath : (X2, Y2) LL >) = distance((X,Y), (X2,Y2)) / SP  .
     ***maxTimeIncrease for growing-loc is the amount of time until one of the timer reaches 0.
-    eq maxTimeIncrease(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2 >) = min(N2,min(N,N')) .
+    ***If the timer has reached 0, but the state hasnt changed yet, maxTimeIncrease is 0, so that the state can be updated.
+    eq maxTimeIncrease(< S : Growing-loc | waterTimer : 0, waterLevel : good >) = 0 .
+    eq maxTimeIncrease(< S : Growing-loc | fertilizerTimer : 0, fertilizerLevel : good >) = 0 .
+    eq maxTimeIncrease(< S : Growing-loc | growTimer : 0, state : growing >) = 0 .
+    eq maxTimeIncrease(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2 >) = minIgnoreZero(N2,minIgnoreZero(N,N')) .
 
     ***Uses an if to ensure that the robot doesnt move past its destination.
     eq increaseTime(< S : Robot | remainingPath : nil >, N)
@@ -72,7 +84,7 @@ omod TIMED-FARM is
             < S : Robot | location : (X2 , Y) >
         else
             < S : Robot | location : (X + (SP * N), Y) >
-        fi .   
+        fi .
     eq increaseTime(< S : Robot | location : (X , Y), direction : south, speed : SP, remainingPath : (X2,Y2) LL >, N)
         =
         if Y - (SP * N) < Y2
@@ -90,7 +102,14 @@ omod TIMED-FARM is
             < S : Robot | location : (X - (SP * N), Y) >
         fi .
 
-    eq increaseTime(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2 >, N2') = < S : Growing-loc | waterTimer : N - N2', fertilizerTimer : N' - N2', growTimer : N2 - N2' > .
+    eq increaseTime(< S : Growing-loc | waterLevel : low, fertilizerLevel : low >, N) = < S : Growing-loc | > .
+    eq increaseTime(< S : Growing-loc | waterLevel : low, fertilizerTimer : N >, N2) = < S : Growing-loc | fertilizerTimer : minusToZero(N,N2) > .
+    eq increaseTime(< S : Growing-loc | fertilizerLevel : low, waterTimer : N >, N2) = < S : Growing-loc | waterTimer : minusToZero(N,N2) > . 
+    eq increaseTime(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2, state : harvest >, N2') =
+        < S : Growing-loc | waterTimer : minusToZero(N,N2'), fertilizerTimer : minusToZero(N', N2'), growTimer : minusToZero(N2, N2') > .
+    eq increaseTime(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2 >, N2') =
+        < S : Growing-loc | waterTimer : minusToZero(N,N2'), fertilizerTimer : minusToZero(N', N2'), growTimer : minusToZero(N2, N2') > .
+
     crl [increaseTime] :
         CONF @ T
         =>

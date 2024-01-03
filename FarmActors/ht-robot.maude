@@ -1,7 +1,0 @@
-(omod HTROBOT 
-    protecting CARGO-STATUS .
-    sort HTState .
-    op harvesting, transporting : -> HTState .
-
-    class HTRobot | state : HTState, cargoStatus : CargoStatus .
-endom)

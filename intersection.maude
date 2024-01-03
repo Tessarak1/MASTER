@@ -1,13 +1,10 @@
-load location.maude
-
+load location .
+load oidSet .
 omod INTERSECTION is
     protecting LOCATION .
     protecting STRING .
-    sort IntersectionSet .
-    sorts IntersectionId IntersectionIdSet .
-    subsort IntersectionId < IntersectionIdSet .
-    subsort String < IntersectionId < Oid .
-    class Intersection | location : Location, neighbors : IntersectionIdSet .
+    protecting OID-SET .
+    class Intersection | location : Location, neighbors : OidSet .
 
     var O : Oid .
     var C : Cid .
@@ -17,11 +14,6 @@ omod INTERSECTION is
 
     ops I1 I2 : -> Object .
 
-    op none : -> IntersectionIdSet [ctor] .
-    op __ : IntersectionIdSet IntersectionIdSet -> IntersectionIdSet [ctor assoc comm id: none] .
-
-    ***Set functionality to be used in Map
-    op nil : -> IntersectionSet [ctor] .
     
     op Oid : Object -> Oid .
     eq Oid(< O : Intersection | >) = O .

@@ -1,4 +1,0 @@
-fmod CARGO-STATUS is
-    sort CargoStatus .
-    op full, empty : -> CargoStatus .
-endfm 

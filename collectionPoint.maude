@@ -1,0 +1,30 @@
+load sorts .
+load intersection .
+omod CPOINT is
+    protecting SORTS .
+    protecting INTERSECTION .
+
+    sort Storage .
+
+    vars P P' : Produce .
+    vars N N' : Nat .
+    var STOR : Storage .
+
+    op none : -> Storage [ctor] .    
+    op (_:_) : Produce Nat -> Storage [ctor] .
+    op __ : Storage Storage -> Storage [assoc comm id: none] .
+
+    ***Functions to update storage
+    op in : Storage Produce -> Bool .
+    op addToStorage : Produce Storage -> Storage .
+    eq in(none, P) = false .
+    eq in((P : N) STOR, P) = true .
+    eq in((P' : N) STOR, P) = in(STOR, P) .
+    eq addToStorage(P, none) = (P : 1) .
+    eq addToStorage(P, (P : N') STOR) = (P : N' + 1) STOR .
+    eq addToStorage(P, (P' : N') STOR) = (P' : N') STOR . 
+
+    class CPoint | storage : Storage .
+    subclass CPoint < Intersection .
+
+endom

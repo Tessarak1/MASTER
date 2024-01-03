@@ -1,0 +1,7 @@
+omod OID-SET is 
+    protecting STRING .
+    sort OidSet .
+    subsort String < Oid < OidSet .
+    op none : -> OidSet [ctor] .
+    op __ : OidSet OidSet -> OidSet [ctor assoc comm id: none] .
+endom

@@ -4,11 +4,13 @@ fmod NAT-INF is
         subsort Nat < Nat-Inf .
 
         op Inf : -> Nat-Inf [ctor] .
-
+        
         op _<_ : Nat-Inf Nat-Inf -> Bool [ditto] .
         op _<=_ : Nat-Inf Nat-Inf -> Bool [ditto] .
         op _>_ : Nat-Inf Nat-Inf -> Bool [ditto] .
         op _>=_ : Nat-Inf Nat-Inf -> Bool [ditto] .
+
+        ops min max : Nat-Inf Nat-Inf -> Nat-Inf [ditto] .
 
         var N : Nat .
         vars INF : Nat-Inf .
@@ -21,8 +23,9 @@ fmod NAT-INF is
         eq INF > Inf = false .
         eq Inf >= INF = true .
         eq N >= Inf = false .
-        
-        ops min max : Nat-Inf Nat-Inf -> Nat-Inf [ditto] .
+
         eq max(INF, Inf) = Inf .
         eq min(INF, Inf) = INF .
+
+
 endfm 
