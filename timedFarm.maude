@@ -35,10 +35,6 @@ omod TIMED-FARM is
     eq minIgnoreZero(0, NI) = NI .
     eq minIgnoreZero(NI, NI2) = min(NI, NI2) .
 
-    ***maxTimeAdvance and timeEffect on map does not matter
-    eq maxTimeAdvance(< S : Map | >, CONF) = Inf .
-    eq timeEffect(< S : Map | >, N, CONF) = < S : Map | > .
-
     ***maxTimeAdvance for growing-loc is the amount of time until one of the timers reaches 0.
     ***If the timer has reached 0, but the state hasn't changed yet, maxTimeAdvance is 0, so that the state can be updated.
     ***maxTimeAdvance of growing-loc does not depend on the rest of the environment.

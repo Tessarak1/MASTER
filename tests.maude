@@ -39,13 +39,6 @@ omod TIMED-TESTS is
   vars I I2 : Int .
   vars NI NI2 : Nat-Inf .
   
-  eq testFunc(< S : Robot | location : (X,Y), direction : east, speed : SP, remainingPath : (X2, Y2) LL >, N, < S' : Context | obstacles : CONF >)
-    =
-        if (X + (SP * N), Y) in CONF then
-            < S : Robot | direction : north, state : crashed > 
-        else
-            < S : Robot | direction : south, state : idle >
-        fi .
   ops I11 I12 I13 I14 : -> Object .
   eq I11 = < "I11" : Intersection | location : (0,0), neighbors : "I12" "I13" > .
   eq I12 = < "I12" : Intersection | location : (5,0), neighbors : "I11" "I14" > .
@@ -53,6 +46,6 @@ omod TIMED-TESTS is
   eq I14 = < "I14" : Intersection | location : (5,5), neighbors : "I12" "I13" > .
   eq MapSolo = < "Map" : Map | allIntersections : I11 I12 I13 I14 > .
   eq RSolo = < "R" : Transporter | location : (0,0), direction : east, speed : 1, remainingPath : (5,0) (5,5) (0,5), state : moving > .
-  eq con1 = < "Con1" : Context | obstacles : none > .
+  eq con1 = < "Con1" : Context | obstacles : < "O" : Obstacle | location : (3,0) > > .
   eq initSolo = MapSolo RSolo con1 @ 0 .
 endom

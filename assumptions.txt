@@ -1,0 +1,8 @@
+(X,Y) map
+
+thin paths one robot at a time.
+distributed timeEffect function
+instead of distributing the function to one at a time, just have it include the context object.
+ 
+Call maxTimeAdvance on the config
+each call has pattern < O : Object | > CONF 
