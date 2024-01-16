@@ -5,8 +5,7 @@ omod SORTS is
     sorts Water Fertilizer .
     sort Content .
     sorts Grain Vegetable Fruit Produce .
-    sort Empty .
-    sort Full .
+    sorts Empty Full .
     subsorts Grain Vegetable Fruit < Produce .
     subsorts Empty Produce < Content .
     subsort String < Oid .

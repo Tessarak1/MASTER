@@ -22,4 +22,37 @@ omod TIMED-TESTS is
   eq init = R1 T1 G1 C Map (msg water "G1" from "G1" to worker) @ 0 .
   eq init2 = R1 G1 Map (msg water "G1" from "G1" to worker) @ 0 .
   eq init3 = T1 G1 C Map @ 0 .
+
+  ***Solo robot tests with static obstacles.
+  ops MapSolo RSolo : -> Object .
+  op con1 : -> Object .
+  op initSolo : -> ClockedConfiguration .
+  op testFunc : Object Time Object -> Object .
+
+  vars CONF CONF2 CONF3 : Configuration .
+  var T : Time .
+  var O : Object .
+  vars S S' : String .
+  vars X X2 Y Y2 SP : Int .
+  var N N' N2 N2' : Nat .
+  var LL : List-Location .
+  vars I I2 : Int .
+  vars NI NI2 : Nat-Inf .
+  
+  eq testFunc(< S : Robot | location : (X,Y), direction : east, speed : SP, remainingPath : (X2, Y2) LL >, N, < S' : Context | obstacles : CONF >)
+    =
+        if (X + (SP * N), Y) in CONF then
+            < S : Robot | direction : north, state : crashed > 
+        else
+            < S : Robot | direction : south, state : idle >
+        fi .
+  ops I11 I12 I13 I14 : -> Object .
+  eq I11 = < "I11" : Intersection | location : (0,0), neighbors : "I12" "I13" > .
+  eq I12 = < "I12" : Intersection | location : (5,0), neighbors : "I11" "I14" > .
+  eq I13 = < "I13" : Intersection | location : (0,5), neighbors : "I11" "I14" > .
+  eq I14 = < "I14" : Intersection | location : (5,5), neighbors : "I12" "I13" > .
+  eq MapSolo = < "Map" : Map | allIntersections : I11 I12 I13 I14 > .
+  eq RSolo = < "R" : Transporter | location : (0,0), direction : east, speed : 1, remainingPath : (5,0) (5,5) (0,5), state : moving > .
+  eq con1 = < "Con1" : Context | obstacles : none > .
+  eq initSolo = MapSolo RSolo con1 @ 0 .
 endom

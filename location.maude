@@ -1,7 +1,10 @@
 fmod LOCATION is 
     protecting INT . protecting NAT . protecting FLOAT .
-    sorts Location Area .
+    sorts Location Area Placement .
+
+    subsorts Location Area < Placement .
     op (_ , _) : Int Int -> Location [ctor] .
+    op area : Location Location Location Location -> Area [ctor] .
 
     ***Gives the distance between two points, only works on points that are aligned at at least one of the axes.
     op distance : Location Location -> Nat  [comm] .

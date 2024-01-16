@@ -1,119 +1,136 @@
 load robot .
 load collectionPoint .
 load time-inf .
+load obstacle . 
+
 omod TIMED-FARM is
     protecting ROBOT .
     protecting CPOINT .
     protecting TIME-INF .
     protecting MAP .
     protecting GROWING-LOC .
+    protecting OBSTACLE .
 
     sort ClockedConfiguration .
-    op timedTest : -> ClockedConfiguration .
+    class Context | obstacles : Configuration .
+
     op  _@_ : Configuration Time -> ClockedConfiguration [ctor] .
-    
-    var CONF : Configuration .
+    op minusToZero : Int Int -> Nat .
+    op minIgnoreZero : Nat-Inf Nat-Inf -> Nat-Inf [assoc comm] .
+    op maxTimeAdvance : Configuration Configuration -> Time .
+    op timeEffect : Object Time Object -> Object .
+
+    vars CONF CONF2 CONF3 : Configuration .
     var T : Time .
     var O : Object .
-    var S : String .
+    vars S S' : String .
     vars X X2 Y Y2 SP : Int .
     var N N' N2 N2' : Nat .
     var LL : List-Location .
-    
-    ***operators to ignore certain values when checking for maxTimeIncrease, and to ensure that a timer doesn to go to the negative.
     vars I I2 : Int .
     vars NI NI2 : Nat-Inf .
-    op minusToZero : Int Int -> Nat .
+
     eq minusToZero(I, I2) = if (I - I2) < 0 then 0 else I - I2 fi .
-    op minIgnoreZero : Nat-Inf Nat-Inf -> Nat-Inf [assoc comm] .
     eq minIgnoreZero(0,0) = Inf .
     eq minIgnoreZero(0, NI) = NI .
     eq minIgnoreZero(NI, NI2) = min(NI, NI2) .
 
-    ***Increases the time for each object in the configuration with the given amount of time.
-    op increaseTimeGlobal : Configuration Time -> Configuration .
-    eq increaseTimeGlobal(none, T) = none .
-    eq increaseTimeGlobal(< S : Map | > CONF, T) = increaseTimeGlobal(CONF, T) < S : Map | > .
-    eq increaseTimeGlobal(< S : CPoint | > CONF, T) = increaseTimeGlobal(CONF, T) < S : CPoint | > .
-    eq increaseTimeGlobal(< S : Robot | > CONF, T)  = increaseTime(< S : Robot | >, T) increaseTimeGlobal(CONF, T) .
-    eq increaseTimeGlobal(< S : Growing-loc | > CONF, T) = increaseTime(< S : Growing-loc | >, T) increaseTimeGlobal(CONF, T) .
+    ***maxTimeAdvance and timeEffect on map does not matter
+    eq maxTimeAdvance(< S : Map | >, CONF) = Inf .
+    eq timeEffect(< S : Map | >, N, CONF) = < S : Map | > .
 
-    ***Returns a configuration with all objects that are relevant for deciding how much time the config can progress.
-    op maxTimeIncreaseHelper : Configuration -> Configuration .
-    eq maxTimeIncreaseHelper(none) = none .
-    eq maxTimeIncreaseHelper(< S : Map | > CONF) = maxTimeIncreaseHelper(CONF) .
-    eq maxTimeIncreaseHelper(< S : CPoint | > CONF) = maxTimeIncreaseHelper(CONF) .
-    eq maxTimeIncreaseHelper(< S : Robot | > CONF) = < S : Robot | > maxTimeIncreaseHelper(CONF) .
-    eq maxTimeIncreaseHelper(< S : Growing-loc | > CONF) = < S : Growing-loc | > maxTimeIncreaseHelper(CONF) .
+    ***maxTimeAdvance for growing-loc is the amount of time until one of the timers reaches 0.
+    ***If the timer has reached 0, but the state hasn't changed yet, maxTimeAdvance is 0, so that the state can be updated.
+    ***maxTimeAdvance of growing-loc does not depend on the rest of the environment.
+    eq maxTimeAdvance(< S : Growing-loc | waterTimer : 0, waterLevel : good >, CONF) = 0 .
+    eq maxTimeAdvance(< S : Growing-loc | fertilizerTimer : 0, fertilizerLevel : good >, CONF) = 0 .
+    eq maxTimeAdvance(< S : Growing-loc | growTimer : 0, state : growing >, CONF) = 0 .
+    eq maxTimeAdvance(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2 >, CONF) = minIgnoreZero(N2,minIgnoreZero(N,N')) .
 
-    ***Used on a configuration and returns the max permissible time the conf can progress.
-    op maxTimeIncreaseGlobal : Configuration -> Time .
-    eq maxTimeIncreaseGlobal(none) = inf .
-    eq maxTimeIncreaseGlobal(< S : Robot | > CONF) = min(maxTimeIncrease(< S : Robot | >),maxTimeIncreaseGlobal(CONF)) .
-    eq maxTimeIncreaseGlobal(< S : Growing-loc | > CONF) = min(maxTimeIncrease(< S : Growing-loc | >),maxTimeIncreaseGlobal(CONF)) .
-
-    op increaseTime : Object Nat -> Object .
-    op maxTimeIncrease : Object -> Time .
-    ***maxTimeIncrease on robots returns a natural number based on how many times the robot can move until it reaches the next intersection in its path
+    ***maxTimeAdvance on robots returns a natural number based on how many times the robot can move until it reaches the next intersection or obstacle in its path
     ***Ignore robots that are finished with their path.
-    eq maxTimeIncrease(< S : Robot | remainingPath : nil >) = inf .
-    eq maxTimeIncrease(< S : Robot | location : (X, Y), speed : SP, remainingPath : (X2, Y2) LL >) = distance((X,Y), (X2,Y2)) / SP  .
-    ***maxTimeIncrease for growing-loc is the amount of time until one of the timer reaches 0.
-    ***If the timer has reached 0, but the state hasnt changed yet, maxTimeIncrease is 0, so that the state can be updated.
-    eq maxTimeIncrease(< S : Growing-loc | waterTimer : 0, waterLevel : good >) = 0 .
-    eq maxTimeIncrease(< S : Growing-loc | fertilizerTimer : 0, fertilizerLevel : good >) = 0 .
-    eq maxTimeIncrease(< S : Growing-loc | growTimer : 0, state : growing >) = 0 .
-    eq maxTimeIncrease(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2 >) = minIgnoreZero(N2,minIgnoreZero(N,N')) .
+    ***If there is an obstacle in the way then check if the robot would collide if it and update maxTimeAdvance accordingly.
+    eq maxTimeAdvance(< S : Robot | remainingPath : nil >, CONF) = inf .
+    eq maxTimeAdvance(< S : Robot | location : (X, Y), speed : SP, remainingPath : (X2, Y2) LL >, < S' : Context | obstacles : CONF >) = if obstacleInWay((X,Y), (X2,Y2), CONF) =/= none then distance((X,Y), getLocation(obstacleInWay((X,Y), (X2,Y2), CONF))) / SP else distance((X,Y), (X2,Y2)) / SP fi .
+
+    ***call maxTimeAdvance on every object in the configuration.
+    eq maxTimeAdvance(none, CONF) = Inf .
+    ceq maxTimeAdvance(CONF CONF2, CONF3) = min(maxTimeAdvance(CONF, CONF3), maxTimeAdvance(CONF2, CONF3)) if CONF =/= none and CONF2 =/= none .
+
+
+    ***call timeEffect on every object in the configuration.
+    ceq timeEffect(CONF CONF2, T, < S : Context | >) = timeEffect(CONF, T, < S : Context | >) timeEffect(CONF2, T, < S : Context | >) if CONF =/= none and CONF2 =/= none .
+
+    eq timeEffect(< S : Context | >, N, CONF) = < S : Context | > .
 
     ***Uses an if to ensure that the robot doesnt move past its destination.
-    eq increaseTime(< S : Robot | remainingPath : nil >, N)
+    ***If a robot would move "into" an obstacle, it crashes instead.
+    eq timeEffect(< S : Robot | remainingPath : nil >, N, < S' : Context | >)
         =
         < S : Robot | > .
-    eq increaseTime(< S : Robot | location : (X , Y), direction : north, speed : SP, remainingPath : (X2,Y2) LL >, N)
+    eq timeEffect(< S : Robot | state : crashed >, N, < S' : Context | >)
         =
-        if Y + (SP * N) > Y2
-        then
-            < S : Robot | location : (X , Y2) > 
+        < S : Robot | > .
+    eq timeEffect(< S : Robot | location : (X,Y), direction : north, speed : SP, remainingPath : (X,Y2) LL, state : moving >, N, < S' : Context | obstacles : CONF >)
+        =
+        if (X,Y + (SP * N)) in CONF then
+            < S : Robot | location : (X, (Y - 1) + (SP * N)), state : crashed >
         else
-            < S : Robot | location : (X, Y + (N * SP)) >  
+            if Y + (SP * N) > Y2
+                then
+                    < S : Robot | location : (X , Y2) > 
+                else
+                    < S : Robot | location : (X, Y + (N * SP)) >  
+            fi 
         fi .
-    eq increaseTime(< S : Robot | location : (X , Y), direction : east, speed : SP, remainingPath : (X2,Y2) LL >, N)
+    eq timeEffect(< S : Robot | location : (X,Y), direction : east, speed : SP, remainingPath : (X2, Y2) LL, state : moving >, N, < S' : Context | obstacles : CONF >)
         =
-        if X + (SP * N) > X2
-        then
-            < S : Robot | location : (X2 , Y) >
+        if (X + (SP * N), Y) in CONF then
+            < S : Robot | location : ((X - 1) + (SP * N), Y), state : crashed >
         else
-            < S : Robot | location : (X + (SP * N), Y) >
+            if X + (SP * N) > X2
+                then
+                    < S : Robot | location : (X2 , Y) >
+                else
+                    < S : Robot | location : (X + (SP * N), Y) >
+            fi
         fi .
-    eq increaseTime(< S : Robot | location : (X , Y), direction : south, speed : SP, remainingPath : (X2,Y2) LL >, N)
+    eq timeEffect(< S : Robot | location : (X , Y), direction : south, speed : SP, remainingPath : (X,Y2) LL, state : moving >, N, < S' : Context | obstacles : CONF >)
         =
-        if Y - (SP * N) < Y2
-        then
-            < S : Robot | location : (X, Y2) >
+        if (X, Y - (SP * N)) in CONF then
+            < S : Robot | location : (X, (Y + 1) - (SP * N)), state : crashed >
         else
-            < S : Robot | location : (X, Y - (SP * N)) >
+            if Y - (SP * N) < Y2
+                then
+                    < S : Robot | location : (X, Y2) >
+                else
+                    < S : Robot | location : (X, Y - (SP * N)) >
+            fi
         fi .
-    eq increaseTime(< S : Robot | location : (X , Y), direction : west, speed : SP, remainingPath : (X2, Y2) LL >, N)
+    eq timeEffect(< S : Robot | location : (X , Y), direction : west, speed : SP, remainingPath : (X2, Y) LL, state : moving >, N, < S' : Context | obstacles : CONF >)
         =
-        if X - (SP * N) < X2
-        then
-            < S : Robot | location : (X2, Y) >
+        if (X - (SP * N), Y) in CONF then
+            < S : Robot | location : ((X + 1) - (SP * N), Y), state : crashed > 
         else
-            < S : Robot | location : (X - (SP * N), Y) >
+            if X - (SP * N) < X2
+                then
+                    < S : Robot | location : (X2, Y) >
+                else
+                    < S : Robot | location : (X - (SP * N), Y) >
+            fi
         fi .
 
-    eq increaseTime(< S : Growing-loc | waterLevel : low, fertilizerLevel : low >, N) = < S : Growing-loc | > .
-    eq increaseTime(< S : Growing-loc | waterLevel : low, fertilizerTimer : N >, N2) = < S : Growing-loc | fertilizerTimer : minusToZero(N,N2) > .
-    eq increaseTime(< S : Growing-loc | fertilizerLevel : low, waterTimer : N >, N2) = < S : Growing-loc | waterTimer : minusToZero(N,N2) > . 
-    eq increaseTime(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2, state : harvest >, N2') =
+    eq timeEffect(< S : Growing-loc | waterLevel : low, fertilizerLevel : low >, N, CONF) = < S : Growing-loc | > .
+    eq timeEffect(< S : Growing-loc | waterLevel : low, fertilizerTimer : N >, N2, CONF) = < S : Growing-loc | fertilizerTimer : minusToZero(N,N2) > .
+    eq timeEffect(< S : Growing-loc | fertilizerLevel : low, waterTimer : N >, N2, CONF) = < S : Growing-loc | waterTimer : minusToZero(N,N2) > . 
+    eq timeEffect(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2, state : harvest >, N2', CONF) =
         < S : Growing-loc | waterTimer : minusToZero(N,N2'), fertilizerTimer : minusToZero(N', N2'), growTimer : minusToZero(N2, N2') > .
-    eq increaseTime(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2 >, N2') =
+    eq timeEffect(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2 >, N2', CONF) =
         < S : Growing-loc | waterTimer : minusToZero(N,N2'), fertilizerTimer : minusToZero(N', N2'), growTimer : minusToZero(N2, N2') > .
 
-    crl [increaseTime] :
-        CONF @ T
+    crl [timeEffect] :
+        CONF < S : Context | > @ T
         =>
-        increaseTimeGlobal(CONF, maxTimeIncreaseGlobal(maxTimeIncreaseHelper(CONF))) @ (T + maxTimeIncreaseGlobal(maxTimeIncreaseHelper(CONF)))
-        if maxTimeIncreaseGlobal(maxTimeIncreaseHelper(CONF)) > 0 .
+        timeEffect(CONF < S : Context | >, maxTimeAdvance(CONF, < S : Context | >), < S : Context | >) @ (T + maxTimeAdvance(CONF, < S : Context | >))
+        if maxTimeAdvance(CONF, < S : Context | >) > 0 .
 endom
-

@@ -1,8 +1,0 @@
-load location .
-fmod LIST-LOCATION is
-    protecting LOCATION .
-    sort List-Location .
-    subsort Location < List-Location .
-    op nil : -> List-Location [ctor] .
-    op __ : List-Location List-Location -> List-Location [assoc id: nil ctor] .
-endfm

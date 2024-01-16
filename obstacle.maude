@@ -1,3 +1,58 @@
+load location .
 omod OBSTACLE is
+    protecting LOCATION .
+    protecting STRING .
+
+    class Obstacle | location : Location .
+    subsort String < Oid .
+
+    op getLocation : Object -> Location .
+    op obstacleSet : Location Location Configuration -> Configuration .
+    op _in_ : Location Configuration -> Bool .
+
+    ***Takes in two locations, A and B, and the existing obstacles.
+    ***Returns the obstacle that is between A and B and returns the closest one to A.
+    op obstacleInWay : Location Location Configuration -> Configuration .
+
+    op maxObstacleX : Object Configuration -> Object .
+    op minObstacleX : Object Configuration -> Object .
+    op maxObstacleY : Object Configuration -> Object .
+    op minObstacleY : Object Configuration -> Object .
+
+    vars X X2 X3 Y Y2 Y3 : Int .
+    vars S S' : String .
+    var CONF : Configuration .
+
+    eq getLocation(< S : Obstacle | location : (X,Y) >) = (X,Y) .
+
+    eq obstacleSet((X,Y), (X2,Y2), none) = none .
+    ceq obstacleSet((X,Y), (X,Y2), < S : Obstacle | location : (X,Y3) > CONF) = < S : Obstacle | > obstacleSet((X,Y), (X,Y2), CONF) if (Y3 > Y) and (Y3 <= Y2) .
+    ceq obstacleSet((X,Y), (X,Y2), < S : Obstacle | location : (X,Y3) > CONF) = < S : Obstacle | > obstacleSet((X,Y), (X,Y2), CONF) if (Y3 <= Y) and (Y3 > Y2) .
+    ceq obstacleSet((X,Y), (X2,Y), < S : Obstacle | location : (X3, Y) > CONF) = < S : Obstacle | > obstacleSet((X,Y), (X2,Y), CONF) if X3 > X and X3 <= X2 .
+    ceq obstacleSet((X,Y), (X2,Y), < S : Obstacle | location : (X3, Y) > CONF) = < S : Obstacle | > obstacleSet((X,Y), (X2,Y), CONF) if X3 <= X and X3 > X2 .
+    eq obstacleSet((X,Y), (X2,Y2), CONF) = none [owise] .
+
+    eq (X,Y) in none = false .
+    eq (X,Y) in < S : Obstacle | location : (X,Y) > CONF = true .
+    eq (X,Y) in < S : Obstacle | location : (X2,Y2) > CONF = (X,Y) in CONF .
+
+    eq maxObstacleY(< S : Obstacle | >, none) = < S : Obstacle | > .
+    eq maxObstacleY(none, < S : Obstacle | > CONF) = maxObstacleY(< S : Obstacle | >, CONF) .
+    eq maxObstacleY(< S : Obstacle | location : (X, Y) >, < S' : Obstacle | location : (X2, Y2) > CONF) = if (Y2 > Y) then maxObstacleY(< S' : Obstacle | >, CONF) else maxObstacleY(< S : Obstacle | >, CONF) fi .
+    eq minObstacleY(< S : Obstacle | >, none) = < S : Obstacle | > .
+    eq minObstacleY(none, < S : Obstacle | > CONF) = minObstacleY(< S : Obstacle | >, CONF) .    
+    eq minObstacleY(< S : Obstacle | location : (X, Y) >, < S' : Obstacle | location : (X2, Y2) > CONF) = if (Y2 < Y) then minObstacleY(< S' : Obstacle | >, CONF) else minObstacleY(< S : Obstacle | >, CONF) fi .
+
+    eq maxObstacleX(< S : Obstacle | >, none) = < S : Obstacle | > .
+    eq maxObstacleX(none, < S : Obstacle | > CONF) = maxObstacleX(< S : Obstacle | >, CONF) .
+    eq maxObstacleX(< S : Obstacle | location : (X, Y) >, < S' : Obstacle | location : (X2, Y2) > CONF) = if (X2 > X) then maxObstacleX(< S' : Obstacle | >, CONF) else maxObstacleX(< S : Obstacle | >, CONF) fi .
+    eq minObstacleX(< S : Obstacle | >, none) = < S : Obstacle | > .
+    eq minObstacleX(none, < S : Obstacle | > CONF) = minObstacleX(< S : Obstacle | >, CONF) .    
+    eq minObstacleX(< S : Obstacle | location : (X, Y) >, < S' : Obstacle | location : (X2, Y2) > CONF) = if (X2 < X) then minObstacleX(< S' : Obstacle | >, CONF) else minObstacleX(< S : Obstacle | >, CONF) fi .
     
+    ceq obstacleInWay((X,Y), (X,Y2), CONF) = minObstacleY(none, CONF) if (Y2 > Y) and (obstacleSet((X,Y), (X,Y2), CONF) =/= none) .
+    ceq obstacleInWay((X,Y), (X,Y2), CONF) = maxObstacleY(none, CONF) if (Y2 < Y) and (obstacleSet((X,Y), (X,Y2), CONF) =/= none) .
+    ceq obstacleInWay((X,Y), (X2,Y), CONF) = minObstacleX(none, CONF) if (X2 > X) and (obstacleSet((X,Y), (X2,Y), CONF) =/= none) .
+    ceq obstacleInWay((X,Y), (X2,Y), CONF) = maxObstacleX(none, CONF) if (X2 < X) and (obstacleSet((X,Y), (X2,Y), CONF) =/= none) .
+    eq obstacleInWay((X,Y), (X2,Y2), CONF) = none [owise] .
 endom

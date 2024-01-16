@@ -7,14 +7,12 @@ omod INTERSECTION is
     class Intersection | location : Location, neighbors : OidSet .
 
     var O : Oid .
-    var C : Cid .
     var AS : AttributeSet .
     vars S S' : String .
     vars L L' : Location .
 
     ops I1 I2 : -> Object .
 
-    
     op Oid : Object -> Oid .
     eq Oid(< O : Intersection | >) = O .
 
