@@ -9,7 +9,9 @@ omod SORTS is
     subsorts Grain Vegetable Fruit < Produce .
     subsorts Empty Produce < Content .
     subsort String < Oid .
+    sort Direction .
 
+    ops north east south west : -> Direction [ctor] .
     ops low good : -> Level [ctor] .
     op empty : -> Empty [ctor] .
     op full : -> Full [ctor] .

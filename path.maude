@@ -1,0 +1,9 @@
+load location .
+fmod PATH is
+    protecting LOCATION .
+    sort Path .
+
+    op nil : -> Path [ctor] .
+    op {__} : Location Location -> Path [ctor] .
+    op __ : Path Path -> Path [ctor assoc] .
+endfm

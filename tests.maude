@@ -1,6 +1,8 @@
 load timedFarm .
+load human .
 omod TIMED-TESTS is
   protecting TIMED-FARM .
+  protecting HUMAN .
 
   ops init init2 init3 : -> ClockedConfiguration .
   ops I1 I2 I3 I4 I5 : -> Object .
@@ -37,7 +39,7 @@ omod TIMED-TESTS is
   var N N' N2 N2' : Nat .
   var LL : List-Location .
   vars I I2 : Int .
-  vars NI NI2 : Nat-Inf .
+  vars NI NI2 : NatInf .
   
   ops I11 I12 I13 I14 : -> Object .
   eq I11 = < "I11" : Intersection | location : (0,0), neighbors : "I12" "I13" > .

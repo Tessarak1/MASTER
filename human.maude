@@ -1,0 +1,8 @@
+load entity .
+omod HUMAN is
+    protecting ENTITY .
+    protecting PATHFINDER .
+
+    class Human .
+    subclass Human < Entity .
+endom
