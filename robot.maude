@@ -18,6 +18,7 @@ omod ROBOT is
     protecting GROWING-LOC .
     protecting CPOINT .
     protecting DOCK .
+    protecting PATHFINDER .
 
     sort CargoLevel .
     sorts WorkerCargo TransporterCargo Cargo .
@@ -53,19 +54,19 @@ omod ROBOT is
         < S : Worker | location : (X , Y), remainingPath : nil, cargoLevel : full, curCargo : water, state : idle > < S' : Map | allIntersections : CONF > 
         (msg water S2 from S2 to worker)
         =>
-        < S : Worker | remainingPath : pathConvert(dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2))), state : moving > 
+        < S : Worker | remainingPath : dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), state : moving > 
         < S' : Map | > .
     rl [rcvFertilizerMessage] :
         < S : Worker | location : (X,Y), remainingPath : nil, cargoLevel : full, curCargo : fertilizer, state : idle > < S' : Map | allIntersections : CONF >
         (msg fertilize S2 from S2 to worker)
         =>
-        < S : Worker | remainingPath : pathConvert(dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2))), state : moving >
+        < S : Worker | remainingPath : dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), state : moving >
         < S' : Map | > .
     rl [rcvHarvestMessage] :
         < S : Transporter | location : (X,Y), remainingPath : nil, cargoLevel : empty, state : idle > < S' : Map | allIntersections : CONF >
         (msg harvest S2 from S2 to worker)
         =>
-        < S : Transporter | remainingPath : pathConvert(dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2))), state : moving >
+        < S : Transporter | remainingPath : dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), state : moving >
         < S' : Map | > .
     ***Rules for when robot has arrived at growing-loc and starts a task.
     rl [startWatering] :
@@ -107,12 +108,12 @@ omod ROBOT is
         < S : Worker | state : idle, cargoLevel : empty >
         < S2 : Growing-loc | fertilizerLevel : good, fertilizerTimer : 100 > .
     rl [finishHarvesting] :
-        < S : Transporter | location : (X,Y), remainingPath : {(X2,Y2) (X,Y)}, state : harvesting >
+        < S : Transporter | location : (X,Y), remainingPath : (X,Y), state : harvesting >
         < S' : Growing-loc | location : (X,Y), growingState : harvest, content : C >  
         < S2 : CPoint | >
         < S2' : Map | allIntersections : CONF >
         =>
-        < S : Transporter | remainingPath : pathConvert(dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2))), speed : 1,  cargoLevel : full, state : transporting >
+        < S : Transporter | remainingPath : dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), speed : 1,  cargoLevel : full, state : transporting >
         < S' : Growing-loc | growingState : empty >
         < S2 : CPoint | >
         < S2' : Map | > .

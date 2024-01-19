@@ -8,23 +8,12 @@ fmod LOCATION is
     op failLocation : -> Location [ctor] .
 
     ***Gives the distance between two points, only works on points that are aligned at at least one of the axes.
-    op distance : Location Location -> Nat  [comm] .
+    op distance : Location Location -> Nat [comm] .
 
     vars X X2 Y Y2 : Int .
     
-    eq distance((X,Y), (X,Y)) = 0 .
-    eq distance((X,Y), (X,Y2)) =
-        if Y > Y2 then
-            Y - Y2
-        else
-            Y2 - Y
-        fi .
-    eq distance((X, Y), (X2, Y)) =
-        if X > X2 then
-            X - X2
-        else
-            X2 - X
-        fi .
+    eq distance((X,Y), (X,Y2)) = max(Y, Y2) - min(Y,Y2) .
+    eq distance((X, Y), (X2, Y)) = max(X,X2) - min(X,X2) .
 endfm
 
 fmod LIST-LOCATION is
