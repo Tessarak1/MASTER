@@ -1,25 +1,27 @@
 load pathfinder .
+load path .
 load sorts .
 omod ENTITY is
     protecting INT .
     protecting LIST-LOCATION .
     protecting SORTS .
     protecting PATHFINDER .
+    protecting PATH .
     sorts State .
 
     ops moving idle crashed refillingWater refillingFertilizer refillingSeeds fertilizing watering harvesting transporting unloading : -> State [ctor] .
 
     var S : String .
     vars X X2 Y Y2 : Int .
-    var LL : List-Location .
+    var P : Path .
 
-    class Entity | location : Location, direction : Direction, speed : Int, maxSpeed : Int, remainingPath : List-Location, state : State .
+    class Entity | location : Location, direction : Direction, speed : Int, maxSpeed : Int, remainingPath : Path, state : State .
     rl [finish] :
-        < S : Entity | location : (X, Y), remainingPath : (X,Y), state : moving >
+        < S : Entity | location : (X, Y), remainingPath : {(X2,Y2) (X,Y)}, state : moving >
         =>
         < S : Entity | speed : 0, remainingPath : nil, state : idle > .
     rl [nextIntersection] :
-        < S : Entity | location : (X , Y), remainingPath : (X , Y) (X2, Y2) LL > 
+        < S : Entity | location : (X , Y), remainingPath : {(X , Y) (X2, Y2)} P > 
         =>
-        < S : Entity | direction : setDirection((X , Y), (X2, Y2)), remainingPath : (X2, Y2) LL > .
+        < S : Entity | direction : setDirection((X , Y), (X2, Y2)), remainingPath : P > .
 endom

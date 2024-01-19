@@ -1,7 +1,7 @@
 load map .
 load nat-inf .
 load sorts .
-
+load path .
 omod INTERSECTION-TRIPLE is
     protecting NAT-INF .
     protecting INTERSECTION .
@@ -85,10 +85,20 @@ omod PATHFINDER is
     protecting MAP .
     protecting INT .
     protecting SORTS .
+    protecting PATH .
 
     op placeholder : -> Object .
     op setDirection : Location Location -> Direction .
-    
+    op convert : Configuration Object -> PQueue .
+    op oneNeighbor : INPTriple INPTriple PQueue -> PQueue .
+    op recurNeighborSearch : INPTriple PQueue -> PQueue .
+    op recurDijkstraSearch : PQueue -> PQueue .
+    op dijkstraSearch : Configuration Object Object -> List-Location .
+    op $coverArea : Location Location Location Location Bool -> List-Location .
+    op backToStart : Location Location -> List-Location .
+    op coverArea : Location Area -> List-Location .
+    op pathConvert : List-Location -> Path .
+
     var M : Map .
     vars I I' I2 I2' : Object .
     vars INP INP' : INPTriple .
@@ -113,22 +123,18 @@ omod PATHFINDER is
     ***convert a list of intersections into a priority queue with starting intersection having distance 0 and the others distance natInf.
     ***INPUT: set of Intersections that make up the map, and a starting intersection
     ***OUTPUT: Priority queue consisting of the intersections that were used as argument. The INPTriple matching the starting intersection has distance 0, the others have distance natInf.
-    op convert : Configuration Object -> PQueue .
     eq convert(none, I ) = nil .
     eq convert(I CONF, I) = put([I, 0, placeholder], convert(CONF, I)) .
     eq convert(I CONF, I') = put([I, natInf, placeholder], convert(CONF, I' )) .
     
     ***Used in recurNeighborSearch, takes in two INPTriples, the first being the one whose neighbors we are updating, the second being a neighbor  and the priority queue. update distance if applicable.
-    op oneNeighbor : INPTriple INPTriple PQueue -> PQueue .
     eq oneNeighbor([< S : Intersection | >, NI, < S' : Intersection | >], [< S2 : Intersection | >, NI2, I], PQ) = if distance(< S : Intersection | >, < S2 : Intersection | > ) + NI < NI2 then update([< S2 : Intersection | >, NI2, I], [< S2 : Intersection | >, distance(< S : Intersection | >, < S2 : Intersection | >) + NI, < S : Intersection | >], PQ) else PQ fi .
 
     ***Go through all of the neighbors of an intersection and update distances
-    op recurNeighborSearch : INPTriple PQueue -> PQueue .
     eq recurNeighborSearch([ < S : Intersection | neighbors : none >, NI, < S' : Intersection | > ], PQ) = PQ .
     eq recurNeighborSearch([ < S : Intersection | neighbors : OD OSET >, NI, < S' : Intersection | >], PQ) = if idIn(OD, PQ) then recurNeighborSearch([ < S : Intersection | neighbors : OSET >, NI, < S' : Intersection | >], oneNeighbor([ < S : Intersection | neighbors : OD OSET >, NI, < S' : Intersection | >], get(OD,PQ), PQ)) else
         recurNeighborSearch([ < S : Intersection | neighbors : OSET >, NI, < S' : Intersection | >], PQ) fi .
 
-    op recurDijkstraSearch : PQueue -> PQueue .
     eq recurDijkstraSearch(nil) = nil .
     eq recurDijkstraSearch(INP PQ) = INP recurDijkstraSearch(recurNeighborSearch(INP, PQ)) .
 
@@ -136,16 +142,13 @@ omod PATHFINDER is
     eq buildPath(PQ, INP, INP) = nil .
     eq buildPath(PQ, INP, [< S : Intersection | location : (X,Y) >, NI, < S' : Intersection | >]) = buildPath(PQ, INP, get(S', PQ)) (X,Y) .
 
-
     ***DijkstraSearch takes in a set of intersections and two intersections, one representing the start point and one representing the goal.
-    op dijkstraSearch : Configuration Object Object -> List-Location .
     eq dijkstraSearch(CONF, I, I) = nil .
     eq dijkstraSearch(CONF, < S : Intersection | >, < S' : Intersection | >) =
         buildPath(recurDijkstraSearch(convert(CONF, < S : Intersection | >)),
             get(S, recurDijkstraSearch(convert(CONF, < S : Intersection | >))),
             get(S', recurDijkstraSearch(convert(CONF, < S : Intersection | >)))) .
     
-    op $coverArea : Location Location Location Location Bool -> List-Location .
     eq $coverArea((X,Y), (X2, Y2), (X,Y), (X2,Y2), true) = (X,Y) (X2, Y2) .
     eq $coverArea((X,Y), (X2, Y2), (X,Y), (X2,Y2), false) = (X2, Y2) (X,Y) .
     eq $coverArea((X,Y), (X2, Y), (X,Y2), (X2,Y2), true) = if Y2 > Y then (X,Y) (X2, Y) $coverArea((X, Y + 1), (X2, Y + 1), (X, Y2), (X2, Y2), false) else (X,Y) (X2, Y) $coverArea((X, Y - 1), (X2, Y - 1), (X, Y2), (X2, Y2), false) fi .
@@ -154,13 +157,15 @@ omod PATHFINDER is
     eq $coverArea((X, Y), (X, Y2), (X2, Y), (X2,Y2), false) = if X2 > X then (X, Y2) (X,Y) $coverArea((X + 1, Y), (X + 1, Y2), (X2, Y), (X2,Y2), true) else (X, Y2) (X,Y) $coverArea((X - 1, Y), (X - 1, Y2), (X2, Y), (X2, Y2), true) fi .
 
     ***Creates a two step path from the first location to the second.
-    op backToStart : Location Location -> List-Location .
     eq backToStart((X,Y), (X2, Y2)) = (X,Y2) (X2, Y2) .
 
     ***Takes in a starting point, and a list-location representing the four corners of an area, and returns a path that covers the whole area.
-    op coverArea : Location Area -> List-Location .
     eq coverArea((X,Y3), area((X,Y), (X2,Y), (X,Y2), (X2,Y2))) = $coverArea((X,Y), (X,Y2), (X2,Y), (X2,Y2), true) backToStart(last($coverArea((X,Y), (X,Y2), (X2,Y), (X2,Y2), true)), (X,Y3)) .
     eq coverArea((X2,Y3), area((X,Y), (X2,Y), (X,Y2), (X2,Y2))) = $coverArea((X2,Y), (X2,Y2), (X,Y), (X,Y2), true) backToStart(last($coverArea((X2,Y), (X2,Y2), (X,Y), (X,Y2), true)), (X2,Y3)) .
     eq coverArea((X3,Y), area((X,Y), (X2,Y), (X,Y2), (X2,Y2))) = $coverArea((X,Y), (X2,Y), (X,Y2), (X2,Y2), true) backToStart(last($coverArea((X,Y), (X2,Y), (X,Y2), (X2,Y2), true)), (X3,Y)) .
     eq coverArea((X3,Y2), area((X,Y), (X2,Y), (X,Y2), (X2,Y2))) = $coverArea((X,Y2), (X2,Y2), (X,Y), (X2,Y), true) backToStart(last($coverArea((X,Y2), (X2,Y2), (X,Y), (X2,Y), true)), (X3,Y2)) .
+
+    eq pathConvert(nil) = nil .
+    eq pathConvert((X, Y) (X2, Y2)) = {(X,Y) (X2, Y2)} .
+    eq pathConvert((X, Y) (X2, Y2) LL) = {(X,Y) (X2,Y2)} pathConvert((X2, Y2) LL) .
 endom

@@ -24,11 +24,12 @@ omod TIMED-FARM is
     var T : Time .
     var O : Object .
     vars S S' : String .
-    vars X X2 Y Y2 SP : Int .
+    vars X X2 Y Y2 X3 Y3 SP : Int .
     vars N N' N2 N2' N3 N4 : Nat .
     var LL : List-Location .
     vars I I2 : Int .
     vars NI NI2 : NatInf .
+    var P : Path .
 
     eq minusToZero(I, I2) = if (I - I2) < 0 then 0 else I - I2 fi .
     eq minIgnoreZero(0,0) = natInf .
@@ -44,32 +45,31 @@ omod TIMED-FARM is
     ***maxTimeAdvance of growing-loc does not depend on the rest of the environment.
     eq maxTimeAdvance(< S : Growing-loc | waterTimer : 0, waterLevel : good > CONF) = 0 .
     eq maxTimeAdvance(< S : Growing-loc | fertilizerTimer : 0, fertilizerLevel : good > CONF) = 0 .
-    eq maxTimeAdvance(< S : Growing-loc | growTimer : 0, state : growing > CONF) = 0 .
+    eq maxTimeAdvance(< S : Growing-loc | growTimer : 0, growingState : growing > CONF) = 0 .
     eq maxTimeAdvance(< S : Growing-loc | waterTimer : N, fertilizerTimer : N2, growTimer : N3 > CONF) = min(minIgnoreZero(N3,minIgnoreZero(N,N2)), maxTimeAdvance(CONF)) .
 
     ***maxTimeAdvance on robots returns a natural number based on how many times the robot can move until it reaches the next intersection or obstacle in its path
     ***Ignore robots that are finished with their path.
     ***If there is an obstacle in the way then check if the robot would collide if it and update maxTimeAdvance accordingly.
     eq maxTimeAdvance(< S : Robot | remainingPath : nil > CONF) = maxTimeAdvance(CONF) .
-    eq maxTimeAdvance(< S : Robot | location : (X, Y), speed : SP, remainingPath : (X2, Y2) LL > < S' : Context | obstacles : CONF > CONF2)
+    eq maxTimeAdvance(< S : Robot | location : (X, Y), speed : SP, remainingPath : {(X2,Y2) (X3, Y3)} P > < S' : Context | obstacles : CONF > CONF2)
     =
-    if obstacleInWay((X,Y), (X2,Y2), CONF) =/= none
+    if obstacleInWay((X,Y), (X3,Y3), CONF) =/= none
     then
-        min((distance((X,Y), getLocation(obstacleInWay((X,Y), (X2,Y2), CONF))) / SP), maxTimeAdvance(< S' : Context | obstacles : CONF > CONF2))
+        min((distance((X,Y), getLocation(obstacleInWay((X,Y), (X3,Y3), CONF))) / SP), maxTimeAdvance(< S' : Context | obstacles : CONF > CONF2))
     else 
-        min((distance((X,Y), (X2,Y2)) / SP), maxTimeAdvance(< S' : Context | obstacles : CONF > CONF2))
+        min((distance((X,Y), (X3,Y3)) / SP), maxTimeAdvance(< S' : Context | obstacles : CONF > CONF2))
     fi .
-
 
     eq timeEffect(none, N) = none .
     ***call timeEffect on every object in the configuration.
-    eq timeEffect(< S : Context | >, N) = none .
+    eq timeEffect(< S : Context | >, N) = < S : Context | > .
     eq timeEffect(< S : Map | > CONF, N) = < S : Map | > timeEffect(CONF, N) .
 
     ***If a robot would move "into" an obstacle, it crashes instead.
     eq timeEffect(< S : Robot | remainingPath : nil > CONF, N) = < S : Robot | > timeEffect(CONF, N) .
     eq timeEffect(< S : Robot | state : crashed > CONF, N) = < S : Robot | > timeEffect(CONF,N) .
-    eq timeEffect(< S : Robot | location : (X,Y), direction : north, speed : SP, remainingPath : (X,Y2) LL, state : moving > < S' : Context | obstacles : CONF2 > CONF, N)
+    eq timeEffect(< S : Robot | location : (X,Y), direction : north, speed : SP, remainingPath : {(X,Y2) (X3, Y3)} P, state : moving > < S' : Context | obstacles : CONF2 > CONF, N)
         =
         if (X,Y + (SP * N)) in CONF2 then
             < S : Robot | location : (X, (Y - 1) + (SP * N)), state : crashed > timeEffect(< S' : Context | obstacles : CONF2 > CONF, N)
@@ -81,7 +81,7 @@ omod TIMED-FARM is
                     < S : Robot | location : (X, Y + (N * SP)) >  timeEffect(< S' : Context | obstacles : CONF2 > CONF, N)
             fi 
         fi .
-    eq timeEffect(< S : Robot | location : (X,Y), direction : east, speed : SP, remainingPath : (X2, Y) LL, state : moving > < S' : Context | obstacles : CONF2 > CONF, N)
+    eq timeEffect(< S : Robot | location : (X,Y), direction : east, speed : SP, remainingPath : {(X2,Y) (X3, Y3)} P, state : moving > < S' : Context | obstacles : CONF2 > CONF, N)
         =
         if (X + (SP * N), Y) in CONF2 then
             < S : Robot | location : ((X - 1) + (SP * N), Y), state : crashed > timeEffect(< S' : Context | obstacles : CONF2 > CONF, N)
@@ -93,7 +93,7 @@ omod TIMED-FARM is
                     < S : Robot | location : (X + (SP * N), Y) > timeEffect(< S' : Context | obstacles : CONF2 > CONF, N)
             fi
         fi .
-    eq timeEffect(< S : Robot | location : (X , Y), direction : south, speed : SP, remainingPath : (X,Y2) LL, state : moving > < S' : Context | obstacles : CONF2 > CONF, N)
+    eq timeEffect(< S : Robot | location : (X , Y), direction : south, speed : SP, remainingPath : {(X,Y2) (X3, Y3)} P, state : moving > < S' : Context | obstacles : CONF2 > CONF, N)
         =
         if (X, Y - (SP * N)) in CONF then
             < S : Robot | location : (X, (Y + 1) - (SP * N)), state : crashed > timeEffect(< S' : Context | obstacles : CONF2 > CONF, N)
@@ -105,7 +105,7 @@ omod TIMED-FARM is
                     < S : Robot | location : (X, Y - (SP * N)) > timeEffect(< S' : Context | obstacles : CONF2 > CONF, N)
             fi
         fi .
-    eq timeEffect(< S : Robot | location : (X , Y), direction : west, speed : SP, remainingPath : (X2, Y) LL, state : moving > < S' : Context | obstacles : CONF2 > CONF, N)
+    eq timeEffect(< S : Robot | location : (X , Y), direction : west, speed : SP, remainingPath : {(X2,Y) (X3, Y3)} P, state : moving > < S' : Context | obstacles : CONF2 > CONF, N)
         =
         if (X - (SP * N), Y) in CONF then
             < S : Robot | location : ((X + 1) - (SP * N), Y), state : crashed > timeEffect(< S' : Context | obstacles : CONF2 > CONF, N)
@@ -119,10 +119,9 @@ omod TIMED-FARM is
         fi .
 
     eq timeEffect(< S : Growing-loc | waterLevel : low, fertilizerLevel : low > CONF, N) = < S : Growing-loc | > timeEffect(CONF, N) .
-    eq timeEffect(< S : Growing-loc | waterLevel : low, fertilizerTimer : N2 > CONF, N) = < S : Growing-loc | fertilizerTimer : minusToZero(N2,N) > timeEffect(CONF, N) .
-    eq timeEffect(< S : Growing-loc | fertilizerLevel : low, waterTimer : N2 > CONF, N) = < S : Growing-loc | waterTimer : minusToZero(N2,N) > timeEffect(CONF, N) . 
-    eq timeEffect(< S : Growing-loc | waterTimer : N2, fertilizerTimer : N3, growTimer : N4 > CONF, N) =
+    eq timeEffect(< S : Growing-loc | waterLevel : good, fertilizerLevel : good, waterTimer : N2, fertilizerTimer : N3, growTimer : N4 > CONF, N) =
         < S : Growing-loc | waterTimer : minusToZero(N2,N), fertilizerTimer : minusToZero(N3, N), growTimer : minusToZero(N4, N) > timeEffect(CONF, N) .
+    eq timeEffect(< S : Growing-loc | waterTimer : N2, fertilizerTimer : N3 > CONF, N) = < S : Growing-loc | waterTimer : minusToZero(N2,N), fertilizerTimer : minusToZero(N3,N) > timeEffect(CONF, N) [owise] . 
 
     crl [timeEffect] :
         CONF @ T

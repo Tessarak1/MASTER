@@ -16,7 +16,7 @@ omod TIMED-TESTS is
   eq I3 = < "I3" : Intersection | location : (0,5), neighbors : "I1" "I4" > .
   eq I4 = < "I4" : Intersection | location : (10, 5), neighbors : "I3" "I5" > .
   eq I5 = < "I5" : Intersection | location : (10,0), neighbors : "I2" "I4" "G1" > .
-  eq G1 = < "G1" : Greenhouse | location : (15,0), neighbors : "I5", state : growing, waterLevel : good, fertilizerLevel : good, content : pepper, waterTimer : 100, fertilizerTimer : 100, growTimer : 100, growingArea : area((15,0),(20,0),(15,5),(20,5)) > .
+  eq G1 = < "G1" : Greenhouse | location : (15,0), neighbors : "I5", growingState : growing, waterLevel : good, fertilizerLevel : good, content : pepper, waterTimer : 100, fertilizerTimer : 100, growTimer : 100, growingArea : area((15,0),(20,0),(15,5),(20,5)) > .
   eq R1 = < "R1" : Worker | location : (0,0), direction : north, speed : 1, remainingPath : nil, cargoLevel : full, curCargo : water, movementType : ground, state : idle > .
   eq T1 = < "T1" : Transporter | location : (15,0), direction : north, speed : 5, remainingPath : nil, cargoLevel : empty, state : idle > .
   eq C = < "C" : CPoint | location : (0,-5), storage : none, neighbors : "I1" > .
@@ -29,7 +29,7 @@ omod TIMED-TESTS is
   ops MapSolo RSolo : -> Object .
   op con1 : -> Object .
   op initSolo : -> ClockedConfiguration .
-  op testFunc : Object Time Object -> Object .
+  op conf : -> Configuration .
 
   vars CONF CONF2 CONF3 : Configuration .
   var T : Time .
@@ -47,7 +47,8 @@ omod TIMED-TESTS is
   eq I13 = < "I13" : Intersection | location : (0,5), neighbors : "I11" "I14" > .
   eq I14 = < "I14" : Intersection | location : (5,5), neighbors : "I12" "I13" > .
   eq MapSolo = < "Map" : Map | allIntersections : I11 I12 I13 I14 > .
-  eq RSolo = < "R" : Transporter | location : (0,0), direction : east, speed : 1, remainingPath : (5,0) (5,5) (0,5), state : moving > .
+  eq RSolo = < "R" : Transporter | location : (0,0), direction : east, speed : 1, remainingPath : pathConvert((0,0)(5,0) (5,5) (0,5)), state : moving > .
   eq con1 = < "Con1" : Context | obstacles : < "O" : Obstacle | location : (3,0) > > .
-  eq initSolo = MapSolo RSolo con1 @ 0 .
+  eq conf = MapSolo RSolo con1 .
+  eq initSolo = conf @ 0 .
 endom
