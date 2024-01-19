@@ -1,31 +1,29 @@
 fmod NAT-INF is
     protecting NAT .
-        sort Nat-Inf .
-        subsort Nat < Nat-Inf .
+        sort NatInf .
+        subsort Nat < NatInf .
 
-        op Inf : -> Nat-Inf [ctor] .
+        op natInf : -> NatInf [ctor] .
         
-        op _<_ : Nat-Inf Nat-Inf -> Bool [ditto] .
-        op _<=_ : Nat-Inf Nat-Inf -> Bool [ditto] .
-        op _>_ : Nat-Inf Nat-Inf -> Bool [ditto] .
-        op _>=_ : Nat-Inf Nat-Inf -> Bool [ditto] .
+        op _<_ : NatInf NatInf -> Bool [ditto] .
+        op _<=_ : NatInf NatInf -> Bool [ditto] .
+        op _>_ : NatInf NatInf -> Bool [ditto] .
+        op _>=_ : NatInf NatInf -> Bool [ditto] .
 
-        ops min max : Nat-Inf Nat-Inf -> Nat-Inf [ditto] .
+        ops min max : NatInf NatInf -> NatInf [ditto] .
 
         var N : Nat .
-        vars INF : Nat-Inf .
+        vars INF : NatInf .
 
-        eq N < Inf = true .
-        eq Inf < INF = false .
-        eq INF <= Inf = true .
-        eq Inf <= N = false .
-        eq Inf > N = true . 
-        eq INF > Inf = false .
-        eq Inf >= INF = true .
-        eq N >= Inf = false .
+        eq N < natInf = true .
+        eq natInf < INF = false .
+        eq INF <= natInf = true .
+        eq natInf <= N = false .
+        eq natInf > N = true . 
+        eq INF > natInf = false .
+        eq natInf >= INF = true .
+        eq N >= natInf = false .
 
-        eq max(INF, Inf) = Inf .
-        eq min(INF, Inf) = INF .
-
-
+        eq max(INF, natInf) = natInf .
+        eq min(INF, natInf) = INF .
 endfm 

@@ -2,29 +2,26 @@
 attributes and rules between the two types of robots. )***
 load time-inf .
 load pathfinder .
-load sorts .
 load message .
 load map .
 load growing-loc .
 load collectionPoint .
 load dock .
-
+load entity .
 omod ROBOT is 
     protecting MESSAGE .
     protecting MAP .
-    protecting SORTS .
+    protecting ENTITY .
     protecting TIME-INF .
     protecting RAT .
-    protecting LIST-LOCATION .
     protecting INT .
-    protecting PATHFINDER .
     protecting GROWING-LOC .
     protecting CPOINT .
     protecting DOCK .
+    protecting PATHFINDER .
 
     sort CargoLevel .
     sorts WorkerCargo TransporterCargo Cargo .
-    sorts RobotState WorkerState TransporterState .
     sort MovementType .
     ***Workers can plant fields or greenhouses, so they should have seeds as part of cargo.
     sort Seed .
@@ -32,60 +29,44 @@ omod ROBOT is
     subsort Produce < TransporterCargo .
     subsort TransporterCargo WorkerCargo < Cargo . 
     subsort Empty Full < CargoLevel .
-    subsort WorkerState TransporterState < RobotState .
 
-    ops moving idle crashed refillingWater refillingFertilizer refillingSeeds : -> RobotState [ctor] .
-    ops fertilizing watering : -> WorkerState [ctor] .
-    ops harvesting transporting unloading : -> TransporterState [ctor] .
     ops flying ground : -> MovementType [ctor] .
     ops saladSeed potatoSeed turnipSeed pepperSeed tomatoSeed cucumberSeed wheatSeed ryeSeed peachSeed : -> Seed [ctor] .
 
-    class Robot | location : Location, direction : Direction, speed : Int, remainingPath : List-Location, cargoLevel : CargoLevel, state : RobotState, curCargo : Cargo .
+    class Robot | cargoLevel : CargoLevel, curCargo : Cargo .
     class Worker | movementType : MovementType .
     class Transporter .
-    subclass Worker Transporter < Robot .
+    subclass Worker Transporter < Robot < Entity .
 
     var CONF : Configuration .
     vars S S' S2 S2' : String .
     vars X Y : Int .
     vars X2 Y2 : Int .
+    vars X3 Y3 : Int .
     var A : Area .
     var LL : List-Location .
     var C : Content .
     var TC : TransporterCargo .
     var STOR : Storage .
     ***used to set the robot along a new direction when it arrives at an intersection.
-    op setDirection : Location Location -> Direction .
-    ceq setDirection((X,Y), (X2,Y2)) = north if Y2 > Y .
-    ceq setDirection((X,Y), (X2,Y2)) = east if X2 > X .
-    ceq setDirection((X,Y), (X2,Y2)) = south if Y2 < Y .
-    ceq setDirection((X,Y), (X2,Y2)) = west if X2 < X .
 
-    rl [finish] :
-        < S : Robot | location : (X , Y), remainingPath : (X, Y), state : moving > 
-        =>  
-        < S : Robot | speed : 0, remainingPath : nil, state : idle > .
-    rl [nextIntersection] :
-        < S : Robot | location : (X , Y), remainingPath : (X , Y) (X2, Y2) LL > 
-        =>
-        < S : Robot | direction : setDirection((X , Y), (X2, Y2)), remainingPath : (X2, Y2) LL > .
     rl [rcvWaterMessage] :
         < S : Worker | location : (X , Y), remainingPath : nil, cargoLevel : full, curCargo : water, state : idle > < S' : Map | allIntersections : CONF > 
         (msg water S2 from S2 to worker)
         =>
-        < S : Worker | remainingPath : (X,Y) dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), state : moving > 
+        < S : Worker | remainingPath : dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), state : moving > 
         < S' : Map | > .
     rl [rcvFertilizerMessage] :
         < S : Worker | location : (X,Y), remainingPath : nil, cargoLevel : full, curCargo : fertilizer, state : idle > < S' : Map | allIntersections : CONF >
         (msg fertilize S2 from S2 to worker)
         =>
-        < S : Worker | remainingPath : (X,Y) dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), state : moving >
+        < S : Worker | remainingPath : dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), state : moving >
         < S' : Map | > .
     rl [rcvHarvestMessage] :
         < S : Transporter | location : (X,Y), remainingPath : nil, cargoLevel : empty, state : idle > < S' : Map | allIntersections : CONF >
         (msg harvest S2 from S2 to worker)
         =>
-        < S : Transporter | remainingPath : (X,Y) dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), state : moving >
+        < S : Transporter | remainingPath : dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), state : moving >
         < S' : Map | > .
     ***Rules for when robot has arrived at growing-loc and starts a task.
     rl [startWatering] :
@@ -102,7 +83,7 @@ omod ROBOT is
         < S2 : Growing-loc | > .
     rl [startHarvesting] :
         < S : Transporter | location : (X,Y), remainingPath : nil, state : idle, cargoLevel : empty >
-        < S2 : Growing-loc | location : (X,Y), state : harvest, growingArea : A > 
+        < S2 : Growing-loc | location : (X,Y), growingState : harvest, growingArea : A > 
         =>
         < S : Transporter | remainingPath : coverArea((X,Y), A), state : harvesting, speed : 1 >
         < S2 : Growing-loc | > .
@@ -128,12 +109,12 @@ omod ROBOT is
         < S2 : Growing-loc | fertilizerLevel : good, fertilizerTimer : 100 > .
     rl [finishHarvesting] :
         < S : Transporter | location : (X,Y), remainingPath : (X,Y), state : harvesting >
-        < S' : Growing-loc | location : (X,Y), state : harvest, content : C >  
-        < S2 : CPoint | location : (X2, Y2) >
+        < S' : Growing-loc | location : (X,Y), growingState : harvest, content : C >  
+        < S2 : CPoint | >
         < S2' : Map | allIntersections : CONF >
         =>
         < S : Transporter | remainingPath : dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), speed : 1,  cargoLevel : full, state : transporting >
-        < S' : Growing-loc | state : empty >
+        < S' : Growing-loc | growingState : empty >
         < S2 : CPoint | >
         < S2' : Map | > .
     rl [finishUnloading] :
@@ -142,5 +123,4 @@ omod ROBOT is
         =>
         < S : Transporter | state : idle, cargoLevel : empty >
         < S2 : CPoint | storage : addToStorage(TC, STOR) > .
-
 endom
