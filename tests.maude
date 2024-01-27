@@ -26,8 +26,9 @@ omod TIMED-TESTS is
   eq init3 = T1 G1 C Map @ 0 .
 
   ***Solo robot tests with static obstacles.
-  ops MapSolo RSolo : -> Object .
-  op con1 : -> Object .
+  op MapSolo : -> Object . 
+  ops RSolo RSolo2 : -> Object .
+  op obstacles : -> Configuration .
   op initSolo : -> ClockedConfiguration .
   op conf : -> Configuration .
 
@@ -47,8 +48,9 @@ omod TIMED-TESTS is
   eq I13 = < "I13" : Intersection | location : (0,5), neighbors : "I11" "I14" > .
   eq I14 = < "I14" : Intersection | location : (5,5), neighbors : "I12" "I13" > .
   eq MapSolo = < "Map" : Map | allIntersections : I11 I12 I13 I14 > .
-  eq RSolo = < "R" : Transporter | location : (0,0), direction : east, speed : 1, remainingPath : pathConvert((0,0)(5,0) (5,5) (0,5)), state : moving > .
-  eq con1 = < "Con1" : Context | obstacles : < "O" : Obstacle | location : (3,0) > > .
-  eq conf = MapSolo RSolo con1 .
+  eq RSolo = < "R" : Transporter | location : (0,0), direction : east, speed : 1, remainingPath : (5,0) (5,5) (0,5), state : moving > .
+  eq RSolo2 = < "R2" : Worker | location : (5,0), direction : west, speed : 1, remainingPath : (0,0), state : moving > .
+  eq obstacles = < "O" : Obstacle | location : (3,0) > .
+  eq conf = MapSolo RSolo RSolo2 .
   eq initSolo = conf @ 0 .
 endom

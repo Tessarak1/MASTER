@@ -14,7 +14,6 @@ omod ROBOT is
     protecting ENTITY .
     protecting TIME-INF .
     protecting RAT .
-    protecting INT .
     protecting GROWING-LOC .
     protecting CPOINT .
     protecting DOCK .
@@ -73,36 +72,36 @@ omod ROBOT is
         < S : Worker | location : (X,Y), remainingPath : nil, state : idle, cargoLevel : full, curCargo : water > 
         < S2 : Growing-loc | location : (X,Y), waterLevel : low, growingArea : A >
         =>
-        < S : Worker | remainingPath : pathConvert(coverArea((X,Y), A)), state : watering, speed : 1 > 
+        < S : Worker | remainingPath : coverArea((X,Y), A), state : watering, speed : 1 > 
         < S2 : Growing-loc | > .
     rl [startFertilizing] :
         < S : Worker | location : (X,Y), remainingPath : nil, state : idle, cargoLevel : full, curCargo : fertilizer >
         < S2 : Growing-loc | location : (X,Y), fertilizerLevel : low, growingArea : A >
         =>
-        < S : Worker | remainingPath : pathConvert(coverArea((X,Y), A)), state : fertilizing, speed : 1 >
+        < S : Worker | remainingPath : coverArea((X,Y), A), state : fertilizing, speed : 1 >
         < S2 : Growing-loc | > .
     rl [startHarvesting] :
         < S : Transporter | location : (X,Y), remainingPath : nil, state : idle, cargoLevel : empty >
         < S2 : Growing-loc | location : (X,Y), growingState : harvest, growingArea : A > 
         =>
-        < S : Transporter | remainingPath : pathConvert(coverArea((X,Y), A)), state : harvesting, speed : 1 >
+        < S : Transporter | remainingPath : coverArea((X,Y), A), state : harvesting, speed : 1 >
         < S2 : Growing-loc | > .
     ***Transporter behavior at collection point.
     rl [startUnloading] :
-        < S : Transporter | location : (X,Y), remainingPath : {(X2,Y2) (X,Y)}, state : transporting, cargoLevel : full >
+        < S : Transporter | location : (X,Y), remainingPath : (X,Y), state : transporting, cargoLevel : full >
         < S2 : CPoint | location : (X,Y) >
         =>
         < S : Transporter | remainingPath : nil, state : unloading > 
         < S2 : CPoint | > .
     ***Rules for when a robot finishes a task
     rl [finishWatering] :
-        < S : Worker | location : (X,Y), remainingPath : {(X2,Y2) (X,Y)}, state : watering >
+        < S : Worker | location : (X,Y), remainingPath : (X,Y), state : watering >
         < S2 : Growing-loc | location : (X,Y), waterLevel : low >
         =>
         < S : Worker | state : idle, cargoLevel : empty >
         < S2 : Growing-loc | waterLevel : good, waterTimer : 100 > .
     rl [finishFertilizing] :
-        < S : Worker | location : (X,Y), remainingPath : {(X2,Y2) (X,Y)}, state : fertilizing >
+        < S : Worker | location : (X,Y), remainingPath : (X,Y), state : fertilizing >
         < S2 : Growing-loc | location : (X,Y), fertilizerLevel : low >
         =>
         < S : Worker | state : idle, cargoLevel : empty >

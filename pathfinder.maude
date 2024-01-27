@@ -1,6 +1,7 @@
 load map .
 load nat-inf .
 load sorts .
+load path .
 omod INTERSECTION-TRIPLE is
     protecting NAT-INF .
     protecting INTERSECTION .
@@ -84,9 +85,9 @@ omod PATHFINDER is
     protecting MAP .
     protecting INT .
     protecting SORTS .
+    protecting PATH .
 
     op placeholder : -> Object .
-    op setDirection : Location Location -> Direction .
     op convert : Configuration Object -> PQueue .
     op oneNeighbor : INPTriple INPTriple PQueue -> PQueue .
     op recurNeighborSearch : INPTriple PQueue -> PQueue .
