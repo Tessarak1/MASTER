@@ -1,19 +1,19 @@
-load location .
+load physicalObject .
+load robot .
 omod OBSTACLE is
-    protecting LOCATION .
-    protecting STRING .
+    protecting PHYSICAL-OBJ .
 
-    class Obstacle | location : Location .
-    subsort String < Oid .
+    class Obstacle .
+    subclass Obstacle < PhysicalObj .
 
-    op getLocation : Object -> Location .
     op obstacleSet : Location Location Configuration -> Configuration .
     op _in_ : Location Configuration -> Bool .
 
-    ***Takes in two locations, A and B, and the existing obstacles.
-    ***Returns the obstacle that is between A and B and returns the closest one to A.
+    ***Takes in two locations, A and B, and the physical objects in the system.
+    ***Creates a set of the objects that are between A and B and returns the one that is closes to A.
     op obstacleInWay : Location Location Configuration -> Configuration .
 
+    ***Returns the object with the highest or lowest X or Y coordinate value in the configuration.
     op maxObstacleX : Object Configuration -> Object .
     op minObstacleX : Object Configuration -> Object .
     op maxObstacleY : Object Configuration -> Object .
@@ -23,32 +23,50 @@ omod OBSTACLE is
     vars S S' : String .
     var CONF : Configuration .
 
-    eq getLocation(< S : Obstacle | location : (X,Y) >) = (X,Y) .
-
     eq obstacleSet((X,Y), (X2,Y2), none) = none .
-    ceq obstacleSet((X,Y), (X,Y2), < S : Obstacle | location : (X,Y3) > CONF) = < S : Obstacle | > obstacleSet((X,Y), (X,Y2), CONF) if (Y3 > Y) and (Y3 <= Y2) .
-    ceq obstacleSet((X,Y), (X,Y2), < S : Obstacle | location : (X,Y3) > CONF) = < S : Obstacle | > obstacleSet((X,Y), (X,Y2), CONF) if (Y3 <= Y) and (Y3 > Y2) .
-    ceq obstacleSet((X,Y), (X2,Y), < S : Obstacle | location : (X3, Y) > CONF) = < S : Obstacle | > obstacleSet((X,Y), (X2,Y), CONF) if X3 > X and X3 <= X2 .
-    ceq obstacleSet((X,Y), (X2,Y), < S : Obstacle | location : (X3, Y) > CONF) = < S : Obstacle | > obstacleSet((X,Y), (X2,Y), CONF) if X3 <= X and X3 > X2 .
+    ceq obstacleSet((X,Y), (X,Y2), < S : PhysicalObj | location : (X,Y3) > CONF) = < S : PhysicalObj | > obstacleSet((X,Y), (X,Y2), CONF) if (Y3 > Y) and (Y3 <= Y2) .
+    ceq obstacleSet((X,Y), (X,Y2), < S : PhysicalObj | location : (X,Y3) > CONF) = < S : PhysicalObj | > obstacleSet((X,Y), (X,Y2), CONF) if (Y3 <= Y) and (Y3 > Y2) .
+    ceq obstacleSet((X,Y), (X2,Y), < S : PhysicalObj | location : (X3, Y) > CONF) = < S : PhysicalObj | > obstacleSet((X,Y), (X2,Y), CONF) if X3 > X and X3 <= X2 .
+    ceq obstacleSet((X,Y), (X2,Y), < S : PhysicalObj | location : (X3, Y) > CONF) = < S : PhysicalObj | > obstacleSet((X,Y), (X2,Y), CONF) if X3 <= X and X3 > X2 .
     eq obstacleSet((X,Y), (X2,Y2), CONF) = none [owise] .
 
     eq (X,Y) in none = false .
-    eq (X,Y) in < S : Obstacle | location : (X,Y) > CONF = true .
-    eq (X,Y) in < S : Obstacle | location : (X2,Y2) > CONF = (X,Y) in CONF .
+    eq (X,Y) in < S : PhysicalObj | location : (X,Y) > CONF = true .
+    eq (X,Y) in < S : PhysicalObj | location : (X2,Y2) > CONF = (   X,Y) in CONF .
 
-    eq maxObstacleY(< S : Obstacle | >, none) = < S : Obstacle | > .
-    eq maxObstacleY(none, < S : Obstacle | > CONF) = maxObstacleY(< S : Obstacle | >, CONF) .
-    eq maxObstacleY(< S : Obstacle | location : (X, Y) >, < S' : Obstacle | location : (X2, Y2) > CONF) = if (Y2 > Y) then maxObstacleY(< S' : Obstacle | >, CONF) else maxObstacleY(< S : Obstacle | >, CONF) fi .
-    eq minObstacleY(< S : Obstacle | >, none) = < S : Obstacle | > .
-    eq minObstacleY(none, < S : Obstacle | > CONF) = minObstacleY(< S : Obstacle | >, CONF) .    
-    eq minObstacleY(< S : Obstacle | location : (X, Y) >, < S' : Obstacle | location : (X2, Y2) > CONF) = if (Y2 < Y) then minObstacleY(< S' : Obstacle | >, CONF) else minObstacleY(< S : Obstacle | >, CONF) fi .
+    eq maxObstacleY(< S : PhysicalObj | >, none) = < S : PhysicalObj | > .
+    eq maxObstacleY(none, < S : PhysicalObj | > CONF) = maxObstacleY(< S : PhysicalObj | >, CONF) .
+    eq maxObstacleY(< S : PhysicalObj | location : (X, Y) >, < S' : PhysicalObj | location : (X2, Y2) > CONF) =
+        if (Y2 > Y) then
+            maxObstacleY(< S' : PhysicalObj | >, CONF)
+        else
+            maxObstacleY(< S : PhysicalObj | >, CONF)
+        fi .
+    eq minObstacleY(< S : PhysicalObj | >, none) = < S : PhysicalObj | > .
+    eq minObstacleY(none, < S : PhysicalObj | > CONF) = minObstacleY(< S : PhysicalObj | >, CONF) .    
+    eq minObstacleY(< S : PhysicalObj | location : (X, Y) >, < S' : PhysicalObj | location : (X2, Y2) > CONF) =
+        if (Y2 < Y) then
+            minObstacleY(< S' : PhysicalObj | >, CONF)
+        else
+            minObstacleY(< S : PhysicalObj | >, CONF)
+        fi .
 
-    eq maxObstacleX(< S : Obstacle | >, none) = < S : Obstacle | > .
-    eq maxObstacleX(none, < S : Obstacle | > CONF) = maxObstacleX(< S : Obstacle | >, CONF) .
-    eq maxObstacleX(< S : Obstacle | location : (X, Y) >, < S' : Obstacle | location : (X2, Y2) > CONF) = if (X2 > X) then maxObstacleX(< S' : Obstacle | >, CONF) else maxObstacleX(< S : Obstacle | >, CONF) fi .
-    eq minObstacleX(< S : Obstacle | >, none) = < S : Obstacle | > .
-    eq minObstacleX(none, < S : Obstacle | > CONF) = minObstacleX(< S : Obstacle | >, CONF) .    
-    eq minObstacleX(< S : Obstacle | location : (X, Y) >, < S' : Obstacle | location : (X2, Y2) > CONF) = if (X2 < X) then minObstacleX(< S' : Obstacle | >, CONF) else minObstacleX(< S : Obstacle | >, CONF) fi .
+    eq maxObstacleX(< S : PhysicalObj | >, none) = < S : PhysicalObj | > .
+    eq maxObstacleX(none, < S : PhysicalObj | > CONF) = maxObstacleX(< S : PhysicalObj | >, CONF) .
+    eq maxObstacleX(< S : PhysicalObj | location : (X, Y) >, < S' : PhysicalObj | location : (X2, Y2) > CONF) =
+        if (X2 > X) then
+            maxObstacleX(< S' : PhysicalObj | >, CONF)
+        else 
+            maxObstacleX(< S : PhysicalObj | >, CONF)
+        fi .
+    eq minObstacleX(< S : PhysicalObj | >, none) = < S : PhysicalObj | > .
+    eq minObstacleX(none, < S : PhysicalObj | > CONF) = minObstacleX(< S : PhysicalObj | >, CONF) .    
+    eq minObstacleX(< S : PhysicalObj | location : (X, Y) >, < S' : PhysicalObj | location : (X2, Y2) > CONF) =
+        if (X2 < X) then
+            minObstacleX(< S' : PhysicalObj | >, CONF)
+        else
+            minObstacleX(< S : PhysicalObj | >, CONF)
+        fi .
     
     ceq obstacleInWay((X,Y), (X,Y2), CONF) = minObstacleY(none, CONF) if (Y2 > Y) and (obstacleSet((X,Y), (X,Y2), CONF) =/= none) .
     ceq obstacleInWay((X,Y), (X,Y2), CONF) = maxObstacleY(none, CONF) if (Y2 < Y) and (obstacleSet((X,Y), (X,Y2), CONF) =/= none) .
@@ -56,3 +74,4 @@ omod OBSTACLE is
     ceq obstacleInWay((X,Y), (X2,Y), CONF) = maxObstacleX(none, CONF) if (X2 < X) and (obstacleSet((X,Y), (X2,Y), CONF) =/= none) .
     eq obstacleInWay((X,Y), (X2,Y2), CONF) = none [owise] .
 endom
+

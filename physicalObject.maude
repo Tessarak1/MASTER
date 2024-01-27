@@ -1,0 +1,9 @@
+load location .
+omod PHYSICAL-OBJ is
+    protecting LOCATION .
+    protecting STRING .
+
+    class PhysicalObj | location : Location .
+
+    subsort String < Oid .
+endom

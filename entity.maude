@@ -1,21 +1,19 @@
 load sorts .
+load physicalObject .
 omod ENTITY is
-    protecting INT .
+    protecting PHYSICAL-OBJ .
     protecting LIST-LOCATION .
     protecting SORTS .
     
     sort State .
-    sort Direction .
 
-    class Entity | location : Location, direction : Direction, speed : Int, maxSpeed : Int, remainingPath : List-Location, state : State .
-    class Entities | entities : Configuration .
-    
-    ops north east south west : -> Direction [ctor] .
+    class Entity | direction : Direction, speed : Int, maxSpeed : Int, remainingPath : List-Location, state : State .
+    subclass Entity < PhysicalObj .    
+
     ops moving idle crashed refillingWater refillingFertilizer refillingSeeds fertilizing watering harvesting transporting unloading : -> State [ctor] .
-
     op setDirection : Location Location -> Direction .
 
-    var S : String .
+    vars S : String .
     vars X X2 Y Y2 : Int .
     var LL : List-Location .
     
