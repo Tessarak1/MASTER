@@ -4,20 +4,20 @@ omod MESSAGE-WRAPPER is
   sort MsgContent .
   sort Receiver .
   ***For now, a message can be picked up by harvesters or receivers.
-  ops worker harvester : -> Receiver [ctor] .
+  ops worker harvester human : -> Receiver [ctor] .
   subsort Oid < Receiver .
   op msg_from_to_ : MsgContent Oid Receiver -> Msg [ctor] .
 endom
 
 
 omod MESSAGE is including MESSAGE-WRAPPER .
-    protecting STRING .
-    protecting INTERSECTION .
-    subsort String < Oid .
-    ***Different types of messages, one for each type of operation to be done on a field/Greenhouse
-    ***water a resource
-    op water_ : Oid -> MsgContent .
-    op fertilize_ : Oid -> MsgContent .
-    op harvest_ : Oid -> MsgContent .
-    
+  protecting STRING .
+  protecting INTERSECTION .
+  subsort String < Oid .
+  ***Different types of messages, one for each type of operation to be done on a field/Greenhouse
+  ***water a resource
+  op water_ : Oid -> MsgContent .
+  op fertilize_ : Oid -> MsgContent .
+  op harvest_ : Oid -> MsgContent .
+  op obstacleAt_ : Location -> MsgContent .
 endom

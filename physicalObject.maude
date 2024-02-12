@@ -1,9 +1,15 @@
-load location .
+load locatable .
 omod PHYSICAL-OBJ is
-    protecting LOCATION .
     protecting STRING .
+    protecting LOCATABLE .
 
-    class PhysicalObj | location : Location .
+    class PhysicalObj .
+    subclass PhysicalObj < Locatable .
 
     subsort String < Oid .
+        
+    vars S S' : String .
+    vars L L' : Location .
+
+    eq distance(< S : PhysicalObj | location : L >, < S' : PhysicalObj | location : L' >) = distance(L, L') .
 endom

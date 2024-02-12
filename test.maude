@@ -1,8 +1,0 @@
-load robot .
-load obstacle .
-omod TEST is
-    protecting ROBOT .
-    protecting OBSTACLE .
-
-    
-endom

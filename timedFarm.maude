@@ -12,7 +12,6 @@ omod TIMED-FARM is
     protecting OBSTACLE .
 
     sort ClockedConfiguration .
-    class Context | obstacles : Configuration .
 
     op  _@_ : Configuration Time -> ClockedConfiguration [ctor] .
     op minusToZero : Int Int -> Nat .
@@ -23,18 +22,21 @@ omod TIMED-FARM is
     op collision : Object Object -> Configuration [comm] .
     op handleCollisions : Configuration -> Configuration .
     op updateLocation : Object -> Object .
+    op detect : Configuration -> Configuration .
 
     vars CONF CONF2 CONF3 : Configuration .
     var OBS : Configuration .
     var T : Time .
     var O : Object .
-    vars S S' : String .
+    vars S S2 : String .
     vars X X2 Y Y2 X3 Y3 SP SP' : Int .
     vars N N' N2 N3 N4 : Nat .
     var LL : List-Location .
     vars I I2 : Int .
     vars NI NI2 : NatInf .
     vars D D' : Direction .
+    var R : Representation .
+    var C : Cid .
 
     eq minusToZero(I, I2) = if (I - I2) < 0 then 0 else I - I2 fi .
     eq minIgnoreZero(0,0) = natInf .
@@ -46,15 +48,15 @@ omod TIMED-FARM is
     eq updateLocation(< S : Entity | location : (X,Y), direction : south >) = < S : Entity | location : (X, Y + 1) > .
     eq updateLocation(< S : Entity | location : (X,Y), direction : west >) = < S : Entity | location : (X + 1, Y) > .
 
-    eq collision(< S : Entity | location : (X,Y) >, < S' : Obstacle | >) =  updateLocation(< S : Entity | state : crashed >) < S' : Obstacle | > .
-    ceq collision(< S : Entity | speed : SP >, < S' : Entity | speed : SP' >) = updateLocation(< S : Entity | speed : 0, state : crashed >) < S' : Entity | speed : 0, state : crashed > if SP >= SP' .
+    eq collision(< S : Entity | location : (X,Y) >, < S2 : Obstacle | >) =  updateLocation(< S : Entity | speed : 0, state : crashed >) < S2 : Obstacle | > .
+    ceq collision(< S : Entity | speed : SP >, < S2 : Entity | speed : SP' >) = updateLocation(< S : Entity | speed : 0, state : crashed >) < S2 : Entity | speed : 0, state : crashed > if SP >= SP' .
 
-    eq handleCollisions(< S : Entity | location : (X,Y) > < S' : PhysicalObj | location : (X,Y) > CONF) = collision(< S : Entity | >, < S' : PhysicalObj | >) handleCollisions(CONF) .
+    eq handleCollisions(< S : Entity | location : (X,Y) > < S2 : PhysicalObj | location : (X,Y) > CONF) = collision(< S : Entity | >, < S2 : PhysicalObj | >) handleCollisions(CONF) .
     eq handleCollisions(CONF) = CONF [owise] .
 
     eq calculateAdvance(< S : Entity | location : (X,Y), speed : SP, remainingPath : (X2,Y2) LL >, none) = distance((X,Y), (X2,Y2)) / SP .
-    ceq calculateAdvance(< S : Entity | location : (X,Y), speed : SP, direction : D >, < S' : Entity | location : (X2,Y2), speed : SP', direction : D' >) = distance((X,Y), (X2,Y2)) / (SP + SP') if (D == north and D' == south) or (D == east and D' == west) .
-    eq calculateAdvance(< S : Entity | location : (X,Y), speed : SP >, < S' : Obstacle | location : (X2,Y2) >) = distance((X,Y), (X2,Y2)) / SP [owise] .
+    ceq calculateAdvance(< S : Entity | location : (X,Y), speed : SP, direction : D >, < S2 : Entity | location : (X2,Y2), speed : SP', direction : D' >) = distance((X,Y), (X2,Y2)) / (SP + SP') if (D == north and D' == south) or (D == east and D' == west) .
+    eq calculateAdvance(< S : Entity | location : (X,Y), speed : SP >, < S2 : Obstacle | location : (X2,Y2) >) = distance((X,Y), (X2,Y2)) / SP [owise] .
 
     eq maxTimeAdvance(< S : Map | > CONF) = maxTimeAdvance(CONF) .
     eq maxTimeAdvance(CONF) = inf [owise] .
@@ -67,9 +69,8 @@ omod TIMED-FARM is
     eq maxTimeAdvance(< S : Growing-loc | growTimer : 0, growingState : growing > CONF) = 0 .
     eq maxTimeAdvance(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2 > CONF) = min(minIgnoreZero(N2,minIgnoreZero(N,N')), maxTimeAdvance(CONF)) .
 
-    ***maxTimeAdvance on robots returns a natural number based on how many times the robot can move until it reaches the next intersection or obstacle in its path
-    ***If there is an obstacle in the way then check if the robot would collide if it and update maxTimeAdvance accordingly.
-    ***Ignore robots that are finished with their path.
+    ceq maxTimeAdvance(< S : Robot | detected : R > CONF) = 0 if R =/= nil .
+
     eq maxTimeAdvance(< S : Entity | remainingPath : nil > CONF) = maxTimeAdvance(CONF) .
     eq maxTimeAdvance(< S : Entity | state : crashed > CONF) = maxTimeAdvance(CONF) .
     eq maxTimeAdvance(< S : Entity | location : (X, Y), speed : SP, remainingPath : (X2, Y2) LL > CONF)
@@ -79,7 +80,6 @@ omod TIMED-FARM is
     ***call maxTimeAdvance on every object in the configuration.
     eq timeEffect(none, N) = none .
     ***call timeEffect on every object in the configuration.
-    eq timeEffect(< S : Context | >, N) = < S : Context | > .
     eq timeEffect(< S : Map | > CONF, N) = < S : Map | > timeEffect(CONF, N) .
     eq timeEffect(< S : Obstacle | > CONF, N) = < S : Obstacle | > timeEffect(CONF, N) .
     ***Entities move in the direction depending on how much time passes and their speed.
@@ -98,9 +98,13 @@ omod TIMED-FARM is
     eq timeEffect(< S : Growing-loc | waterTimer : N, fertilizerTimer : N', growTimer : N2 > CONF, N3) =
         < S : Growing-loc | waterTimer : minusToZero(N,N3), fertilizerTimer : minusToZero(N', N3), growTimer : minusToZero(N2, N3) > .
 
+    ceq detect(< S : Robot | location : (X,Y), detectionRange : N, detected : R > < S2 : PhysicalObj | location : (X2,Y2) > CONF) =
+        detect(< S : Robot | detected : {S2 : PhysicalObj | (X2,Y2)} R > < S2 : PhysicalObj | > CONF) if ((X2,Y2) inArea(makeArea((X,Y), N))) and S2 notIn R .
+    eq detect(CONF) = CONF [owise] .
+
     crl [timeEffect] :
         CONF @ T
         =>
         handleCollisions(timeEffect(CONF, maxTimeAdvance(CONF))) @ (T + maxTimeAdvance(CONF))
-        if maxTimeAdvance(CONF) > 0 .
+        if maxTimeAdvance(CONF) > 0 and maxTimeAdvance(CONF) < inf .
 endom

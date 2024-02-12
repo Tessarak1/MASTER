@@ -13,10 +13,10 @@ omod ENTITY is
     ops moving idle crashed refillingWater refillingFertilizer refillingSeeds fertilizing watering harvesting transporting unloading : -> State [ctor] .
     op setDirection : Location Location -> Direction .
 
-    vars S : String .
+    vars S S' : String .
     vars X X2 Y Y2 : Int .
     var LL : List-Location .
-    
+
     ceq setDirection((X,Y), (X,Y2)) = north if Y2 > Y .
     ceq setDirection((X,Y), (X2,Y)) = east if X2 > X .
     ceq setDirection((X,Y), (X,Y2)) = south if Y2 < Y .

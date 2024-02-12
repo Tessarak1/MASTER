@@ -7,13 +7,15 @@ load map .
 load growing-loc .
 load collectionPoint .
 load dock .
-load entity .
+load human .
+load obstacle .
+
 omod ROBOT is 
     protecting MESSAGE .
+    protecting OBSTACLE .
     protecting MAP .
-    protecting ENTITY .
+    protecting HUMAN .
     protecting TIME-INF .
-    protecting RAT .
     protecting GROWING-LOC .
     protecting CPOINT .
     protecting DOCK .
@@ -21,18 +23,35 @@ omod ROBOT is
 
     sort CargoLevel .
     sorts WorkerCargo TransporterCargo Cargo .
-    sort MovementType .
+    sort MovementType . 
+    ***Type of object detected and Identificator.
+    sort Representation .
+    sort ObjectType .
+    
     ***Workers can plant fields or greenhouses, so they should have seeds as part of cargo.
     sort Seed .
     subsort Seed Water Fertilizer < WorkerCargo .
     subsort Produce < TransporterCargo .
-    subsort TransporterCargo WorkerCargo < Cargo . 
+    subsort TransporterCargo WorkerCargo < Cargo .
     subsort Empty Full < CargoLevel .
 
     ops flying ground : -> MovementType [ctor] .
     ops saladSeed potatoSeed turnipSeed pepperSeed tomatoSeed cucumberSeed wheatSeed ryeSeed peachSeed : -> Seed [ctor] .
+    op distance : Object Object -> Rat [comm] .
+    op processing : Representation Time -> Representation [frozen (1) right id: 0] .
+    ***Robot does dijkstraSearch from the first intersection to the second.
+    ***Used for shorthand to perform dijkstra on an updated map.
+    op updatePath : Object Configuration Location Location -> Object .
 
-    class Robot | cargoLevel : CargoLevel, curCargo : Cargo .
+    ops obstacle robot human : -> ObjectType [ctor] .
+    op nil : -> Representation [ctor] .
+    op __ : Representation Representation -> Representation [assoc comm id: nil ctor] .
+    ***Todo: refine this based on what information the robot should know.
+    op {_:_|_} : Oid Cid Location -> Representation .
+    ***Checks if an object already is in the representation .
+    op _notIn_ : String Representation -> Bool .
+
+    class Robot | detectionRange : Nat, cargoLevel : CargoLevel, curCargo : Cargo, detected : Representation .
     class Worker | movementType : MovementType .
     class Transporter .
     subclass Worker Transporter < Robot < Entity .
@@ -42,12 +61,58 @@ omod ROBOT is
     vars X Y : Int .
     vars X2 Y2 : Int .
     vars X3 Y3 : Int .
+    var N : Nat .
     var A : Area .
     var LL : List-Location .
     var C : Content .
     var TC : TransporterCargo .
     var STOR : Storage .
-    ***used to set the robot along a new direction when it arrives at an intersection.
+    var R : Representation .
+    var PS : PathSet .
+    var CID : Cid .
+
+    eq updatePath(< S : Robot | location : (X,Y) >, CONF, (X2,Y2), (X3,Y3)) = < S : Robot | remainingPath : (X,Y) dijkstraSearch(CONF, returnByLocation(CONF, (X2,Y2)), returnByLocation(CONF, (X3,Y3))) > .
+
+    eq S notIn {S : CID | (X,Y)} R = false .
+    eq S notIn R = true [owise] .
+
+    ***When first detecting a robot request its path and transmit own path?
+    rl [detectRobot] :
+        < S : Robot | detected : {S' : Robot | (X,Y)} R >
+        =>
+        < S : Robot | > .
+
+    ***if the detected obstacle is in the way then the robot will have to replan its path.
+    ***If the robot no longer has a path to its goal, it will cancel the current task and work on removing the obstacle.
+    ***if the obstacle is not in the way 
+    rl [detectedObstacle] : 
+        < S : Robot | location : (X,Y), remainingPath : LL (X2, Y2), detected : {S' : Obstacle | (X3,Y3)} R > < S2 : Map | allIntersections : CONF, paths : PS >
+        =>
+        if between((X3,Y3), (X,Y) LL (X2,Y2)) =/= nil then
+            ***check if robot is at intersection, can dijkstra from there.
+            if returnByLocation(CONF, (X,Y)) =/= none then
+                ***remove the connection between the intersections where the obstacle is located at.
+                ***Do dijkstraSearch on current location and goal from updated map.
+                updatePath(< S : Robot | detected : R >, removeConnection(between((X3,Y3), (X,Y) LL (X2,Y2)), CONF), (X,Y), (X2,Y2))
+                < S2 : Map | > 
+                (msg obstacleAt (X3,Y3) from S to worker)
+            else
+                ***If you are not at an intersection "create" an intersection where the robot is, add it to the map and do dijkstra.
+                updatePath(< S : Robot | detected : R >, removeConnection(between((X3,Y3), (X,Y) LL (X2,Y2)), newIntersection((X,Y), < S2 : Map | >)), (X,Y), (X2, Y2))
+                < S2 : Map | > 
+                (msg obstacleAt (X3,Y3) from S to worker)
+            fi
+        else
+            ***If the detected obstacle is not in the way proceed as usual after informing other workers.
+            < S : Robot | detected : R >
+            < S2 : Map | > 
+            (msg obstacleAt (X3,Y3) from S to worker)
+        fi .
+
+    rl [detectedHuman] :
+        < S : Robot | detected : {S' : Human | (X,Y)} R >
+        =>
+        < S : Robot | > .
 
     rl [rcvWaterMessage] :
         < S : Worker | location : (X , Y), remainingPath : nil, cargoLevel : full, curCargo : water, state : idle > < S' : Map | allIntersections : CONF > 
