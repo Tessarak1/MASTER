@@ -98,14 +98,6 @@ omod PATHFINDER is
     op coverArea : Location Area -> List-Location .
     op pathConvert : List-Location -> Path .
 
-    op convert : Configuration Object -> PQueue .
-    op oneNeighbor : INPTriple INPTriple PQueue -> PQueue .
-    op recurNeighborSearch : INPTriple PQueue -> PQueue .
-    op recurDijkstraSearch : PQueue -> PQueue .
-    op dijkstraSearch : Configuration Object Object -> List-Location .
-    op $coverArea : Location Location Location Location Bool -> List-Location .
-    op backToStart : Location Location -> List-Location .
-    op coverArea : Location Area -> List-Location .
 
     var M : Map .
     vars I I' I2 I2' : Object .
@@ -145,12 +137,18 @@ omod PATHFINDER is
     eq buildPath(PQ, INP, [< S : Intersection | location : (X,Y) >, NI, < S' : Intersection | >]) = buildPath(PQ, INP, get(S', PQ)) (X,Y) .
 
     ***DijkstraSearch takes in a set of intersections and two intersections, one representing the start point and one representing the goal.
+    ***If the two intersections aren't connected then nil is returned.
     eq dijkstraSearch(CONF, I, I) = nil .
     eq dijkstraSearch(CONF, < S : Intersection | >, < S' : Intersection | >) =
-        buildPath(recurDijkstraSearch(convert(CONF, < S : Intersection | >)),
-            get(S, recurDijkstraSearch(convert(CONF, < S : Intersection | >))),
-            get(S', recurDijkstraSearch(convert(CONF, < S : Intersection | >)))) .
-    
+        if getCurDist(get(S', recurDijkstraSearch(convert(CONF, < S : Intersection | >)))) == natInf then
+            nil
+        else
+            buildPath(recurDijkstraSearch(convert(CONF, < S : Intersection | >)),
+                get(S, recurDijkstraSearch(convert(CONF, < S : Intersection | >))),
+                get(S', recurDijkstraSearch(convert(CONF, < S : Intersection | >))))
+        fi .
+
+    ***TODO: Change this to area being comprised of a location set instead.
     eq $coverArea((X,Y), (X2, Y2), (X,Y), (X2,Y2), true) = (X,Y) (X2, Y2) .
     eq $coverArea((X,Y), (X2, Y2), (X,Y), (X2,Y2), false) = (X2, Y2) (X,Y) .
     eq $coverArea((X,Y), (X2, Y), (X,Y2), (X2,Y2), true) = if Y2 > Y then (X,Y) (X2, Y) $coverArea((X, Y + 1), (X2, Y + 1), (X, Y2), (X2, Y2), false) else (X,Y) (X2, Y) $coverArea((X, Y - 1), (X2, Y - 1), (X, Y2), (X2, Y2), false) fi .

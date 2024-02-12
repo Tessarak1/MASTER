@@ -1,21 +1,17 @@
-load location .
 load oidSet .
+load locatable .
 omod INTERSECTION is
-    protecting LOCATION .
+    protecting LOCATABLE .
     protecting STRING .
     protecting OID-SET .
-    class Intersection | location : Location, neighbors : OidSet .
+    class Intersection | neighbors : OidSet .
+    subclass Intersection < Locatable .
 
-    var O : Oid .
-    var AS : AttributeSet .
+    op oid : Object -> Oid .
+
     vars S S' : String .
     vars L L' : Location .
 
-    ops I1 I2 : -> Object .
-
-    op Oid : Object -> Oid .
-    eq Oid(< O : Intersection | >) = O .
-
-    op distance : Object Object -> Nat [comm] .
+    eq oid(< S : Intersection | >) = S .
     eq distance(< S : Intersection | location : L >, < S' : Intersection | location : L' >) = distance(L, L') .
 endom

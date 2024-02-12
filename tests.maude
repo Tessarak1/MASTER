@@ -47,10 +47,33 @@ omod TIMED-TESTS is
   eq I12 = < "I12" : Intersection | location : (5,0), neighbors : "I11" "I14" > .
   eq I13 = < "I13" : Intersection | location : (0,5), neighbors : "I11" "I14" > .
   eq I14 = < "I14" : Intersection | location : (5,5), neighbors : "I12" "I13" > .
-  eq MapSolo = < "Map" : Map | allIntersections : I11 I12 I13 I14 > .
-  eq RSolo = < "R" : Transporter | location : (0,0), direction : east, speed : 1, remainingPath : (5,0) (5,5) (0,5), state : moving > .
-  eq RSolo2 = < "R2" : Worker | location : (5,0), direction : west, speed : 1, remainingPath : (0,0), state : moving > .
+  eq MapSolo = < "Map" : Map | allIntersections : I11 I12 I13 I14, paths : createPathSet(I11 I12 I13 I14) > .
+  eq RSolo = < "R" : Transporter | location : (0,0), direction : east, speed : 1, remainingPath : (5,0) (5,5) (0,5), state : moving, detected : {"O" : Obstacle | (3,0)} > .
   eq obstacles = < "O" : Obstacle | location : (3,0) > .
-  eq conf = MapSolo RSolo RSolo2 .
+  eq conf = MapSolo RSolo obstacles .
   eq initSolo = conf @ 0 .
+endom
+
+omod TESTS2 is 
+  protecting TIMED-FARM .
+  ops rob rob2 : -> Object .
+  ops map map2 : -> Object .
+  ops I1 I2 I3 I4 : -> Object .
+  ops Line1 Line2 : -> Object .
+  op obstacles : -> Configuration .
+  op init : -> ClockedConfiguration .
+
+  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" > .
+  eq I2 = < "I2" : Intersection | location : (5,0), neighbors : "I1" "I4" > .
+  eq I3 = < "I3" : Intersection | location : (0,5), neighbors : "I1" "I4" > .
+  eq I4 = < "I4" : Intersection | location : (5,5), neighbors : "I3" "I2" > .
+  eq Line1 = < "Line1" : Intersection | location : (0,0), neighbors : "Line2" > .
+  eq Line2 = < "Line2" : Intersection | location : (5,0), neighbors : "Line1" > .
+  eq map = < "Map" : Map | allIntersections : I1 I2 I3 I4, paths : createPathSet(I1 I2 I3 I4) > .
+  eq rob = < "R" : Worker | location : (0,0), detectionRange : 100, speed : 1, direction : east, remainingPath : (5,0), state : moving, detected : nil > .
+  eq rob2 = < "R2" : Worker | location : (5,0), speed : 1, direction : west, remainingPath : (0,0), state : moving > .
+  eq obstacles = < "O" : Obstacle | location : (3,0) > .
+  eq init = map rob obstacles @ 0 .
+
+  eq map2 = < "Map2" : Map | allIntersections : Line1 Line2, paths : createPathSet(Line1 Line2) > .
 endom
