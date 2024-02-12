@@ -76,7 +76,7 @@ omod ROBOT is
     eq S notIn {S : CID | (X,Y)} R = false .
     eq S notIn R = true [owise] .
 
-    ***When first detecting a robot check if it 
+    ***When first detecting a robot request its path and transmit own path?
     rl [detectRobot] :
         < S : Robot | detected : {S' : Robot | (X,Y)} R >
         =>
