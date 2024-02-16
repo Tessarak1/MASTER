@@ -37,6 +37,8 @@ omod TIMED-FARM is
     vars D D' : Direction .
     var R : Representation .
     var C : Cid .
+    var MC : MsgContent .
+    var REC : Receiver .
 
     eq minusToZero(I, I2) = if (I - I2) < 0 then 0 else I - I2 fi .
     eq minIgnoreZero(0,0) = natInf .
@@ -80,6 +82,7 @@ omod TIMED-FARM is
     ***call maxTimeAdvance on every object in the configuration.
     eq timeEffect(none, N) = none .
     ***call timeEffect on every object in the configuration.
+    eq timeEffect((msg MC from S to REC) CONF, N) = timeEffect(CONF, N) .
     eq timeEffect(< S : Map | > CONF, N) = < S : Map | > timeEffect(CONF, N) .
     eq timeEffect(< S : Obstacle | > CONF, N) = < S : Obstacle | > timeEffect(CONF, N) .
     ***Entities move in the direction depending on how much time passes and their speed.
