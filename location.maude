@@ -48,6 +48,8 @@ fmod LIST-LOCATION is
     op first : List-Location -> Location .
     op last : List-Location -> Location  .
     op between : Location List-Location -> List-Location .
+    ***returns total length of path
+    op pathLength : List-Location -> Nat .
 
     var LL : List-Location .
     var L : Location .
@@ -67,4 +69,7 @@ fmod LIST-LOCATION is
         else
             between((X,Y), (X3,Y3) LL)
         fi .
+
+    eq pathLength((X,Y) (X2,Y2) LL) = distance((X,Y), (X2,Y2)) + pathLength((X2,Y2) LL) .
+    eq pathLength(LL) = 0 [owise] .
 endfm
