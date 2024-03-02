@@ -3,25 +3,23 @@ fmod LOCATION is
     ***Sort Area denotes a rectangular area, the locationSet denotes the four corners of said area.
     sorts Location LocationSet Area .
     subsort Location < LocationSet .
-    op (_ , _) : Int Int -> Location [ctor] .
+    op (_,_) : Rat Rat -> Location [ctor] .
     op none : -> LocationSet [ctor] .
     op _,_ : LocationSet LocationSet -> LocationSet [ctor assoc comm] .
     op area : LocationSet -> Area [ctor] .
     op failLocation : -> LocationSet [ctor] .
 
-    op _inInterval(_,_) : Int Int Int -> Bool .
+    op _inInterval(_,_) : Rat Rat Rat -> Bool .
 
     ***Gives the distance between two points, only works on points that are aligned at at least one of the axes.
-    op distance : Location Location -> Nat [comm] .
-    op difference : Nat Nat -> Nat .
+    op distance : Location Location -> Rat [comm] .
+    op difference : Rat Rat -> Rat .
     
     ***Checks if a point is inside an area.
     op _inArea_ : Location Area -> Bool .
-    ***Returns a square area of diameter 2N centered on point (X,Y)
-    op makeArea : Location Nat -> Area .
+    op makeArea : Location Rat -> Area .
 
-    vars X X2 X3 Y Y2 Y3 : Int .
-    var N : Nat .
+    vars X X2 X3 Y Y2 Y3 : Rat .
     var R R2 : Rat .
 
     ceq X inInterval(X2, X3) = true if (X >= min(X2,X3) and X <= max(X2,X3)) .
@@ -35,7 +33,7 @@ fmod LOCATION is
     ceq (X,Y) inArea area((X2,Y2), (X3,Y2), (X3,Y3), (X2, Y3)) = true if (X inInterval(X2,X3) and Y inInterval(Y2,Y3)) .
     eq (X,Y) inArea area((X2,Y2), (X3,Y2), (X3,Y3), (X2,Y3)) = false [owise] .
 
-    eq makeArea((X,Y), N) = area((X + N, Y + N),(X + N, Y - N), (X - N, Y + N), (X - N, Y - N)) .
+    eq makeArea((X,Y), R) = area((X + R, Y + R),(X + R, Y - R), (X - R, Y + R), (X - R, Y - R)) .
 endfm
 
 fmod LIST-LOCATION is
@@ -51,7 +49,7 @@ fmod LIST-LOCATION is
 
     var LL : List-Location .
     var L : Location .
-    vars X X2 X3 Y Y2 Y3 : Int .
+    vars X X2 X3 Y Y2 Y3 : Rat .
 
     eq first(nil) = nil .
     eq first(L LL) = L .

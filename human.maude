@@ -4,5 +4,7 @@ omod HUMAN is
     protecting PATHFINDER .
 
     class Human .
-    subclass Human < Entity .
+    class HumanPerson .
+    class HumanVehicle .
+    subclass HumanPerson HumanVehicle < Human < Entity .
 endom

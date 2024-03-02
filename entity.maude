@@ -10,10 +10,15 @@ omod ENTITY is
     class Entity | direction : Direction, speed : Int, maxSpeed : Int, remainingPath : List-Location, state : State .
     subclass Entity < PhysicalObj .    
 
-    ops moving idle crashed refillingWater refillingFertilizer refillingSeeds fertilizing watering harvesting transporting unloading : -> State [ctor] .
+    ops moving idle crashed waiting refillingWater refillingFertilizer refillingSeeds fertilizing watering harvesting transporting unloading : -> State [ctor] .
     op setDirection : Location Location -> Direction .
+    ***IN: Two entities that are moving in the same direction.
+    ***OUT: The entity in front.
+    ops inFront : Object Object -> Object [comm] .
+    op _isBehind_ : Object Object -> Bool .
+    op _directlyApproaching_ : Object Location -> Bool .
 
-    vars S S' : String .
+    vars S S2 : String .
     vars X X2 Y Y2 : Int .
     var LL : List-Location .
 
@@ -22,12 +27,25 @@ omod ENTITY is
     ceq setDirection((X,Y), (X,Y2)) = south if Y2 < Y .
     ceq setDirection((X,Y), (X2,Y)) = west if X2 < X .
 
+    ceq < S : Entity | location : (X,Y), direction : north > isBehind < S2 : Entity | location : (X2,Y2), direction : north > = true if Y < Y2 .
+    ceq < S : Entity | location : (X,Y), direction : east > isBehind < S2 : Entity | location : (X2,Y2), direction : east > = true if X < X2 .
+    ceq < S : Entity | location : (X,Y), direction : south > isBehind < S2 : Entity | location : (X2,Y2), direction : south > = true if Y > Y2 .
+    ceq < S : Entity | location : (X,Y), direction : west > isBehind < S2 : Entity | location : (X2,Y2), direction : west > = true if X > X2 .
+
+    eq < S : Entity | > isBehind < S2 : Entity | > = false [owise] .
+
+    ceq < S : Entity | location : (X,Y), direction : north > directlyApproaching (X, Y2) = true if Y2 > Y .
+    ceq < S : Entity | location : (X,Y), direction : east > directlyApproaching (X2, Y) = true if X2 > X .
+    ceq < S : Entity | location : (X,Y), direction : south > directlyApproaching (X, Y2) = true if Y2 < Y .
+    ceq < S : Entity | location : (X,Y), direction : west > directlyApproaching (X2, Y) = true if X2 < X .
+    eq < S : Entity | > directlyApproaching (X,Y) = false [owise] .
+
     rl [finish] :
         < S : Entity | location : (X, Y), remainingPath : (X,Y), state : moving >
         =>
         < S : Entity | speed : 0, remainingPath : nil, state : idle > .
     rl [nextIntersection] :
-        < S : Entity | location : (X , Y), remainingPath : (X , Y) (X2, Y2) LL > 
+        < S : Entity | location : (X , Y), remainingPath : (X , Y) (X2, Y2) LL, state : moving > 
         =>
         < S : Entity | direction : setDirection((X , Y), (X2, Y2)), remainingPath : (X2,Y2) LL > .
 endom

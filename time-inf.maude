@@ -1,7 +1,7 @@
 fmod TIME-INF is 
-    protecting NAT .
+    protecting RAT .
     sorts Time TimeInf .
-    subsorts Nat < Time < TimeInf .
+    subsorts Rat < Time < TimeInf .
     op inf : -> TimeInf [ctor] .
 
     op _<_ : TimeInf TimeInf -> Bool [ditto] .

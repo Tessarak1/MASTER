@@ -11,14 +11,22 @@ omod SORTS is
     subsort String < Oid .
     sort Direction .
 
+
     ops north east south west : -> Direction [ctor] .
     ops low good : -> Level [ctor] .
     op empty : -> Empty [ctor] .
     op full : -> Full [ctor] .
     op water : -> Water [ctor] .
     op fertilizer : -> Fertilizer [ctor] .
-    ops salad potatoes turnips pepper tomatoes cucumbers: -> Vegetable .
-    ops wheat rye : -> Grain .
-    op peaches : -> Fruit .
+    ops salad potatoes turnips pepper tomatoes cucumbers: -> Vegetable [ctor] .
+    ops wheat rye : -> Grain [ctor] .
+    op peaches : -> Fruit [ctor] .
 
+    op opposite : Direction Direction -> Bool [comm] .
+
+    vars D D2 : Direction .
+    
+    eq opposite(north, south) = true .
+    eq opposite(east, west) = true .
+    eq opposite(D, D2) = false [owise] .
 endom
