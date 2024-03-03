@@ -57,12 +57,16 @@ endom
 omod TESTS2 is 
   protecting TIMED-FARM .
   ops rob rob2 : -> Object .
+  ops rob3 rob4 : -> Object .
   ops map map2 : -> Object .
   ops I1 I2 I3 I4 : -> Object .
   ops Line1 Line2 Line3 : -> Object .
   op obstacles : -> Configuration .
   ops init init2 : -> ClockedConfiguration .
   ops test test2 : -> Object .
+
+
+  ops I5 I6 I7 I8 : -> Object .
 
   eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" > .
   eq I2 = < "I2" : Intersection | location : (5,0), neighbors : "I1" "I4" > .
@@ -82,4 +86,22 @@ omod TESTS2 is
   eq loc2 = (10/3, 20) .
 
   eq init2 = map2 rob rob2 @ 0 .
+
+  eq map = < "Map" : Map | allIntersections : I1 I2 I3 I4, paths : createPathSet(I1 I2 I3 I4) > .
+  ***TODO: change removeConnection to use an updated path instead of using between as this does not function properly on certain configurations of path and location.
+  eq rob = < "R" : Worker | location : (1,0), detectionRange : 10, speed : 1, direction : east, remainingPath : (5,0), state : moving, detected : nil > .
+  eq rob2 = < "R2" : Worker | location : (5,0), speed : 1, direction : west, remainingPath : (0,0), state : moving, detectionRange : 100, detected : {"O" : Obstacle | (3,0)} > .
+  eq obstacles = < "O" : Obstacle | location : (3,0) > .
+  eq init = map rob obstacles @ 0 .
+
+  eq I5 = < "I5" : Intersection | location : (0,0), neighbors : "I6" > .
+  eq I6 = < "I6" : Intersection | location : (5,0), neighbors : "I5" "I7" "I8" > .
+  eq I7 = < "I7" : Intersection | location : (10,0), neighbors : "I6" > .
+  eq I8 = < "I8" : Intersection | location : (5,5), neighbors : "I6" > .
+
+  eq rob3 = < "R3" : Worker | location : (0,0), speed : 1, direction : east, remainingPath : (5,0) (5,5), state : moving > .
+  eq rob4 = < "R4" : Worker | location : (10,0), speed : 1, direction : west, remainingPath : (5,0) (5,4), state : moving > .
+
+  eq map2 = < "Map" : Map | allIntersections : I5 I6 I7 I8, paths : createPathSet(I5 I6 I7 I8) > .
+  eq init2 = map2 rob3 rob4 @ 0 .
 endom

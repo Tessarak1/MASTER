@@ -47,10 +47,13 @@ omod ROBOT is
     op processing : Representation Time -> Representation [frozen (1) right id: 0] .
     ***Robot does dijkstraSearch from the first intersection to the second.
     ***Used for shorthand to perform dijkstra on an updated map.
+
     op updatePath : Object Configuration Location Location -> Object .
     ***returns the front-facing location where the robots detection border is.
     op detectionBorder : Object -> Location .
     op checkBrakingProtocol : Object -> Object .
+
+    op updatePath : Object Configuration Location -> Object .
 
     ops obstacle robot human : -> ObjectType [ctor] .
     op nil : -> Representation [ctor] .
@@ -59,6 +62,8 @@ omod ROBOT is
     op {_:_|_} : Oid Cid Information -> Representation .
     ***Checks if an object already is in the representation .
     op _notIn_ : String Representation -> Bool .
+    ***Returns the timeInterval the robot will be at a given location.
+    op eta : Location List-Location Nat -> Rat .
 
     class Robot | detectionRange : Nat, cargoLevel : CargoLevel, curCargo : Cargo, detected : Representation, waitTimer : Rat .
     class Worker | movementType : MovementType .
@@ -67,9 +72,11 @@ omod ROBOT is
 
     var CONF : Configuration .
     vars S S' S2 S2' : String .
+
     vars X Y : Rat .
     vars X2 Y2 : Rat .
     vars X3 Y3 : Rat .
+
     var N : Nat .
     var A : Area .
     var LL : List-Location .
@@ -78,12 +85,13 @@ omod ROBOT is
     var STOR : Storage .
     var R : Representation .
     var PS : PathSet .
+    var MC : MsgContent .
     var CID : Cid .
     var I : Information .
     vars D D2 : Direction .
     vars SP SP2 : Rat .
 
-    eq updatePath(< S : Robot | location : (X,Y) >, CONF, (X2,Y2), (X3,Y3)) = < S : Robot | remainingPath : (X,Y) dijkstraSearch(CONF, returnByLocation(CONF, (X2,Y2)), returnByLocation(CONF, (X3,Y3))) > .
+    eq updatePath(< S : Robot | location : (X,Y) >, CONF, (X3,Y3)) = < S : Robot | remainingPath : (X,Y) dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByLocation(CONF, (X3,Y3))) > .
 
     eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : north >) = (X, Y + N) .
     eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : east >) = (X + N, Y) .
@@ -133,6 +141,25 @@ omod ROBOT is
         fi
         if opposite(D,D2) .
 
+  eq eta((X,Y), (X,Y) LL, N) = 0 .
+    eq eta((X,Y), (X2,Y2) (X3,Y3) LL, N) = eta((X,Y), (X3,Y3) LL, N) + (distance((X2,Y2), (X3,Y3)) / N) .
+
+    ***Robot communicates paths to one another, if they use the same path segment at the same time
+    ***one of them will have to replan path. Both calculate an alternate path and the one with the shortest replans.
+  ***(  rl [receivePath] :
+        < S : Robot | >
+        (msg requestPath path(LL2) from S2 to S)
+        =>
+        < S : Robot | >
+  )***
+        
+    ***When first detecting a robot request its path and transmit own path to check for collision.
+    rl [detectRobot] :
+        < S : Robot | location : (X,Y), remainingPath : LL, detected : {S2 : Robot | (X2,Y2)} R >
+        =>
+        (msg requestPath path((X,Y) LL) from S to S2)
+        < S : Robot | > .
+
     ***if the detected obstacle is in the way then the robot will have to replan its path.
     ***If the robot no longer has a path to its goal, it will cancel the current task and work on removing the obstacle.
     ***if the obstacle is not in the way 
@@ -144,12 +171,13 @@ omod ROBOT is
             if returnByLocation(CONF, (X,Y)) =/= none then
                 ***remove the connection between the intersections where the obstacle is located at.
                 ***Do dijkstraSearch on current location and goal from updated map.
-                updatePath(< S : Robot | detected : R >, removeConnection(between((X3,Y3), (X,Y) LL (X2,Y2)), CONF), (X,Y), (X2,Y2))
+                updatePath(< S : Robot | detected : R >, removeConnection(between((X3,Y3), (X,Y) LL (X2,Y2)), CONF), (X2,Y2))
                 < S2 : Map | > 
                 (msg obstacleAt (X3,Y3) from S to worker)
             else
-                ***If you are not at an intersection "create" an intersection where the robot is, add it to the map and do dijkstra.
-                updatePath(< S : Robot | detected : R >, removeConnection(between((X3,Y3), (X,Y) LL (X2,Y2)), newIntersection((X,Y), < S2 : Map | >)), (X,Y), (X2, Y2))
+                ***If you are not at an intersection "create" an intersection where the robot is, add it to the map, check if the obstacle is and do dijkstra.
+                updatePath(< S : Robot | detected : R >, removeConnection(between((X3,Y3), (X,Y) LL (X2,Y2)), newIntersection((X,Y), < S2 : Map | >)), (X2, Y2))
+                ***updatePath(< S : Robot | detected : R >,
                 < S2 : Map | > 
                 (msg obstacleAt (X3,Y3) from S to worker)
             fi

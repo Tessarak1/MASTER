@@ -39,6 +39,8 @@ omod TIMED-FARM is
     var REP : Representation .
     var C : Cid .
     var MSG : Msg .
+    var MC : MsgContent .
+    var REC : Receiver .
 
     eq minusToZero(I, I2) = if (I - I2) < 0 then 0 else I - I2 fi .
     eq minIgnoreZero(0,0) = natInf .
@@ -117,7 +119,6 @@ omod TIMED-FARM is
     eq timeEffect(< S : Map | > CONF, T) = < S : Map | > timeEffect(CONF, T) .
     eq timeEffect(< S : Obstacle | > CONF, T) = < S : Obstacle | > timeEffect(CONF, T) .
     eq timeEffect(MSG CONF, T) = MSG timeEffect(CONF, T) .
-
     ceq timeEffect(< S : Robot | waitTimer : R > CONF, R2) = < S : Robot | waitTimer : minusToZero(R,R2) > timeEffect(CONF, R2) if R > 0 .
 
     ***Entities move in the direction depending on how much time passes and their speed.
