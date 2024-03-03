@@ -1,4 +1,5 @@
 load location 
+load oidSet 
 omod LOCATABLE is
     protecting LOCATION .
     protecting OID-SET .
@@ -12,7 +13,7 @@ omod LOCATABLE is
     op minDistance : Object Location Configuration -> Object .
     op distance : Object Object -> Nat [comm] .
 
-    vars X X2 X3 Y Y2 Y3 : Int .
+    vars X X2 X3 Y Y2 Y3 : Rat .
     vars S S2 : String .
     var CONF : Configuration .
     var OBJ : Object .

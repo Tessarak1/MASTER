@@ -60,8 +60,11 @@ omod TESTS2 is
   ops rob3 rob4 : -> Object .
   ops map map2 : -> Object .
   ops I1 I2 I3 I4 : -> Object .
+  ops Line1 Line2 Line3 : -> Object .
   op obstacles : -> Configuration .
   ops init init2 : -> ClockedConfiguration .
+  ops test test2 : -> Object .
+
 
   ops I5 I6 I7 I8 : -> Object .
 
@@ -69,6 +72,21 @@ omod TESTS2 is
   eq I2 = < "I2" : Intersection | location : (5,0), neighbors : "I1" "I4" > .
   eq I3 = < "I3" : Intersection | location : (0,5), neighbors : "I1" "I4" > .
   eq I4 = < "I4" : Intersection | location : (5,5), neighbors : "I3" "I2" > .
+  eq Line1 = < "Line1" : Intersection | location : (0,0), neighbors : "Line2" > .
+  eq Line2 = < "Line2" : Intersection | location : (100,0), neighbors : "Line1" > .
+  eq map = < "Map" : Map | allIntersections : I1 I2 I3 I4, paths : createPathSet(I1 I2 I3 I4) > .
+  eq rob = < "R" : Worker | location : (0,0), speed : 10, direction : east, remainingPath : (100,0), state : moving, detected : nil, detectionRange : 10, waitTimer : 0 > .
+  eq rob2 = < "R2" : Worker | location : (100,0), speed : 5, direction : west, remainingPath : (0,0), state : moving, detected : nil, detectionRange : 5, waitTimer : 0 > .
+  eq obstacles = < "O" : Obstacle | location : (3,0) > .
+  eq init = map rob obstacles @ 0 .
+
+  eq map2 = < "Map2" : Map | allIntersections : Line1 Line2, paths : createPathSet(Line1 Line2) > .
+  ops loc1 loc2 : -> Location .
+  eq loc1 = (10/3, 10/4) .
+  eq loc2 = (10/3, 20) .
+
+  eq init2 = map2 rob rob2 @ 0 .
+
   eq map = < "Map" : Map | allIntersections : I1 I2 I3 I4, paths : createPathSet(I1 I2 I3 I4) > .
   ***TODO: change removeConnection to use an updated path instead of using between as this does not function properly on certain configurations of path and location.
   eq rob = < "R" : Worker | location : (1,0), detectionRange : 10, speed : 1, direction : east, remainingPath : (5,0), state : moving, detected : nil > .

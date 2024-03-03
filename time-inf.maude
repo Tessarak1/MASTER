@@ -2,7 +2,9 @@ fmod TIME-INF is
     protecting RAT .
     sorts Time TimeInf .
     subsorts Rat < Time < TimeInf .
+
     sort timeInterval .
+
 
     op inf : -> TimeInf [ctor] .
     op interval : TimeInf TimeInf -> timeInterval [ctor] .

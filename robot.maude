@@ -28,6 +28,12 @@ omod ROBOT is
     sort Representation .
     sort ObjectType .
     
+    sort Information .
+    subsorts Location Direction < Information .
+    op _;_ : Information Information -> Information [ctor assoc comm id: noInfo] .
+    op noInfo : -> Information [ctor] .
+    op detectedSpeed : Rat -> Information [ctor] .
+
     ***Workers can plant fields or greenhouses, so they should have seeds as part of cargo.
     sort Seed .
     subsort Seed Water Fertilizer < WorkerCargo .
@@ -41,29 +47,36 @@ omod ROBOT is
     op processing : Representation Time -> Representation [frozen (1) right id: 0] .
     ***Robot does dijkstraSearch from the first intersection to the second.
     ***Used for shorthand to perform dijkstra on an updated map.
+
+    op updatePath : Object Configuration Location Location -> Object .
+    ***returns the front-facing location where the robots detection border is.
+    op detectionBorder : Object -> Location .
+    op checkBrakingProtocol : Object -> Object .
+
     op updatePath : Object Configuration Location -> Object .
 
     ops obstacle robot human : -> ObjectType [ctor] .
     op nil : -> Representation [ctor] .
     op __ : Representation Representation -> Representation [assoc comm id: nil ctor] .
     ***Todo: refine this based on what information the robot should know.
-    op {_:_|_} : Oid Cid Location -> Representation .
+    op {_:_|_} : Oid Cid Information -> Representation .
     ***Checks if an object already is in the representation .
     op _notIn_ : String Representation -> Bool .
     ***Returns the timeInterval the robot will be at a given location.
     op eta : Location List-Location Nat -> Rat .
 
-    class Robot | detectionRange : Nat, cargoLevel : CargoLevel, curCargo : Cargo, detected : Representation .
+    class Robot | detectionRange : Nat, cargoLevel : CargoLevel, curCargo : Cargo, detected : Representation, waitTimer : Rat .
     class Worker | movementType : MovementType .
     class Transporter .
     subclass Worker Transporter < Robot < Entity .
 
     var CONF : Configuration .
     vars S S' S2 S2' : String .
-    vars X Y : Int .
-    vars X2 Y2 : Int .
-    vars X3 Y3 : Int .
-    vars X4 Y4 : Int .
+
+    vars X Y : Rat .
+    vars X2 Y2 : Rat .
+    vars X3 Y3 : Rat .
+
     var N : Nat .
     var A : Area .
     var LL : List-Location .
@@ -74,13 +87,61 @@ omod ROBOT is
     var PS : PathSet .
     var MC : MsgContent .
     var CID : Cid .
+    var I : Information .
+    vars D D2 : Direction .
+    vars SP SP2 : Rat .
 
     eq updatePath(< S : Robot | location : (X,Y) >, CONF, (X3,Y3)) = < S : Robot | remainingPath : (X,Y) dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByLocation(CONF, (X3,Y3))) > .
 
-    eq S notIn {S : CID | (X,Y)} R = false .
+    eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : north >) = (X, Y + N) .
+    eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : east >) = (X + N, Y) .
+    eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : south >) = (X, Y - N) .
+    eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : north >) = (X - N, Y) .
+
+    eq S notIn {S : CID | (X,Y) ; I} R = false .
     eq S notIn R = true [owise] .
 
-    eq eta((X,Y), (X,Y) LL, N) = 0 .
+    ***When approaching a slower entity, brake to match speed.
+    rl [approachSlowerEntity] : 
+        < S : Robot | speed : SP, direction : D, detected : {S2 : Robot | D ; detectedSpeed(SP2) ; I} R >
+        =>
+        if SP2 < SP then
+            < S : Robot | speed : SP2, detected : R >
+        else
+            < S : Robot | detected : R >
+        fi .
+
+    ***When approaching or close to a person, slow down, regardless of orientation.
+    ***If directly approaching a human, and the distance is too short, come to a complete stop.
+    rl [detectHuman] :
+        < S : Robot | location : (X,Y), speed : SP, direction : D, detected : {S2 : Human | (X2,Y2)} >
+        =>
+        if < S : Robot | > directlyApproaching (X2,Y2) then
+            ***if too close then start braking
+            if (distance((X,Y), (X2,Y2)) / SP) < 10 then
+                < S : Robot | speed : 0 > 
+            else
+                < S : Robot | speed : 5 >
+            fi
+        else
+            ***If the human is close but not in front of the robot slow down to limit possible accidents.
+            < S : Robot | speed : 5 >
+        fi .
+
+    ***When a robot detects another on its path on an immediate collision course, if they are too close then it will immediately try to stop to limit the potential damage.
+    ***If they are further away, then start communication to check which one will replan path.
+    crl [detectIncomingRobot] :
+        < S : Robot | location : (X,Y), speed : SP, direction : D, state : moving, detected : {S' : Robot | (X2,Y2) ; D2 ; I} R >
+        =>
+        ***Collision prevention with braking
+        if (distance((X,Y), (X2,Y2)) / SP) > 3 then
+            < S : Robot | speed : 0, state : waiting, detected : R, waitTimer : 10 >
+        else
+            < S : Robot | speed : 5, detected : R >
+        fi
+        if opposite(D,D2) .
+
+  eq eta((X,Y), (X,Y) LL, N) = 0 .
     eq eta((X,Y), (X2,Y2) (X3,Y3) LL, N) = eta((X,Y), (X3,Y3) LL, N) + (distance((X2,Y2), (X3,Y3)) / N) .
 
     ***Robot communicates paths to one another, if they use the same path segment at the same time
