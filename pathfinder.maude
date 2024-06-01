@@ -98,7 +98,6 @@ omod PATHFINDER is
     op coverArea : Location Area -> List-Location .
     op pathConvert : List-Location -> Path .
 
-
     var M : Map .
     vars I I' I2 I2' : Object .
     vars INP INP' : INPTriple .

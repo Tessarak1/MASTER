@@ -2,49 +2,69 @@
 ***type of crops that are grown there
 load message .
 load sorts .
+load time-inf .
 omod GROWING-LOC is
     protecting SORTS .
     protecting INTERSECTION .
     protecting MESSAGE .
+    protecting TIMER .
 
     sort GrowingState .
-    ops empty growing harvest : -> GrowingState .
-    class Growing-loc | growingState : GrowingState, waterLevel : Level, fertilizerLevel : Level, waterTimer : Nat, fertilizerTimer : Nat, growTimer : Nat, growingArea : Area, content : Content .
+    class Growing-loc | growingState : GrowingState, waterLevel : Level, fertilizerLevel : Level, waterTimer : Timer, fertilizerTimer : Timer, growTimer : Timer, msgTimer : Timer, harvestWait : Time, growingArea : Area, content : Content  .
     class Field .
     class Greenhouse .
     subclass Greenhouse Field < Growing-loc < Intersection .
 
+    ops empty growing harvest : -> GrowingState .
+    op sendWaterMsg : Object -> Msg .
+    op sendFertilizerMsg : Object -> Configuration .
+
     var S : String .
+    var L L2 : Level .
+    var T : Time .
+    vars TR TR2 TR3 TR4 : Timer .
+    var GS : GrowingState .
 
-    rl [depletedWater] :
-        < S : Growing-loc | waterLevel : good, waterTimer : 0 >
-        =>
-        < S : Growing-loc | waterLevel : low > .
-    rl [depletedFertilizer] :
-        < S : Growing-loc | fertilizerLevel : good, fertilizerTimer : 0 >
-        =>
-        < S : Growing-loc | fertilizerLevel : low > .
-    rl [finishedGrowth] :
-        < S : Growing-loc | growingState : growing, growTimer : 0 >
-        =>
-        < S : Growing-loc | growingState : harvest > .
+    eq sendWaterMsg(< S : Growing-loc | waterLevel : low >) = msg water S from S to worker .
+    eq sendWaterMsg(< S : Growing-loc | >) = none [owise] .
+    eq sendFertilizerMsg(< S : Growing-loc | fertilizerLevel : low >) = msg fertilize S from S to worker .
+    eq sendFertilizerMsg(< S : Growing-loc | >) = none [owise] .
 
-***(
-    rl [requestWater] :
+    ***Overload equations from TIMER mod.
+    eq decreaseTimers(< S : Growing-loc | waterLevel : good, fertilizerLevel : good, waterTimer : TR, fertilizerTimer : TR2, growTimer : TR3, msgTimer : TR4 >, T) =
+        < S : Growing-loc | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T), growTimer : decrease(TR3, T), msgTimer : decrease(TR4, T) > .
+    eq decreaseTimers(< S : Growing-loc | waterTimer : TR, fertilizerTimer : TR2, msgTimer : TR3 >, T) =
+        < S : Growing-loc | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T), msgTimer : decrease(TR3, T) > [owise] .
+    eq untilTimerExpire(< S : Growing-loc | waterLevel : good, fertilizerLevel : good, waterTimer : TR, fertilizerTimer : TR2, growTimer : TR3, msgTimer : TR4 >) = minCur(TR TR2 TR3 TR4) .
+    ***Ignore the growtimer if either waterLevel or fertilizerLevel is low.
+    eq untilTimerExpire(< S : Growing-loc | waterTimer : TR, fertilizerTimer : TR2, msgTimer : TR3 >) = minCur(TR TR2 TR3) .
+
+    crl [depletedWater] :
+        < S : Growing-loc | waterLevel : good, waterTimer : TR >
+        =>
         < S : Growing-loc | waterLevel : low >
+        if expired(TR) .
+    crl [depletedFertilizer] :
+        < S : Growing-loc | fertilizerLevel : good, fertilizerTimer : TR >
         =>
-        < S : Growing-loc | > 
-        (msg water S from S to worker) .
-    
-    rl [requestFertilizer] : 
         < S : Growing-loc | fertilizerLevel : low >
+        if expired(TR) .
+    crl [finishedGrowth] :
+        < S : Growing-loc | growingState : growing, growTimer : TR >
         =>
-        < S : Growing-loc | >
-        (msg fertilize S from S to worker) .
-    rl [requestHarvest] :
         < S : Growing-loc | growingState : harvest >
+        if expired(TR) .
+***(
+    rl [msgNeeds] :
+        < S : Growing-loc | msgTimer : TR, growingState : GS >
         =>
-        < S : Growing-loc | >
-        (msg harvest S from S to worker) .
+        if GS == harvest then
+            < S : Growing-loc | msgTimer : reset(TR) >
+            (msg harvest S from S to transporter)
+        else
+            < S : Growing-loc | msgTimer : reset(TR) >
+            sendWaterMsg(< S : Growing-loc | >)
+            sendFertilizerMsg(< S : Growing-loc | >)
+        fi .
 )***
 endom

@@ -1,9 +1,7 @@
-load oidSet .
 load locatable .
 omod INTERSECTION is
     protecting LOCATABLE .
     protecting STRING .
-    protecting OID-SET .
     class Intersection | neighbors : OidSet .
     subclass Intersection < Locatable .
 

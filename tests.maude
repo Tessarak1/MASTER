@@ -1,107 +1,47 @@
 load timedFarm .
-load human .
-omod TIMED-TESTS is
-  protecting TIMED-FARM .
-  protecting HUMAN .
 
-  ops init init2 init3 : -> ClockedConfiguration .
-  ops I1 I2 I3 I4 I5 : -> Object .
-  op G1 : -> Object .
-  op R1 : -> Object .
-  op T1 : -> Object .
-  op C : -> Object .
-  op Map : -> Object .
-  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" "C" > .
-  eq I2 = < "I2" : Intersection | location : (5,0), neighbors : "I1" "I5" > .
-  eq I3 = < "I3" : Intersection | location : (0,5), neighbors : "I1" "I4" > .
-  eq I4 = < "I4" : Intersection | location : (10, 5), neighbors : "I3" "I5" > .
-  eq I5 = < "I5" : Intersection | location : (10,0), neighbors : "I2" "I4" "G1" > .
-  eq G1 = < "G1" : Greenhouse | location : (15,0), neighbors : "I5", growingState : growing, waterLevel : good, fertilizerLevel : good, content : pepper, waterTimer : 100, fertilizerTimer : 100, growTimer : 100, growingArea : area((15,0),(20,0),(15,5),(20,5)) > .
-  eq R1 = < "R1" : Worker | location : (0,0), direction : north, speed : 1, remainingPath : nil, cargoLevel : full, curCargo : water, movementType : ground, state : idle > .
-  eq T1 = < "T1" : Transporter | location : (15,0), direction : north, speed : 5, remainingPath : nil, cargoLevel : empty, state : idle > .
-  eq C = < "C" : CPoint | location : (0,-5), storage : none, neighbors : "I1" > .
-  eq Map =   < "Map" : Map | allIntersections : I1 I2 I3 I4 I5 G1 C > .
-  eq init = R1 T1 G1 C Map (msg water "G1" from "G1" to worker) @ 0 .
-  eq init2 = R1 G1 Map (msg water "G1" from "G1" to worker) @ 0 .
-  eq init3 = T1 G1 C Map @ 0 .
-
-  ***Solo robot tests with static obstacles.
-  op MapSolo : -> Object . 
-  ops RSolo RSolo2 : -> Object .
-  op obstacles : -> Configuration .
-  op initSolo : -> ClockedConfiguration .
-  op conf : -> Configuration .
-
-  vars CONF CONF2 CONF3 : Configuration .
-  var T : Time .
-  var O : Object .
-  vars S S' : String .
-  vars X X2 Y Y2 SP : Int .
-  var N N' N2 N2' : Nat .
-  var LL : List-Location .
-  vars I I2 : Int .
-  vars NI NI2 : NatInf .
-  
-  ops I11 I12 I13 I14 : -> Object .
-  eq I11 = < "I11" : Intersection | location : (0,0), neighbors : "I12" "I13" > .
-  eq I12 = < "I12" : Intersection | location : (5,0), neighbors : "I11" "I14" > .
-  eq I13 = < "I13" : Intersection | location : (0,5), neighbors : "I11" "I14" > .
-  eq I14 = < "I14" : Intersection | location : (5,5), neighbors : "I12" "I13" > .
-  eq MapSolo = < "Map" : Map | allIntersections : I11 I12 I13 I14, paths : createPathSet(I11 I12 I13 I14) > .
-  eq RSolo = < "R" : Transporter | location : (0,0), direction : east, speed : 1, remainingPath : (5,0) (5,5) (0,5), state : moving, detected : {"O" : Obstacle | (3,0)} > .
-  eq obstacles = < "O" : Obstacle | location : (3,0) > .
-  eq conf = MapSolo RSolo obstacles .
-  eq initSolo = conf @ 0 .
-endom
-
-omod TESTS2 is 
+omod TESTS is
   protecting TIMED-FARM .
   ops rob rob2 : -> Object .
-  ops rob3 rob4 : -> Object .
+  ops hVehicle : -> Object .
   ops map map2 : -> Object .
-  ops I1 I2 I3 I4 : -> Object .
-  ops Line1 Line2 Line3 : -> Object .
+  ops I1 I2 I3 I4 I5 I6 I7 : -> Object .
+  ops J1 J2 : -> Object .
+  ops F1 : -> Object .
+  ops Line1 Line2 : -> Object .
+  op lineTest : -> ClockedConfiguration .
   op obstacles : -> Configuration .
-  ops init init2 : -> ClockedConfiguration .
-  ops test test2 : -> Object .
+  ops locations : -> Configuration .
+  ops obstacleTest humanVehicleTest : -> ClockedConfiguration .
+  subsort Human < Entity .
+
+  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I4" "I5" > .
+  eq I2 = < "I2" : Intersection | location : (0,10), neighbors : "I1" "I3" > .
+  eq I3 = < "I3" : Intersection | location : (10,10), neighbors : "I2" "I4" > .
+  eq I4 = < "I4" : Intersection | location : (10,0), neighbors : "I1" "I3" "I6" > .
+  eq I5 = < "I5" : Intersection | location : (0,-10), neighbors : "I1" "I7" > .
+  eq I6 = < "I6" : Intersection | location : (10,-10), neighbors : "I4" "I7" > .
+  eq I7 = < "I7" : Intersection | location : (5,-10), neighbors : "I5" "I6" "F1" > .
+
+  eq J1 = < "J1" : Intersection | location : (0,0), neighbors : "J2" > .
+  eq J2 = < "J2" : Intersection | location : (10,0), neighbors : "J1" > .
+
+  eq F1 = < "F1" : Field | location : (5,-11), neighbors : "I7", growingState : harvest, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 100 - base: 100], fertilizerTimer : [cur: 100 - base: 100], growTimer : [cur: 200 - base: 200], msgTimer : [cur: 200 - base: 200], harvestWait : 0, growingArea : area((0,-11), (10,-11), (0,-21), (10,-21)), content : salad > .
+
+  eq locations = I1 I2 I3 I4 I5 I6 I7 F1 .
+
+  eq map = < "Map" : Map | allIntersections : locations, paths : createPathSet(locations) > .
+  eq obstacles = < "O" : Obstacle | location : (3,0) >  < "O2" : Obstacle | location : (0,3) > .
+
+  eq obstacleTest = rob map obstacles @ 0 .
+
+  eq hVehicle = < "HV" : HumanVehicle | location : (2,0), remainingPath : (5,0) (5,5), direction : east, state : moving, detected : nil, detectionRange : 1, handledTime : false, speed : 1 > .
+  eq humanVehicleTest = hVehicle rob map @ 0 .
+
+  eq Line1 = < "L1" : Intersection | location : (0,0), neighbors : "L2" > .
+  eq Line2 = < "L2" : Intersection | location : (100,0), neighbors : "L1" > .
+  eq rob2 = < "R2" : Worker | location : (100,0), speed : 100, direction : west, remainingPath : (0,0), state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil > .
+  eq rob = < "R" : Worker | location : (0,0), speed : 100, direction : east, remainingPath : (100,0), state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil > .
 
 
-  ops I5 I6 I7 I8 : -> Object .
-
-  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" > .
-  eq I2 = < "I2" : Intersection | location : (5,0), neighbors : "I1" "I4" > .
-  eq I3 = < "I3" : Intersection | location : (0,5), neighbors : "I1" "I4" > .
-  eq I4 = < "I4" : Intersection | location : (5,5), neighbors : "I3" "I2" > .
-  eq Line1 = < "Line1" : Intersection | location : (0,0), neighbors : "Line2" > .
-  eq Line2 = < "Line2" : Intersection | location : (100,0), neighbors : "Line1" > .
-  eq map = < "Map" : Map | allIntersections : I1 I2 I3 I4, paths : createPathSet(I1 I2 I3 I4) > .
-  eq rob = < "R" : Worker | location : (0,0), speed : 10, direction : east, remainingPath : (100,0), state : moving, detected : nil, detectionRange : 10, waitTimer : 0 > .
-  eq rob2 = < "R2" : Worker | location : (100,0), speed : 5, direction : west, remainingPath : (0,0), state : moving, detected : nil, detectionRange : 5, waitTimer : 0 > .
-  eq obstacles = < "O" : Obstacle | location : (3,0) > .
-  eq init = map rob obstacles @ 0 .
-
-  eq map2 = < "Map2" : Map | allIntersections : Line1 Line2, paths : createPathSet(Line1 Line2) > .
-  ops loc1 loc2 : -> Location .
-  eq loc1 = (10/3, 10/4) .
-  eq loc2 = (10/3, 20) .
-
-  eq init2 = map2 rob rob2 @ 0 .
-
-  eq map = < "Map" : Map | allIntersections : I1 I2 I3 I4, paths : createPathSet(I1 I2 I3 I4) > .
-  ***TODO: change removeConnection to use an updated path instead of using between as this does not function properly on certain configurations of path and location.
-  eq rob = < "R" : Worker | location : (1,0), detectionRange : 10, speed : 1, direction : east, remainingPath : (5,0), state : moving, detected : nil > .
-  eq rob2 = < "R2" : Worker | location : (5,0), speed : 1, direction : west, remainingPath : (0,0), state : moving, detectionRange : 100, detected : {"O" : Obstacle | (3,0)} > .
-  eq obstacles = < "O" : Obstacle | location : (3,0) > .
-  eq init = map rob obstacles @ 0 .
-
-  eq I5 = < "I5" : Intersection | location : (0,0), neighbors : "I6" > .
-  eq I6 = < "I6" : Intersection | location : (5,0), neighbors : "I5" "I7" "I8" > .
-  eq I7 = < "I7" : Intersection | location : (10,0), neighbors : "I6" > .
-  eq I8 = < "I8" : Intersection | location : (5,5), neighbors : "I6" > .
-
-  eq rob3 = < "R3" : Worker | location : (0,0), speed : 1, direction : east, remainingPath : (5,0) (5,5), state : moving > .
-  eq rob4 = < "R4" : Worker | location : (10,0), speed : 1, direction : west, remainingPath : (5,0) (5,4), state : moving > .
-
-  eq map2 = < "Map" : Map | allIntersections : I5 I6 I7 I8, paths : createPathSet(I5 I6 I7 I8) > .
-  eq init2 = map2 rob3 rob4 @ 0 .
 endom

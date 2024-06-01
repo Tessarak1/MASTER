@@ -3,13 +3,31 @@ omod PHYSICAL-OBJ is
     protecting STRING .
     protecting LOCATABLE .
 
-    class PhysicalObj .
+    ***The processedTime attribute is used in timedFarm to terminate MaxTimeAdvance
+    class PhysicalObj | handledTime : Bool .
     subclass PhysicalObj < Locatable .
 
     subsort String < Oid .
-        
+
+    ***Takes in two locations, A and B, and the physical objects in the system.
+    ***Returns the object that is between A and B, and is closest to A.
+    op objectInWay : Location Location Configuration -> Configuration .
+    op objectSet : Location Location Configuration -> Configuration .
+
     vars S S' : String .
     vars L L' : Location .
+    vars X X2 X3 Y Y2 Y3 : Rat .
+    var CONF : Configuration .
 
     eq distance(< S : PhysicalObj | location : L >, < S' : PhysicalObj | location : L' >) = distance(L, L') .
+
+    eq objectSet((X,Y), (X2,Y2), none) = none .
+    ceq objectSet((X,Y), (X,Y2), < S : PhysicalObj | location : (X,Y3) > CONF) = < S : PhysicalObj | > objectSet((X,Y), (X,Y2), CONF) if (Y3 > Y) and (Y3 <= Y2) .
+    ceq objectSet((X,Y), (X,Y2), < S : PhysicalObj | location : (X,Y3) > CONF) = < S : PhysicalObj | > objectSet((X,Y), (X,Y2), CONF) if (Y3 <= Y) and (Y3 > Y2) .
+    ceq objectSet((X,Y), (X2,Y), < S : PhysicalObj | location : (X3, Y) > CONF) = < S : PhysicalObj | > objectSet((X,Y), (X2,Y), CONF) if X3 > X and X3 <= X2 .
+    ceq objectSet((X,Y), (X2,Y), < S : PhysicalObj | location : (X3, Y) > CONF) = < S : PhysicalObj | > objectSet((X,Y), (X2,Y), CONF) if X3 <= X and X3 > X2 .
+    eq objectSet((X,Y), (X2,Y2), CONF) = none [owise] .
+
+    ceq objectInWay((X,Y), (X2,Y2), CONF) = minDistance(none, (X,Y), objectSet((X,Y), (X2,Y2), CONF)) if objectSet((X,Y), (X2,Y2), CONF) =/= none .
+    eq objectInWay((X,Y), (X2,Y2), CONF) = none [owise] .
 endom
