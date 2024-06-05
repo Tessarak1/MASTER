@@ -10,7 +10,7 @@ omod GROWING-LOC is
     protecting TIMER .
 
     sort GrowingState .
-    class Growing-loc | growingState : GrowingState, waterLevel : Level, fertilizerLevel : Level, waterTimer : Timer, fertilizerTimer : Timer, growTimer : Timer, msgTimer : Timer, harvestWait : Time, growingArea : Area, content : Content  .
+    class Growing-loc | growingState : GrowingState, waterLevel : Level, fertilizerLevel : Level, waterTimer : Timer, fertilizerTimer : Timer, growTimer : Timer, msgTimer : Timer, harvestWait : Time, growingArea : Area, content : Content .
     class Field .
     class Greenhouse .
     subclass Greenhouse Field < Growing-loc < Intersection .
@@ -55,7 +55,7 @@ omod GROWING-LOC is
         < S : Growing-loc | growingState : harvest >
         if expired(TR) .
 ***(
-    rl [msgNeeds] :
+    crl [msgNeeds] :
         < S : Growing-loc | msgTimer : TR, growingState : GS >
         =>
         if GS == harvest then
@@ -65,6 +65,7 @@ omod GROWING-LOC is
             < S : Growing-loc | msgTimer : reset(TR) >
             sendWaterMsg(< S : Growing-loc | >)
             sendFertilizerMsg(< S : Growing-loc | >)
-        fi .
+        fi
+        if expired(TR) .
 )***
 endom
