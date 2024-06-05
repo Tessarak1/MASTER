@@ -1,0 +1,18 @@
+omod TEST is
+    protecting NAT .
+    protecting STRING .
+    subsort String < Oid .
+    class Test | ticker : Nat .
+
+    op init : -> Configuration .
+
+    var N : Nat .
+    var O : Oid .
+
+    rl [uptick] :
+        < O : Test | ticker : N >
+        =>
+        < O : Test | ticker : N + 1 > .
+
+    eq init = < "S" : Test | ticker : 0 > .
+endom

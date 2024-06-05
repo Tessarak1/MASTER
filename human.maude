@@ -1,7 +1,6 @@
 load entity .
 omod HUMAN is
     protecting ENTITY .
-    protecting PATHFINDER .
 
     class Human .
     class HumanPerson .

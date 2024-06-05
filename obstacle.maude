@@ -4,25 +4,5 @@ omod OBSTACLE is
 
     class Obstacle .
     subclass Obstacle < PhysicalObj .
-
-    op obstacleSet : Location Location Configuration -> Configuration .
-
-    ***Takes in two locations, A and B, and the physical objects in the system.
-    ***Creates a set of the physical objects that are between A and B and returns the one that is closest to A.
-    op obstacleInWay : Location Location Configuration -> Configuration .
-
-    vars X X2 X3 Y Y2 Y3 : Rat .
-    vars S S' : String .
-    var CONF : Configuration .
-
-    eq obstacleSet((X,Y), (X2,Y2), none) = none .
-    ceq obstacleSet((X,Y), (X,Y2), < S : PhysicalObj | location : (X,Y3) > CONF) = < S : PhysicalObj | > obstacleSet((X,Y), (X,Y2), CONF) if (Y3 > Y) and (Y3 <= Y2) .
-    ceq obstacleSet((X,Y), (X,Y2), < S : PhysicalObj | location : (X,Y3) > CONF) = < S : PhysicalObj | > obstacleSet((X,Y), (X,Y2), CONF) if (Y3 <= Y) and (Y3 > Y2) .
-    ceq obstacleSet((X,Y), (X2,Y), < S : PhysicalObj | location : (X3, Y) > CONF) = < S : PhysicalObj | > obstacleSet((X,Y), (X2,Y), CONF) if X3 > X and X3 <= X2 .
-    ceq obstacleSet((X,Y), (X2,Y), < S : PhysicalObj | location : (X3, Y) > CONF) = < S : PhysicalObj | > obstacleSet((X,Y), (X2,Y), CONF) if X3 <= X and X3 > X2 .
-    eq obstacleSet((X,Y), (X2,Y2), CONF) = none [owise] .
-
-    ceq obstacleInWay((X,Y), (X2,Y2), CONF) = minDistance(none, (X,Y), obstacleSet((X,Y), (X2,Y2), CONF)) if obstacleSet((X,Y), (X2,Y2), CONF) =/= none .
-    eq obstacleInWay((X,Y), (X2,Y2), CONF) = none [owise] .
 endom
 

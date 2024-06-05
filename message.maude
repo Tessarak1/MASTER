@@ -4,7 +4,7 @@ omod MESSAGE-WRAPPER is
   sort MsgContent .
   sort Receiver .
   ***For now, a message can be picked up by harvesters or receivers.
-  ops worker harvester human : -> Receiver [ctor] .
+  ops worker transporter human : -> Receiver [ctor] .
   op __ : MsgContent MsgContent -> MsgContent [assoc comm ctor] .
   subsort Oid < Receiver .
   op msg_from_to_ : MsgContent Oid Receiver -> Msg [ctor] .

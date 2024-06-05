@@ -15,9 +15,11 @@ fmod PATH is
     op _inRange(_,_) : Int Int Int -> Bool .
     op _inRange(_) : Location Path -> Bool .
     op getLocations : Path -> List-Location .
+    op removePaths : PathSet PathSet -> PathSet .
 
     vars I I2 I3 : Int .
     vars X X2 X3 Y Y2 Y3 : Int .
+    vars PS PS2 : PathSet .
 
     eq {(X,Y) (X2,Y2)} {(X,Y) (X2,Y2)} = {(X,Y) (X2,Y2)} .
     ceq I inRange(I2, I3) = true if I <= max(I2,I3) and I >= min(I2,I3) .
@@ -27,4 +29,7 @@ fmod PATH is
     eq (X,Y) inRange({(X2,Y2) (X3,Y3)}) = false [owise] .
 
     eq getLocations({(X, Y) (X2, Y2)}) = (X,Y) (X2,Y2) .
+
+    eq removePaths(PS, es) = PS .
+    eq removePaths({(X,Y) (X2,Y2)} PS, {(X,Y) (X2,Y2)} PS2) = removePaths(PS, PS2) .
 endfm

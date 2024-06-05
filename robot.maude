@@ -30,6 +30,12 @@ omod ROBOT is
     
     sort Information .
     subsorts Location Direction < Information .
+
+    class Robot | detectionRange : Nat, cargoLevel : CargoLevel, curCargo : Cargo, detected : Representation, waitTimer : Rat, obstructionPoints : List-Location .
+    class Worker | movementType : MovementType .
+    class Transporter .
+    
+    subclass Worker Transporter < Robot < Entity .
     op _;_ : Information Information -> Information [ctor assoc comm id: noInfo] .
     op noInfo : -> Information [ctor] .
     op detectedSpeed : Rat -> Information [ctor] .
@@ -51,9 +57,8 @@ omod ROBOT is
     op updatePath : Object Configuration Location Location -> Object .
     ***returns the front-facing location where the robots detection border is.
     op detectionBorder : Object -> Location .
-    op checkBrakingProtocol : Object -> Object .
-
     op updatePath : Object Configuration Location -> Object .
+    op replanPath : Object Object List-Location -> Object .
 
     ops obstacle robot human : -> ObjectType [ctor] .
     op nil : -> Representation [ctor] .
@@ -62,16 +67,11 @@ omod ROBOT is
     op {_:_|_} : Oid Cid Information -> Representation .
     ***Checks if an object already is in the representation .
     op _notIn_ : String Representation -> Bool .
-    ***Returns the timeInterval the robot will be at a given location.
-    op eta : Location List-Location Nat -> Rat .
-
-    class Robot | detectionRange : Nat, cargoLevel : CargoLevel, curCargo : Cargo, detected : Representation, waitTimer : Rat .
-    class Worker | movementType : MovementType .
-    class Transporter .
-    subclass Worker Transporter < Robot < Entity .
+    ***checks if the given represenation is incompatible with path. If continuing the path would lead to a head-on collision.
+    ops breaksPath $breaksPath : List-Location Representation -> Bool .
 
     var CONF : Configuration .
-    vars S S' S2 S2' : String .
+    vars S S' S2 S2' S3 S4 : String .
 
     vars X Y : Rat .
     vars X2 Y2 : Rat .
@@ -79,7 +79,7 @@ omod ROBOT is
 
     var N : Nat .
     var A : Area .
-    var LL : List-Location .
+    vars LL LL2 : List-Location .
     var C : Content .
     var TC : TransporterCargo .
     var STOR : Storage .
@@ -90,8 +90,20 @@ omod ROBOT is
     var I : Information .
     vars D D2 : Direction .
     vars SP SP2 : Rat .
+    var STATE : State .
 
-    eq updatePath(< S : Robot | location : (X,Y) >, CONF, (X3,Y3)) = < S : Robot | remainingPath : (X,Y) dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByLocation(CONF, (X3,Y3))) > .
+    eq updatePath(< S : Robot | location : (X,Y) >, < S2 : Map | allIntersections : < S3 : Intersection | location : (X,Y) > < S4 : Intersection | location : (X2 ,Y2) > CONF >, (X2,Y2)) = 
+        < S : Robot | remainingPath : (X,Y) dijkstraSearch(< S3 : Intersection | location : (X,Y) > < S4 : Intersection | location : (X2 ,Y2) > CONF, < S3 : Intersection | >, < S4 : Intersection | location : (X2,Y2) >)> .
+        
+    eq replanPath(< S : Robot | location : (X,Y), remainingPath : LL (X2,Y2) >, < S2 : Map | allIntersections : CONF, paths : PS >, LL2) =
+        ***check if robot is at intersection, can dijkstra from there.
+        if returnByLocation(CONF, (X,Y)) =/= none then
+            ***remove the connection between the intersections where the obstacles are located at.
+            ***Do dijkstraSearch on current location and goal from updated map.
+            updatePath(< S : Robot | state : moving >, removeConnection(findPath(LL2, PS), < S2 : Map | >), (X2,Y2))
+        else
+            updatePath(< S : Robot | state : moving >, removeConnection(findPath(LL2, getPathSet(newIntersection((X,Y), < S2 : Map | >))), newIntersection((X,Y), < S2 : Map | >)), (X2,Y2))
+        fi .
 
     eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : north >) = (X, Y + N) .
     eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : east >) = (X + N, Y) .
@@ -101,32 +113,101 @@ omod ROBOT is
     eq S notIn {S : CID | (X,Y) ; I} R = false .
     eq S notIn R = true [owise] .
 
-    ***When approaching a slower entity, brake to match speed.
-    rl [approachSlowerEntity] : 
-        < S : Robot | speed : SP, direction : D, detected : {S2 : Robot | D ; detectedSpeed(SP2) ; I} R >
+    ceq $breaksPath((X,Y) (X,Y2), {S2 : CID | (X,Y3) ; north ; I}) = true if Y > Y2 .
+    ceq $breaksPath((X,Y) (X2,Y), {S2 : CID | (X3,Y) ; east ; I}) = true if X > X2 .
+    ceq $breaksPath((X,Y) (X,Y2), {S2 : CID | (X,Y3) ; south ; I}) = true if Y < Y2 .
+    ceq $breaksPath((X,Y) (X2,Y), {S2 : CID | (X3,Y) ; west ; I}) = true if X < X2 .
+    eq $breaksPath(LL, R) = false [owise] .
+    ceq breaksPath(LL, {S2 : CID | (X,Y) ; I}) = false if between((X,Y), LL) == nil .
+    eq breaksPath(LL, {S2 : Obstacle | (X,Y) ; I}) =
+        if between((X,Y), LL) == nil then
+            false
+        else
+            true
+        fi .
+    eq breaksPath(LL, {S2 : CID | (X,Y) ; D ; I}) = $breaksPath(between((X,Y), LL), {S2 : CID | (X,Y) ; D ; I}) [owise] .
+
+    ***Path replanning happens when a robot has finished processing 
+    rl [replanPath] :
+        < S : Robot | state : replanning, obstructionPoints : LL >
+        < S2 : Map | >
         =>
-        if SP2 < SP then
-            < S : Robot | speed : SP2, detected : R >
+        replanPath(< S : Robot | >, < S2 : Map | >, LL)
+        < S2 : Map | > .
+
+    crl [dismissDetection] :
+        < S : Robot | state : STATE, detected : R >
+        =>
+        < S : Robot | detected : nil >
+        if ((STATE == idle) or (STATE == waiting)) and (R =/= nil) .
+
+    ***When approaching a slower entity, brake to match speed.
+    crl [approachSameDirectionEntity] : 
+        < S : Robot | location : (X,Y), speed : SP, direction : D, detected : {S2 : HumanVehicle | (X2,Y2) ; D ; detectedSpeed(SP2) ; I} R >
+        =>
+        if < S : Robot | > directlyApproaching (X2,Y2) then
+            if (distance((X,Y), (X2,Y2)) / SP) < 5 then
+                < S : Robot | speed : 0, state : idle, detected : R > 
+            else
+                if SP2 < SP then
+                    < S : Robot | speed : SP2, detected : R >
+                else
+                    < S : Robot | detected : R >
+                fi
+            fi
         else
             < S : Robot | detected : R >
-        fi .
+        fi
+        if SP > 0 .
 
-    ***When approaching or close to a person, slow down, regardless of orientation.
-    ***If directly approaching a human, and the distance is too short, come to a complete stop.
-    rl [detectHuman] :
-        < S : Robot | location : (X,Y), speed : SP, direction : D, detected : {S2 : Human | (X2,Y2)} >
+    ***if the detected obstacle is in the way then the robot will have to replan its path.
+    ***If the robot no longer has a path to its goal, it will cancel the current task and work on removing the obstacle.
+    crl [detectedObstacle] : 
+        < S : Robot | location : (X,Y), remainingPath : LL (X2,Y2), state : STATE, detected : {S2 : Obstacle | (X3,Y3) ; I} R, obstructionPoints : LL2 > 
+        < S3 : Map | >
+        =>
+        ***if the obstacle is in the robot's way, add it to obstructionPoints and prepare to replan path.
+        if between((X3,Y3), (X,Y) LL (X2,Y2)) =/= nil then
+            < S : Robot | state : replanning, detected : R, obstructionPoints : (X3,Y3) LL2 >
+            < S3 : Map | > 
+            (msg obstacleAt (X3,Y3) from S to worker)
+        else
+            < S : Robot | detected : R >
+            < S3 : Map | > 
+            (msg obstacleAt (X3,Y3) from S to worker)
+        fi
+        if (STATE == moving) or (STATE == replanning) .
+
+    ***Robot - Human interaction rules.
+    crl [detectHumanPerson] :
+        < S : Robot | location : (X,Y), speed : SP, direction : D, state : STATE, detected : {S2 : Human | (X2,Y2) ; detectedSpeed(SP2) ; I} >
         =>
         if < S : Robot | > directlyApproaching (X2,Y2) then
             ***if too close then start braking
-            if (distance((X,Y), (X2,Y2)) / SP) < 10 then
-                < S : Robot | speed : 0 > 
+            if (distance((X,Y), (X2,Y2)) / SP) < 3 then
+                < S : Robot | speed : 0 >
             else
                 < S : Robot | speed : 5 >
             fi
         else
             ***If the human is close but not in front of the robot slow down to limit possible accidents.
             < S : Robot | speed : 5 >
-        fi .
+        fi
+        if (STATE == moving) or (STATE == replanning) .
+
+    ***In contrast to detection of person, if a human operated vehicle is on the planned path, replan path.
+    crl [detectHumanVehicle] : 
+        < S : Robot | location : (X,Y), remainingPath : LL, speed : SP, state : STATE, detected : {S2 : HumanVehicle | (X2,Y2) ; D ; I} R, obstructionPoints : LL2 >
+        < S3 : Map | >
+        =>
+        if breaksPath((X,Y) LL, {S2 : HumanVehicle | (X2,Y2) ; D ; I}) then
+            < S : Robot | state : replanning, detected : R, obstructionPoints : LL2 >
+            < S3 : Map | >
+        else
+            < S : Robot | detected : R >
+            < S3 : Map | >
+        fi
+        if (STATE == moving) or (STATE == replanning) .
 
     ***When a robot detects another on its path on an immediate collision course, if they are too close then it will immediately try to stop to limit the potential damage.
     ***If they are further away, then start communication to check which one will replan path.
@@ -140,18 +221,6 @@ omod ROBOT is
             < S : Robot | speed : 5, detected : R >
         fi
         if opposite(D,D2) .
-
-  eq eta((X,Y), (X,Y) LL, N) = 0 .
-    eq eta((X,Y), (X2,Y2) (X3,Y3) LL, N) = eta((X,Y), (X3,Y3) LL, N) + (distance((X2,Y2), (X3,Y3)) / N) .
-
-    ***Robot communicates paths to one another, if they use the same path segment at the same time
-    ***one of them will have to replan path. Both calculate an alternate path and the one with the shortest replans.
-  ***(  rl [receivePath] :
-        < S : Robot | >
-        (msg requestPath path(LL2) from S2 to S)
-        =>
-        < S : Robot | >
-  )***
         
     ***When first detecting a robot request its path and transmit own path to check for collision.
     rl [detectRobot] :
@@ -159,34 +228,6 @@ omod ROBOT is
         =>
         (msg requestPath path((X,Y) LL) from S to S2)
         < S : Robot | > .
-
-    ***if the detected obstacle is in the way then the robot will have to replan its path.
-    ***If the robot no longer has a path to its goal, it will cancel the current task and work on removing the obstacle.
-    ***if the obstacle is not in the way 
-    rl [detectedObstacle] : 
-        < S : Robot | location : (X,Y), remainingPath : LL (X2, Y2), detected : {S' : Obstacle | (X3,Y3)} R > < S2 : Map | allIntersections : CONF, paths : PS >
-        =>
-        if between((X3,Y3), (X,Y) LL (X2,Y2)) =/= nil then
-            ***check if robot is at intersection, can dijkstra from there.
-            if returnByLocation(CONF, (X,Y)) =/= none then
-                ***remove the connection between the intersections where the obstacle is located at.
-                ***Do dijkstraSearch on current location and goal from updated map.
-                updatePath(< S : Robot | detected : R >, removeConnection(between((X3,Y3), (X,Y) LL (X2,Y2)), CONF), (X2,Y2))
-                < S2 : Map | > 
-                (msg obstacleAt (X3,Y3) from S to worker)
-            else
-                ***If you are not at an intersection "create" an intersection where the robot is, add it to the map, check if the obstacle is and do dijkstra.
-                updatePath(< S : Robot | detected : R >, removeConnection(between((X3,Y3), (X,Y) LL (X2,Y2)), newIntersection((X,Y), < S2 : Map | >)), (X2, Y2))
-                ***updatePath(< S : Robot | detected : R >,
-                < S2 : Map | > 
-                (msg obstacleAt (X3,Y3) from S to worker)
-            fi
-        else
-            ***If the detected obstacle is not in the way proceed as usual after informing other workers.
-            < S : Robot | detected : R >
-            < S2 : Map | > 
-            (msg obstacleAt (X3,Y3) from S to worker)
-        fi .
 
     rl [detectedHuman] :
         < S : Robot | detected : {S' : Human | (X,Y)} R >
@@ -237,6 +278,8 @@ omod ROBOT is
         =>
         < S : Transporter | remainingPath : nil, state : unloading > 
         < S2 : CPoint | > .
+
+***(
     ***Rules for when a robot finishes a task
     rl [finishWatering] :
         < S : Worker | location : (X,Y), remainingPath : (X,Y), state : watering >
@@ -266,4 +309,5 @@ omod ROBOT is
         =>
         < S : Transporter | state : idle, cargoLevel : empty >
         < S2 : CPoint | storage : addToStorage(TC, STOR) > .
+)***
 endom

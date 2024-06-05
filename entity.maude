@@ -7,20 +7,21 @@ omod ENTITY is
     
     sort State .
 
-    class Entity | direction : Direction, speed : Int, maxSpeed : Int, remainingPath : List-Location, state : State .
+    class Entity | direction : Direction, speed : Rat, maxSpeed : Int, remainingPath : List-Location, state : State .
     subclass Entity < PhysicalObj .    
 
-    ops moving idle crashed waiting refillingWater refillingFertilizer refillingSeeds fertilizing watering harvesting transporting unloading : -> State [ctor] .
+    ops moving idle crashed waiting refillingWater refillingFertilizer refillingSeeds fertilizing watering harvesting transporting unloading replanning crashing : -> State [ctor] .
     op setDirection : Location Location -> Direction .
-    ***IN: Two entities that are moving in the same direction.
-    ***OUT: The entity in front.
     ops inFront : Object Object -> Object [comm] .
     op _isBehind_ : Object Object -> Bool .
     op _directlyApproaching_ : Object Location -> Bool .
+    op stoppingDistance : Object -> Rat .
 
     vars S S2 : String .
-    vars X X2 Y Y2 : Int .
+    vars X X2 Y Y2 : Rat .
+    var SP : Rat .
     var LL : List-Location .
+    var CONF : Configuration .
 
     ceq setDirection((X,Y), (X,Y2)) = north if Y2 > Y .
     ceq setDirection((X,Y), (X2,Y)) = east if X2 > X .
@@ -39,6 +40,9 @@ omod ENTITY is
     ceq < S : Entity | location : (X,Y), direction : south > directlyApproaching (X, Y2) = true if Y2 < Y .
     ceq < S : Entity | location : (X,Y), direction : west > directlyApproaching (X2, Y) = true if X2 < X .
     eq < S : Entity | > directlyApproaching (X,Y) = false [owise] .
+
+    ***Formula for calculating distance an entity needs to come to a complete halt.
+    eq stoppingDistance(< S : Entity | speed : SP >) = ((SP / 10) ^ 2) / 2 .
 
     rl [finish] :
         < S : Entity | location : (X, Y), remainingPath : (X,Y), state : moving >
