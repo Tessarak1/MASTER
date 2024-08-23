@@ -93,6 +93,8 @@ omod PATHFINDER is
     op recurNeighborSearch : INPTriple PQueue -> PQueue .
     op recurDijkstraSearch : PQueue -> PQueue .
     op dijkstraSearch : Configuration Object Object -> List-Location .
+    op dijkstraSearch : Object Location Location -> List-Location .
+    op dijkstraSearch : Object Location Oid -> List-Location .
     op $coverArea : Location Location Location Location Bool -> List-Location .
     op backToStart : Location Location -> List-Location .
     op coverArea : Location Area -> List-Location .
@@ -146,6 +148,10 @@ omod PATHFINDER is
                 get(S, recurDijkstraSearch(convert(CONF, < S : Intersection | >))),
                 get(S', recurDijkstraSearch(convert(CONF, < S : Intersection | >))))
         fi .
+    eq dijkstraSearch(< S : Map | allIntersections : CONF >, (X,Y), (X2,Y2)) =
+        dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByLocation(CONF, (X2,Y2))) .
+    eq dijkstraSearch(< S : Map | allIntersections : CONF >, (X,Y), S2) = 
+        dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)) .
 
     ***TODO: Change this to area being comprised of a location set instead.
     eq $coverArea((X,Y), (X2, Y2), (X,Y), (X2,Y2), true) = (X,Y) (X2, Y2) .

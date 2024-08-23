@@ -10,7 +10,7 @@ omod SORTS is
     subsorts Empty Produce < Content .
     subsort String < Oid .
     sort Direction .
-
+    sort Tid .
 
     ops north east south west : -> Direction [ctor] .
     ops low good : -> Level [ctor] .
@@ -21,6 +21,7 @@ omod SORTS is
     ops salad potatoes turnips pepper tomatoes cucumbers: -> Vegetable [ctor] .
     ops wheat rye : -> Grain [ctor] .
     op peaches : -> Fruit [ctor] .
+    op [_,_] : Oid Nat -> Tid .
 
     op opposite : Direction Direction -> Bool [comm] .
 

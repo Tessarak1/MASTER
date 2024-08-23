@@ -4,7 +4,7 @@ load time-inf .
 load pathfinder .
 load message .
 load map .
-load growing-loc .
+load growingLoc .
 load collectionPoint .
 load dock .
 load human .
@@ -16,7 +16,7 @@ omod ROBOT is
     protecting MAP .
     protecting HUMAN .
     protecting TIME-INF .
-    protecting GROWING-LOC .
+    protecting GROWINGLOC .
     protecting CPOINT .
     protecting DOCK .
     protecting PATHFINDER .
@@ -26,19 +26,25 @@ omod ROBOT is
     sort MovementType . 
     ***Type of object detected and Identificator.
     sort Representation .
-    sort ObjectType .
+    sort TaskStatus . 
     
     sort Information .
     subsorts Location Direction < Information .
+    subsort Tid < TaskStatus .
 
-    class Robot | detectionRange : Nat, cargoLevel : CargoLevel, curCargo : Cargo, detected : Representation, waitTimer : Rat, obstructionPoints : List-Location .
+    class Robot | detectionRange : Nat, cargoLevel : CargoLevel, curCargo : Cargo, detected : Representation, waitTimer : Rat, obstructionPoints : List-Location, curTask : TaskStatus .
     class Worker | movementType : MovementType .
     class Transporter .
     
     subclass Worker Transporter < Robot < Entity .
+
     op _;_ : Information Information -> Information [ctor assoc comm id: noInfo] .
     op noInfo : -> Information [ctor] .
+    op TaskNr:_ : Nat -> Information [ctor] .
     op detectedSpeed : Rat -> Information [ctor] .
+    op [W:_ F:_ H:_] : Level Level GrowingState -> Information [ctor] .
+
+    op noTask : -> TaskStatus .
 
     ***Workers can plant fields or greenhouses, so they should have seeds as part of cargo.
     sort Seed .
@@ -53,14 +59,12 @@ omod ROBOT is
     op processing : Representation Time -> Representation [frozen (1) right id: 0] .
     ***Robot does dijkstraSearch from the first intersection to the second.
     ***Used for shorthand to perform dijkstra on an updated map.
-
     op updatePath : Object Configuration Location Location -> Object .
     ***returns the front-facing location where the robots detection border is.
     op detectionBorder : Object -> Location .
     op updatePath : Object Configuration Location -> Object .
-    op replanPath : Object Object List-Location -> Object .
+    op replanPath : Object Object Location -> Object .
 
-    ops obstacle robot human : -> ObjectType [ctor] .
     op nil : -> Representation [ctor] .
     op __ : Representation Representation -> Representation [assoc comm id: nil ctor] .
     ***Todo: refine this based on what information the robot should know.
@@ -69,6 +73,8 @@ omod ROBOT is
     op _notIn_ : String Representation -> Bool .
     ***checks if the given represenation is incompatible with path. If continuing the path would lead to a head-on collision.
     ops breaksPath $breaksPath : List-Location Representation -> Bool .
+
+    op canComplete : Object Information -> Bool .
 
     var CONF : Configuration .
     vars S S' S2 S2' S3 S4 : String .
@@ -80,6 +86,8 @@ omod ROBOT is
     var N : Nat .
     var A : Area .
     vars LL LL2 : List-Location .
+    var L L2 : Level .
+    var GS : GrowingState .
     var C : Content .
     var TC : TransporterCargo .
     var STOR : Storage .
@@ -91,19 +99,21 @@ omod ROBOT is
     vars D D2 : Direction .
     vars SP SP2 : Rat .
     var STATE : State .
+    var REP : Representation .
+    var TID : Tid .
+    var TS : TaskStatus .
+
+    eq canComplete(< S : Worker | cargoLevel : full, curCargo : water >, [W: low F: L2 H: GS]) = true .
+    eq canComplete(< S : Worker | cargoLevel : full, curCargo : fertilizer >, [W: L F: low H: GS]) = true .
+    eq canComplete(< S : Transporter | cargoLevel : empty >, [W: L F: L2 H: harvest]) = true .
+    eq canComplete(< S : Robot | >, [W: L F: L2 H: GS]) = false [owise] .
 
     eq updatePath(< S : Robot | location : (X,Y) >, < S2 : Map | allIntersections : < S3 : Intersection | location : (X,Y) > < S4 : Intersection | location : (X2 ,Y2) > CONF >, (X2,Y2)) = 
         < S : Robot | remainingPath : (X,Y) dijkstraSearch(< S3 : Intersection | location : (X,Y) > < S4 : Intersection | location : (X2 ,Y2) > CONF, < S3 : Intersection | >, < S4 : Intersection | location : (X2,Y2) >)> .
-        
-    eq replanPath(< S : Robot | location : (X,Y), remainingPath : LL (X2,Y2) >, < S2 : Map | allIntersections : CONF, paths : PS >, LL2) =
-        ***check if robot is at intersection, can dijkstra from there.
-        if returnByLocation(CONF, (X,Y)) =/= none then
-            ***remove the connection between the intersections where the obstacles are located at.
-            ***Do dijkstraSearch on current location and goal from updated map.
-            updatePath(< S : Robot | state : moving >, removeConnection(findPath(LL2, PS), < S2 : Map | >), (X2,Y2))
-        else
-            updatePath(< S : Robot | state : moving >, removeConnection(findPath(LL2, getPathSet(newIntersection((X,Y), < S2 : Map | >))), newIntersection((X,Y), < S2 : Map | >)), (X2,Y2))
-        fi .
+
+    ***Robot, map and obstructionPoints    
+    eq replanPath(< S : Robot | location : (X,Y), obstructionPoints : LL2 >, < S2 : Map | allIntersections : CONF, paths : PS >, (X2,Y2)) =
+        updatePath(< S : Robot | state : moving >, transformMap(< S2 : Map | >, (X,Y), LL2), (X2,Y2)) .
 
     eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : north >) = (X, Y + N) .
     eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : east >) = (X + N, Y) .
@@ -112,7 +122,7 @@ omod ROBOT is
 
     eq S notIn {S : CID | (X,Y) ; I} R = false .
     eq S notIn R = true [owise] .
-
+ 
     ceq $breaksPath((X,Y) (X,Y2), {S2 : CID | (X,Y3) ; north ; I}) = true if Y > Y2 .
     ceq $breaksPath((X,Y) (X2,Y), {S2 : CID | (X3,Y) ; east ; I}) = true if X > X2 .
     ceq $breaksPath((X,Y) (X,Y2), {S2 : CID | (X,Y3) ; south ; I}) = true if Y < Y2 .
@@ -127,19 +137,46 @@ omod ROBOT is
         fi .
     eq breaksPath(LL, {S2 : CID | (X,Y) ; D ; I}) = $breaksPath(between((X,Y), LL), {S2 : CID | (X,Y) ; D ; I}) [owise] .
 
-    ***Path replanning happens when a robot has finished processing 
-    rl [replanPath] :
-        < S : Robot | state : replanning, obstructionPoints : LL >
+    ***Rules for path replanning
+    rl [replanPathNoTask] :
+        < S : Robot | state : replanning, remainingPath : LL (X,Y), detected : nil, curTask : noTask >
         < S2 : Map | >
         =>
-        replanPath(< S : Robot | >, < S2 : Map | >, LL)
+        replanPath(< S : Robot | >, < S2 : Map | >, (X,Y))
         < S2 : Map | > .
 
+    rl [replanPathTask] :
+        < S : Robot | state : replanning, detected : nil, curTask : [S3 , N] >
+        < S2 : Map | allIntersections : < S3 : Locatable | location : (X,Y) > CONF >
+        =>
+        replanPath(< S : Robot | >, < S2 : Map | >, (X,Y))
+        < S2 : Map | > .
+
+    ***rules for parsing through detections
     crl [dismissDetection] :
         < S : Robot | state : STATE, detected : R >
         =>
         < S : Robot | detected : nil >
         if ((STATE == idle) or (STATE == waiting)) and (R =/= nil) .
+
+    rl [detectGrowingLocFree] :
+        < S : Robot | detected : {S2 : GrowingLoc | (X2,Y2) ; [W: L F: L2 H: GS] ; TaskNr: N} REP, curTask : noTask >
+        =>
+        if L == good and L2 == good and GS =/= harvest then
+            < S : Robot | detected : REP >
+        else
+            if canComplete(< S : Robot | >, [W: L F: L2 H: GS]) then
+                < S : Robot | state : replanning, detected : REP, curTask : [S2 , N] >
+            else
+                ***Start auction
+                < S : Robot | >
+            fi
+        fi .
+
+    rl [detectGrowingLocBusy] :
+        < S : Robot | detected : {S2 : GrowingLoc | I}, curTask : TID >
+        =>
+        < S : Robot | > .
 
     ***When approaching a slower entity, brake to match speed.
     crl [approachSameDirectionEntity] : 
@@ -162,7 +199,7 @@ omod ROBOT is
 
     ***if the detected obstacle is in the way then the robot will have to replan its path.
     ***If the robot no longer has a path to its goal, it will cancel the current task and work on removing the obstacle.
-    crl [detectedObstacle] : 
+    crl [detectObstacle] : 
         < S : Robot | location : (X,Y), remainingPath : LL (X2,Y2), state : STATE, detected : {S2 : Obstacle | (X3,Y3) ; I} R, obstructionPoints : LL2 > 
         < S3 : Map | >
         =>
@@ -221,7 +258,7 @@ omod ROBOT is
             < S : Robot | speed : 5, detected : R >
         fi
         if opposite(D,D2) .
-        
+
     ***When first detecting a robot request its path and transmit own path to check for collision.
     rl [detectRobot] :
         < S : Robot | location : (X,Y), remainingPath : LL, detected : {S2 : Robot | (X2,Y2)} R >
@@ -229,48 +266,32 @@ omod ROBOT is
         (msg requestPath path((X,Y) LL) from S to S2)
         < S : Robot | > .
 
-    rl [detectedHuman] :
+    rl [detectHuman] :
         < S : Robot | detected : {S' : Human | (X,Y)} R >
         =>
-        < S : Robot | > .
+        < S : Robot | > .   
 
-    rl [rcvWaterMessage] :
-        < S : Worker | location : (X , Y), remainingPath : nil, cargoLevel : full, curCargo : water, state : idle > < S' : Map | allIntersections : CONF > 
-        (msg water S2 from S2 to worker)
-        =>
-        < S : Worker | remainingPath : dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), state : moving > 
-        < S' : Map | > .
-    rl [rcvFertilizerMessage] :
-        < S : Worker | location : (X,Y), remainingPath : nil, cargoLevel : full, curCargo : fertilizer, state : idle > < S' : Map | allIntersections : CONF >
-        (msg fertilize S2 from S2 to worker)
-        =>
-        < S : Worker | remainingPath : dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), state : moving >
-        < S' : Map | > .
-    rl [rcvHarvestMessage] :
-        < S : Transporter | location : (X,Y), remainingPath : nil, cargoLevel : empty, state : idle > < S' : Map | allIntersections : CONF >
-        (msg harvest S2 from S2 to worker)
-        =>
-        < S : Transporter | remainingPath : dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), state : moving >
-        < S' : Map | > .
-    ***Rules for when robot has arrived at growing-loc and starts a task.
+
+
+    ***Rules for when robot has arrived at growingloc and starts a task.
     rl [startWatering] :
         < S : Worker | location : (X,Y), remainingPath : nil, state : idle, cargoLevel : full, curCargo : water > 
-        < S2 : Growing-loc | location : (X,Y), waterLevel : low, growingArea : A >
+        < S2 : GrowingLoc | location : (X,Y), waterLevel : low, growingArea : A >
         =>
         < S : Worker | remainingPath : coverArea((X,Y), A), state : watering, speed : 1 > 
-        < S2 : Growing-loc | > .
+        < S2 : GrowingLoc | > .
     rl [startFertilizing] :
         < S : Worker | location : (X,Y), remainingPath : nil, state : idle, cargoLevel : full, curCargo : fertilizer >
-        < S2 : Growing-loc | location : (X,Y), fertilizerLevel : low, growingArea : A >
+        < S2 : GrowingLoc | location : (X,Y), fertilizerLevel : low, growingArea : A >
         =>
         < S : Worker | remainingPath : coverArea((X,Y), A), state : fertilizing, speed : 1 >
-        < S2 : Growing-loc | > .
+        < S2 : GrowingLoc | > .
     rl [startHarvesting] :
         < S : Transporter | location : (X,Y), remainingPath : nil, state : idle, cargoLevel : empty >
-        < S2 : Growing-loc | location : (X,Y), growingState : harvest, growingArea : A > 
+        < S2 : GrowingLoc | location : (X,Y), growingState : harvest, growingArea : A > 
         =>
         < S : Transporter | remainingPath : coverArea((X,Y), A), state : harvesting, speed : 1 >
-        < S2 : Growing-loc | > .
+        < S2 : GrowingLoc | > .
     ***Transporter behavior at collection point.
     rl [startUnloading] :
         < S : Transporter | location : (X,Y), remainingPath : (X,Y), state : transporting, cargoLevel : full >
@@ -283,24 +304,24 @@ omod ROBOT is
     ***Rules for when a robot finishes a task
     rl [finishWatering] :
         < S : Worker | location : (X,Y), remainingPath : (X,Y), state : watering >
-        < S2 : Growing-loc | location : (X,Y), waterLevel : low >
+        < S2 : GrowingLoc | location : (X,Y), waterLevel : low >
         =>
         < S : Worker | state : idle, cargoLevel : empty >
-        < S2 : Growing-loc | waterLevel : good, waterTimer : 100 > .
+        < S2 : GrowingLoc | waterLevel : good, waterTimer : 100 > .
     rl [finishFertilizing] :
         < S : Worker | location : (X,Y), remainingPath : (X,Y), state : fertilizing >
-        < S2 : Growing-loc | location : (X,Y), fertilizerLevel : low >
+        < S2 : GrowingLoc | location : (X,Y), fertilizerLevel : low >
         =>
         < S : Worker | state : idle, cargoLevel : empty >
-        < S2 : Growing-loc | fertilizerLevel : good, fertilizerTimer : 100 > .
+        < S2 : GrowingLoc | fertilizerLevel : good, fertilizerTimer : 100 > .
     rl [finishHarvesting] :
         < S : Transporter | location : (X,Y), remainingPath : (X,Y), state : harvesting >
-        < S' : Growing-loc | location : (X,Y), growingState : harvest, content : C >  
+        < S' : GrowingLoc | location : (X,Y), growingState : harvest, content : C >  
         < S2 : CPoint | >
         < S2' : Map | allIntersections : CONF >
         =>
         < S : Transporter | remainingPath : dijkstraSearch(CONF, returnByLocation(CONF, (X,Y)), returnByName(CONF, S2)), speed : 1,  cargoLevel : full, state : transporting >
-        < S' : Growing-loc | growingState : empty >
+        < S' : GrowingLoc | growingState : empty >
         < S2 : CPoint | >
         < S2' : Map | > .
     rl [finishUnloading] :

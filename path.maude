@@ -1,7 +1,7 @@
 load location .
 fmod PATH is
     protecting LIST-LOCATION .
-    protecting INT .
+    protecting RAT .
 
     sorts Path PathSet .
     subsort Path < PathSet .

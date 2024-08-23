@@ -12,7 +12,7 @@ omod TIMED-FARM is
     protecting CPOINT .
     protecting TIME-INF .
     protecting MAP .
-    protecting GROWING-LOC .
+    protecting GROWINGLOC .
     protecting OBSTACLE .
 
     sort ClockedConfiguration .
@@ -35,11 +35,13 @@ omod TIMED-FARM is
     vars S S2 : String .
     vars X X2 Y Y2 X3 Y3 SP SP2 : Rat .
     vars N N' N2 N3 N4 : Nat .
+    vars L L2 : Level .
     var LL : List-Location .
     vars I I2 : Int .
     vars NI NI2 : NatInf .
     vars D D2 : Direction .
     vars R R2 : Rat .
+    var GS : GrowingState .
     var REP : Representation .
     var C : Cid .
     var MSG : Msg .
@@ -130,7 +132,7 @@ omod TIMED-FARM is
     eq maxTimeAdvance(< S : Map | > CONF) = maxTimeAdvance(CONF) .
 
     ***maxTimeAdvance for a growing loc is the least amount of time left on relevant timer, which is accomplished with untilTimerExpire.
-    eq maxTimeAdvance(< S : Growing-loc | > CONF) = min(untilTimerExpire(< S : Growing-loc | >), maxTimeAdvance(CONF)) .
+    eq maxTimeAdvance(< S : GrowingLoc | > CONF) = min(untilTimerExpire(< S : GrowingLoc | >), maxTimeAdvance(CONF)) .
 
     ceq maxTimeAdvance(< S : Robot | detected : REP > CONF) = 0 if REP =/= nil .
     ceq maxTimeAdvance(< S : Robot | waitTimer : R, handledTime : false > CONF) = min(R, maxTimeAdvance(< S : Robot | handledTime : true > CONF)) if R > 0 .
@@ -164,10 +166,9 @@ omod TIMED-FARM is
     eq timeEffect(< S : Entity | location : (X, Y), direction : south, speed : SP, remainingPath : (X2,Y2) LL > CONF, R) = < S : Entity | location : (X, Y - (SP * R)) > timeEffect(CONF, R) [owise] .
     eq timeEffect(< S : Entity | location : (X, Y), direction : west, speed : SP, remainingPath : (X2,Y2) LL > CONF, R) = < S : Entity | location : (X - (SP * R), Y) > timeEffect(CONF, R) [owise] .
 
-    ***TimeEffect for Growing-loc
-    eq timeEffect(< S : Growing-loc | growingState : harvest, harvestWait : T > CONF, T2) = decreaseTimers(< S : Growing-loc | harvestWait : T + T2 >, T2) timeEffect(CONF, T2) .
-    eq timeEffect(< S : Growing-loc | waterLevel : good, fertilizerLevel : good > CONF, T) = decreaseTimers(< S : Growing-loc | >, T) timeEffect(CONF, T) .
-    eq timeEffect(< S : Growing-loc | waterTimer : TR, fertilizerTimer : TR2, msgTimer : TR3 > CONF, T) = < S : Growing-loc | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T), msgTimer : decrease(TR3, T) > timeEffect(CONF, T) [owise] .
+    ***TimeEffect for GrowingLoc
+    eq timeEffect(< S : GrowingLoc | waterLevel : good, fertilizerLevel : good > CONF, T) = decreaseTimers(< S : GrowingLoc | >, T) timeEffect(CONF, T) .
+    eq timeEffect(< S : GrowingLoc | waterTimer : TR, fertilizerTimer : TR2 > CONF, T) = < S : GrowingLoc | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T) > timeEffect(CONF, T) [owise] .
 
     ceq detect(< S : Robot | location : (X, Y), detectionRange : N, detected : REP > < S2 : Obstacle | location : (X2,Y2) > CONF) =
         detect(< S : Robot | detected : {S2 : Obstacle | (X2,Y2)} REP > < S2 : Obstacle | > CONF) if ((X2,Y2) inArea(makeArea((X, Y), N))) and S2 notIn REP .
@@ -175,6 +176,8 @@ omod TIMED-FARM is
         detect(< S : Robot | detected : {S2 : Robot | (X2,Y2) ; D ; detectedSpeed(SP)} REP > < S2 : Robot | > CONF) if ((X2,Y2) inArea(makeArea((X, Y), N))) and S2 notIn REP .
     ceq detect(< S : Robot | location : (X, Y), detectionRange : N, detected : REP > < S2 : HumanVehicle | location : (X2,Y2), direction : D, speed : SP > CONF) =
         detect(< S : Robot | detected : {S2 : HumanVehicle | (X2,Y2) ; D ; detectedSpeed(SP)} REP > < S2 : HumanVehicle | > CONF) if ((X2,Y2) inArea(makeArea((X, Y), N))) and S2 notIn REP .
+    ceq detect(< S : Robot | location : (X,Y), detectionRange : N, detected : REP > < S2 : GrowingLoc | location : (X2,Y2), waterLevel : L, fertilizerLevel : L2, growingState : GS > CONF) =
+        detect(< S : Robot | detected : {S2 : GrowingLoc | (X2,Y2) ; [W: L F: L2 H: GS]} REP > < S2 : GrowingLoc | > CONF) if ((X2,Y2) inArea(makeArea((X, Y), N))) and S2 notIn REP .
     eq detect(CONF) = CONF [owise] .
 
     crl [timeEffect] :

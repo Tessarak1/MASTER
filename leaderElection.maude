@@ -1,0 +1,8 @@
+omod LEADER-ELECTION is
+    protecting NAT .
+    ***Functions to facilitate leader elections.
+    op calcDist : Object -> Nat .
+    eq calcDist(< "2" :  Robot | >) = 2 .
+endom
+
+
