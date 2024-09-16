@@ -10,7 +10,7 @@ omod ENTITY is
     class Entity | direction : Direction, speed : Rat, maxSpeed : Int, remainingPath : List-Location, state : State .
     subclass Entity < PhysicalObj .    
 
-    ops moving idle crashed waiting refillingWater refillingFertilizer refillingSeeds fertilizing watering harvesting transporting unloading replanning crashing : -> State [ctor] .
+    ops moving idle crashed waiting resupplying fertilizing watering harvesting transporting unloading replanning planningPath broken : -> State [ctor] .
     op setDirection : Location Location -> Direction .
     ops inFront : Object Object -> Object [comm] .
     op _isBehind_ : Object Object -> Bool .

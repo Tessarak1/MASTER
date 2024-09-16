@@ -1,27 +1,36 @@
 load intersection .
+load sorts .
 ***Code for message-wrapper is taken from assignment 3 regarding sliding window in maude.
 omod MESSAGE-WRAPPER is
   sort MsgContent .
   sort Receiver .
   ***For now, a message can be picked up by harvesters or receivers.
   ops worker transporter human : -> Receiver [ctor] .
-  op __ : MsgContent MsgContent -> MsgContent [assoc comm ctor] .
+  op noContent : -> MsgContent [ctor] .
+  op __ : MsgContent MsgContent -> MsgContent [assoc comm ctor id: noContent] .
   subsort Oid < Receiver .
   op msg_from_to_ : MsgContent Oid Receiver -> Msg [ctor] .
 endom
-
-
+ 
 omod MESSAGE is including MESSAGE-WRAPPER .
   protecting STRING .
   protecting INTERSECTION .
   protecting LIST-LOCATION .
+  protecting SORTS .
+  
   subsort String < Oid .
-  ***Different types of messages, one for each type of operation to be done on a field/Greenhouse
-  ***water a resource
-  op water_ : Oid -> MsgContent .
-  op fertilize_ : Oid -> MsgContent .
-  op harvest_ : Oid -> MsgContent .
+  subsort TidSet < MsgContent .
   op obstacleAt_ : Location -> MsgContent .
   op path : List-Location -> MsgContent .
   op requestPath : -> MsgContent .
+  op bid_on_ : Nat Tid -> MsgContent .
+  op broadcast : Oid MsgContent OidSet -> Configuration .
+  ops won_ reject_ accept_ : Tid -> MsgContent .
+  
+  vars OID OID2 : Oid .
+  var MC : MsgContent .
+  var OIDS : OidSet .
+
+  eq broadcast(OID, MC, none) = none .
+  eq broadcast(OID, MC, OID2 OIDS) = (msg MC from OID to OID2) broadcast(OID, MC, OIDS) .
 endom

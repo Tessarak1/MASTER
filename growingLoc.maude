@@ -1,0 +1,55 @@
+***This file is the superclass for fields and greenhouses. The only notable difference between the two is the
+***type of crops that are grown there
+load message .
+load sorts .
+load time-inf .
+omod GROWINGLOC is
+    protecting SORTS .
+    protecting INTERSECTION .
+    protecting MESSAGE .
+    protecting TIMER .
+
+    sort GrowingState .
+    class GrowingLoc | growingState : GrowingState, waterLevel : Level, fertilizerLevel : Level, waterTimer : Timer, fertilizerTimer : Timer, growTimer : Timer, taskNr : Nat, growingArea : Area, content : Content .
+    class Field .
+    class Greenhouse .
+    subclass Greenhouse Field < GrowingLoc < Intersection .
+
+    ops empty growing harvest : -> GrowingState .
+    op sendWaterMsg : Object -> Msg .
+    op sendFertilizerMsg : Object -> Configuration .
+
+    var S : String .
+    var L L2 : Level .
+    var T : Time .
+    vars TR TR2 TR3 TR4 : Timer .
+    var GS : GrowingState .
+    var N : Nat .
+
+    ***Overload equations from TIMER mod.
+    eq decreaseTimers(< S : GrowingLoc | waterLevel : good, fertilizerLevel : good, waterTimer : TR, fertilizerTimer : TR2, growTimer : TR3 >, T) =
+        < S : GrowingLoc | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T), growTimer : decrease(TR3, T) > .
+    eq decreaseTimers(< S : GrowingLoc | waterTimer : TR, fertilizerTimer : TR2  >, T) =
+        < S : GrowingLoc | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T) > [owise] .
+    ***ignore the corresponding timer if either of the levels are low.
+    eq untilTimerExpire(< S : GrowingLoc | waterLevel : low, fertilizerLevel : low >) = inf .
+    eq untilTimerExpire(< S : GrowingLoc | waterLevel : low, fertilizerLevel : good, fertilizerTimer : TR >) = minCur(TR) .
+    eq untilTimerExpire(< S : GrowingLoc | waterLevel : good, fertilizerLevel : low, waterTimer : TR >) = minCur(TR) .
+    eq untilTimerExpire(< S : GrowingLoc | waterLevel : good, fertilizerLevel : good, waterTimer : TR, fertilizerTimer : TR2, growTimer : TR3 >) = minCur(TR TR2 TR3) .
+
+    crl [depletedWater] :
+        < S : GrowingLoc | waterLevel : good, waterTimer : TR >
+        =>
+        < S : GrowingLoc | waterLevel : low >
+        if expired(TR) .
+    crl [depletedFertilizer] :
+        < S : GrowingLoc | fertilizerLevel : good, fertilizerTimer : TR >
+        =>
+        < S : GrowingLoc | fertilizerLevel : low >
+        if expired(TR) .
+    crl [finishedGrowth] :
+        < S : GrowingLoc | growingState : growing, growTimer : TR >
+        =>
+        < S : GrowingLoc | growingState : harvest >
+        if expired(TR) .
+endom

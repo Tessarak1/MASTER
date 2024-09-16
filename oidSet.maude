@@ -1,7 +1,18 @@
 omod OID-SET is 
     protecting STRING .
-    sort OidSet .
-    subsort String < Oid < OidSet .
+    sort OidSet OidList .
+    subsort String < Oid < OidSet OidList .
     op none : -> OidSet [ctor] .
+    op nil : -> OidList [ctor] .
     op __ : OidSet OidSet -> OidSet [ctor assoc comm id: none] .
+    op _;_ : OidList OidList -> OidList [ctor assoc id: nil] .
+    
+    op _\_ : OidSet OidSet -> OidSet [assoc] .
+
+    vars OS OS2 : OidSet .
+    var O : Oid .
+    
+    eq OS \ none = OS .
+    eq none \ OS = none .
+    eq (O OS) \ (O OS2) = OS \ OS2 .
 endom
