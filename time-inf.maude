@@ -13,7 +13,6 @@ fmod TIME-INF is
     op _<=_ : TimeInf TimeInf -> Bool [ditto] .
     op _>_ : TimeInf TimeInf -> Bool [ditto] .
     op _>=_ : TimeInf TimeInf -> Bool [ditto] .
-
     vars T T' T2 T2' : Time .
     vars INF INF' : TimeInf .
 
@@ -25,7 +24,7 @@ fmod TIME-INF is
     eq INF > inf = false .
     eq inf >= INF = true .
     eq T >= inf = false .
-    
+
     ops min max : TimeInf TimeInf -> TimeInf [ditto] .
     eq max(INF, inf) = inf .
     eq min(INF, inf) = INF .

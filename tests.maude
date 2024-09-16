@@ -67,3 +67,36 @@ omod TASK-TESTS is
   eq map = < "Map" : Map | allIntersections : locations, paths : createPathSet(locations) > .
   eq farm = rob map GL @ 0 .
 endom
+
+omod AUCTION-TESTS is
+  protecting TIMED-FARM .
+
+  ops rob rob2 : -> Object .
+  op farm : -> ClockedConfiguration .
+  op locations : -> Configuration .
+  op map : -> Object .
+  op GLREP : -> Object .
+  op GL : -> Object .
+  ops I1 I2 I3 I4 : -> Object .
+  op refuel : -> Object .
+
+  eq rob = < "R" : Worker | location : (0,0), speed : 1, direction : west, remainingPath : (-30,0), state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
+    auctions : noAuction, curTask : noTask, workers : "R2", transporters : none > .
+  eq rob2 = < "R2" : Worker | location : (30,0), speed : 1, direction : east, remainingPath : nil, state : idle, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
+    auctions : noAuction, curTask : noTask, workers : "R1" > .  
+  
+  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" "GL" > .
+  eq I2 = < "I2" : Intersection | location : (30, 0), neighbors : "I1" "I4" > .
+  eq I3 = < "I3" : Intersection | location : (0, 30), neighbors : "I1" "I4" "Refuel" > .
+  eq I4 = < "I4" : Intersection | location : (30,30), neighbors : "I2" "I3" > .
+  eq GL = < "GL" : GrowingLoc | location : (-30, 0), neighbors : "I1", growingState : harvest, waterLevel : low, fertilizerLevel : low, 
+    waterTimer : [cur: 0 - base: 1000], fertilizerTimer : [cur: 10000 - base: 100], growTimer : [cur: 10000 - base: 100], taskNr : 1,
+    growingArea : area((-40,0), (-40,-10), (-30,0), (-30,-10)) > .
+  eq GLREP = < "GL" : GrowingLoc | location : (-30, 0), neighbors : "I1" > .
+
+  eq refuel = < "Refuel" : RefuelStation | location : (0,40), neighbors : "I3" > .
+
+  eq locations = I1 I2 I3 I4 GLREP refuel .
+  eq map = < "Map" : Map | allIntersections : locations, paths : createPathSet(locations) > .
+  eq farm = GL map rob rob2 @ 0 .
+endom

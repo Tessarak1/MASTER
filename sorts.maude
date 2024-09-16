@@ -1,4 +1,3 @@
-***This file contains the sorts and custom operators that are used in multiple other modules.
 omod SORTS is
     protecting STRING .
     sort Level .
@@ -6,11 +5,15 @@ omod SORTS is
     sort Content .
     sorts Grain Vegetable Fruit Produce .
     sorts Empty Full .
+    sorts WorkerTask TransporterTask TaskType .
+    sort Direction .
+    sorts Tid TidSet .
+
+    subsorts WorkerTask TransporterTask < TaskType .
     subsorts Grain Vegetable Fruit < Produce .
     subsorts Empty Produce < Content .
     subsort String < Oid .
-    sort Direction .
-    sort Tid .
+    subsort Tid < TidSet .
 
     ops north east south west : -> Direction [ctor] .
     ops low good : -> Level [ctor] .
@@ -21,13 +24,24 @@ omod SORTS is
     ops salad potatoes turnips pepper tomatoes cucumbers: -> Vegetable [ctor] .
     ops wheat rye : -> Grain [ctor] .
     op peaches : -> Fruit [ctor] .
-    op [_,_] : Oid Nat -> Tid .
+    ops water fertilize remove repair : -> WorkerTask [ctor] .
+    op harvest : -> TransporterTask [ctor] .
+    op [_,_,_] : Oid TaskType Nat -> Tid .
+    op none : -> TidSet [ctor] .
+    op __ : TidSet TidSet -> TidSet [ctor assoc comm id: none] .
+    op _\_ : TidSet TidSet -> TidSet [assoc] .
 
     op opposite : Direction Direction -> Bool [comm] .
 
     vars D D2 : Direction .
-    
+    var TID : Tid .
+    var TIDS TIDS2 : TidSet .
+
     eq opposite(north, south) = true .
     eq opposite(east, west) = true .
     eq opposite(D, D2) = false [owise] .
+    eq TIDS \ none = TIDS .
+    eq none \ TIDS = none .
+    eq (TID TIDS) \ (TID TIDS2) = TIDS \ TIDS2 .
+    eq TIDS \ TIDS2 = TIDS [owise] .
 endom

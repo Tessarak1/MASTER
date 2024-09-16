@@ -1,0 +1,8 @@
+load intersection .
+omod BUILDINGS is
+    protecting INTERSECTION .
+    protecting NAT .
+    class CollectionStation | collections : Nat .
+    class RefuelStation .
+    subclass CollectionStation RefuelStation < Intersection .
+endom

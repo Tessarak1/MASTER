@@ -1,7 +1,0 @@
-load intersection .
-omod DOCK is
-    protecting NAT .
-    protecting INTERSECTION .
-    class Dock | capacity : Nat, dockedRobots : OidSet .
-    subclass Dock < Intersection .
-endom
