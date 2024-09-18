@@ -24,7 +24,7 @@ omod SORTS is
     ops salad potatoes turnips pepper tomatoes cucumbers: -> Vegetable [ctor] .
     ops wheat rye : -> Grain [ctor] .
     op peaches : -> Fruit [ctor] .
-    ops water fertilize remove repair : -> WorkerTask [ctor] .
+    ops water fertilize plant remove repair : -> WorkerTask [ctor] .
     op harvest : -> TransporterTask [ctor] .
     op [_,_,_] : Oid TaskType Nat -> Tid .
     op none : -> TidSet [ctor] .

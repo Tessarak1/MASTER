@@ -71,7 +71,7 @@ endom
 omod AUCTION-TESTS is
   protecting TIMED-FARM .
 
-  ops rob rob2 : -> Object .
+  ops rob rob2 rob3 : -> Object .
   op farm : -> ClockedConfiguration .
   op locations : -> Configuration .
   op map : -> Object .
@@ -81,10 +81,11 @@ omod AUCTION-TESTS is
   op refuel : -> Object .
 
   eq rob = < "R" : Worker | location : (0,0), speed : 1, direction : west, remainingPath : (-30,0), state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
-    auctions : noAuction, curTask : noTask, workers : "R2", transporters : none > .
+    auctions : noAuction, curTask : noTask, workers : "R2" "R3", transporters : none, workState : noWork > .
   eq rob2 = < "R2" : Worker | location : (30,0), speed : 1, direction : east, remainingPath : nil, state : idle, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
-    auctions : noAuction, curTask : noTask, workers : "R1" > .  
-  
+    auctions : noAuction, curTask : noTask, workers : "R1", workState : noWork > .  
+  eq rob3 = < "R3" : Worker | location : (0,40), speed : 1, direction : east, remainingPath : nil, state : idle, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
+    auctions : noAuction, curTask : noTask, workers : none, workState : noWork > . 
   eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" "GL" > .
   eq I2 = < "I2" : Intersection | location : (30, 0), neighbors : "I1" "I4" > .
   eq I3 = < "I3" : Intersection | location : (0, 30), neighbors : "I1" "I4" "Refuel" > .
@@ -98,5 +99,5 @@ omod AUCTION-TESTS is
 
   eq locations = I1 I2 I3 I4 GLREP refuel .
   eq map = < "Map" : Map | allIntersections : locations, paths : createPathSet(locations) > .
-  eq farm = GL map rob rob2 @ 0 .
+  eq farm = GL map rob rob2 rob3 @ 0 .
 endom

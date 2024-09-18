@@ -18,16 +18,23 @@ omod GROWINGLOC is
     ops empty growing harvest : -> GrowingState .
     op sendWaterMsg : Object -> Msg .
     op sendFertilizerMsg : Object -> Configuration .
-
+    op taskComplete : Object Tid -> Object .
     var S : String .
     var L L2 : Level .
     var T : Time .
     vars TR TR2 TR3 TR4 : Timer .
     var GS : GrowingState .
     var N : Nat .
+    var TT : TaskType .
+    var C : Content .
+
+    eq taskComplete(< S : GrowingLoc | waterTimer : TR >, [S, water, N]) = < S : GrowingLoc | waterLevel : good, waterTimer : reset(TR) > .
+    eq taskComplete(< S : GrowingLoc | fertilizerTimer : TR >, [S, fertilize, N]) = < S : GrowingLoc | fertilizerTimer : reset(TR) > .
+    eq taskComplete(< S : GrowingLoc | growingState : empty >, [S, plant, N]) = < S : GrowingLoc | growingState : growing > .
+    eq taskComplete(< S : GrowingLoc | growingState : harvest, growTimer : TR >, [S, harvest, N]) = < S : GrowingLoc | growingState : empty, growTimer : reset(TR) > .
 
     ***Overload equations from TIMER mod.
-    eq decreaseTimers(< S : GrowingLoc | waterLevel : good, fertilizerLevel : good, waterTimer : TR, fertilizerTimer : TR2, growTimer : TR3 >, T) =
+    eq decreaseTimers(< S : GrowingLoc | waterLevel : good, fertilizerLevel : good, waterTimer : TR, fertilizerTimer : TR2, growingState : growing, growTimer : TR3 >, T) =
         < S : GrowingLoc | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T), growTimer : decrease(TR3, T) > .
     eq decreaseTimers(< S : GrowingLoc | waterTimer : TR, fertilizerTimer : TR2  >, T) =
         < S : GrowingLoc | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T) > [owise] .
