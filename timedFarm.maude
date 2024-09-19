@@ -49,7 +49,7 @@ omod TIMED-FARM is
     var MSG : Msg .
     var MC : MsgContent .
     var REC : Receiver .
-    var WS : WorkState .
+    vars WS WS2 : WorkState .
     var TT : TaskType .
 
     eq < S : Robot | curTask : [S2, TT, N] > detects < S2 : Locatable | > = false .
@@ -125,7 +125,7 @@ omod TIMED-FARM is
             fi
         fi
         if opposite(D,D2) .
-
+    ceq calculateAdvance(< S : Entity | location : (X,Y), speed : SP, direction : D, remainingPath : (X2,Y2) LL >, < S2 : Entity | speed : SP2, direction : D2 >) = distance((X,Y), (X2,Y2)) / SP if differentAxes(D,D2) and SP2 > 0 .
     eq calculateAdvance(< S : Entity | location : (X, Y), speed : SP, detectionRange : N >, < S2 : Obstacle | location : (X2,Y2) >) = 
         if unavoidableCrash(< S : Entity | >, < S2 : Obstacle | >) then
             distance((X, Y), (X2,Y2)) / SP
@@ -182,8 +182,8 @@ omod TIMED-FARM is
 
     ceq detect(< S : Robot | location : (X, Y), detectionRange : N, detected : REP > < S2 : Obstacle | location : (X2,Y2) > CONF) =
         detect(< S : Robot | detected : {S2 : Obstacle | (X2,Y2)} REP > < S2 : Obstacle | > CONF) if < S : Robot | > detects < S2 : Obstacle | > .
-    ceq detect(< S : Robot | location : (X, Y), detectionRange : N, detected : REP > < S2 : Robot | location : (X2,Y2), direction : D, speed : SP > CONF) =
-        detect(< S : Robot | detected : {S2 : Robot | (X2,Y2) ; D ; detectedSpeed(SP)} REP > < S2 : Robot | > CONF) if < S : Robot | > detects < S2 : Robot | > .
+    ceq detect(< S : Robot | location : (X, Y), detectionRange : N, detected : REP, workState : WS > < S2 : Robot | location : (X2,Y2), direction : D, speed : SP, workState : WS2 > CONF) =
+        detect(< S : Robot | detected : {S2 : Robot | (X2,Y2) ; D ; detectedSpeed(SP)} REP > < S2 : Robot | > CONF) if (< S : Robot | > detects < S2 : Robot | >) and (not sameSubject(WS, WS2)) .
     ceq detect(< S : Robot | location : (X, Y), detectionRange : N, detected : REP > < S2 : HumanVehicle | location : (X2,Y2), direction : D, speed : SP > CONF) =
         detect(< S : Robot | detected : {S2 : HumanVehicle | (X2,Y2) ; D ; detectedSpeed(SP)} REP > < S2 : HumanVehicle | > CONF) if < S : Robot | > detects < S2 : HumanVehicle | > . 
     ceq detect(< S : Robot | location : (X,Y), detectionRange : N, detected : REP > < S2 : GrowingLoc | location : (X2,Y2), waterLevel : L, fertilizerLevel : L2, growingState : GS, taskNr : N2 > CONF) =

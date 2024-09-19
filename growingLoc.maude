@@ -28,8 +28,8 @@ omod GROWINGLOC is
     var TT : TaskType .
     var C : Content .
 
-    eq taskComplete(< S : GrowingLoc | waterTimer : TR >, [S, water, N]) = < S : GrowingLoc | waterLevel : good, waterTimer : reset(TR) > .
-    eq taskComplete(< S : GrowingLoc | fertilizerTimer : TR >, [S, fertilize, N]) = < S : GrowingLoc | fertilizerTimer : reset(TR) > .
+    eq taskComplete(< S : GrowingLoc | waterTimer : TR, waterLevel : low >, [S, water, N]) = < S : GrowingLoc | waterLevel : good, waterTimer : reset(TR) > .
+    eq taskComplete(< S : GrowingLoc | fertilizerTimer : TR, fertilizerLevel : low >, [S, fertilize, N]) = < S : GrowingLoc | fertilizerLevel : good, fertilizerTimer : reset(TR) > .
     eq taskComplete(< S : GrowingLoc | growingState : empty >, [S, plant, N]) = < S : GrowingLoc | growingState : growing > .
     eq taskComplete(< S : GrowingLoc | growingState : harvest, growTimer : TR >, [S, harvest, N]) = < S : GrowingLoc | growingState : empty, growTimer : reset(TR) > .
 

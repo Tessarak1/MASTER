@@ -90,6 +90,7 @@ omod ROBOT is
     op rejectTask : Object -> Bool .
     op startWorkGL : Object -> Object .
     op needsResupply : Object -> Bool .
+    op sameSubject : WorkState WorkState -> Bool [comm] .
 
     var CONF : Configuration .
     vars S S2 S2' S3 S4 S5 : String .
@@ -121,12 +122,12 @@ omod ROBOT is
     var TIDS : TidSet .
     vars AS AS2 : AttributeSet .
 
-    var TT : TaskType .
+    vars TT TT2 : TaskType .
     var TS : TaskStatus .
     var TPT : TransporterTask .
     var WT : WorkerTask .
     var AW : ActiveWork .
-    var WS : WorkState .
+    vars WS WS2 : WorkState .
 
     var AU : Auction .
     var B : Bid .
@@ -182,6 +183,8 @@ omod ROBOT is
     eq parseTasksGL({S : GrowingLoc | [W: L F: L2 H: GS] ; TaskNr: N ; I}) = $parseTasksGL({S : GrowingLoc | [W: L F: L2 H: GS] ; TaskNr: N ; I}) .
 
     eq assignTask(< S : Robot | curTask : TS >, TID) = < S : Robot | curTask : TID, state : planningPath > .
+    eq sameSubject([S TT], [S TT2]) = true .
+    eq sameSubject(WS, WS2) = false [owise] .
 
     eq prepareAuction(< S : Robot | >, none) = < S : Robot | > .
     eq prepareAuction(< S : Robot | >, TIDS) =
@@ -485,6 +488,6 @@ omod ROBOT is
         < S : Robot | location : (X,Y), curTask : [S2, TT, N], remainingPath : nil, workState : [S2 TT] >
         < S2 : GrowingLoc | location : (X,Y) >
         =>
-        < S : Robot | curTask : noTask, workState : noWork >
+        < S : Robot | cargoLevel : empty, curTask : noTask, workState : noWork >
         taskComplete(< S2 : GrowingLoc | >, [S2, TT, N]) .  
 endom
