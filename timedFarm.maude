@@ -2,13 +2,11 @@ load robot .
 load time-inf .
 load obstacle . 
 load human .
-load tracker .
 load buildings .
 
 omod TIMED-FARM is
     protecting HUMAN .
     protecting ROBOT .
-    protecting TRACKER .
     protecting TIME-INF .
     protecting MAP .
     protecting GROWINGLOC .
@@ -161,7 +159,6 @@ omod TIMED-FARM is
 
     ***call timeEffect on every object in the configuration.
     eq timeEffect(none, T) = none .
-    eq timeEffect(< S : Tracker | >, T) = < S : Tracker | > .
     eq timeEffect(< S : Map | allIntersections : CONF > CONF2, T) = < S : Map | allIntersections : timeEffect(CONF, T) > timeEffect(CONF2, T) .
     eq timeEffect(< S : Intersection | > CONF, T) = < S : Intersection | > timeEffect(CONF, T) [owise] .
     eq timeEffect(< S : Obstacle | > CONF, T) = < S : Obstacle | > timeEffect(CONF, T) .

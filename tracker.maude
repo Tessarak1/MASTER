@@ -1,4 +1,0 @@
-omod TRACKER is
-    protecting RAT .
-    class Tracker | totalHarvestWait : Rat, totalHarvests : Nat, collisions : Nat .
-endom 

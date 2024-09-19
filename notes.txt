@@ -1,1 +1,0 @@
-Level of detail for how a robot "works" in greenhouse and field.
