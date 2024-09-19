@@ -3,7 +3,7 @@ omod PHYSICAL-OBJ is
     protecting STRING .
     protecting LOCATABLE .
 
-    ***The processedTime attribute is used in timedFarm to terminate MaxTimeAdvance
+    ***The handledTime attribute is used in timedFarm to terminate MaxTimeAdvance
     class PhysicalObj | handledTime : Bool .
     subclass PhysicalObj < Locatable .
 

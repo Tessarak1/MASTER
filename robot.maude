@@ -26,6 +26,8 @@ omod ROBOT is
     ***Type of object detected and Identificator.
     sort Representation .
     sort TaskStatus . 
+    sorts WorkState ActiveWork InactiveWork .
+    subsorts ActiveWork InactiveWork < WorkState .
     
     sort Information .
     subsorts Location Direction < Information .
@@ -33,7 +35,7 @@ omod ROBOT is
 
     class Robot | detectionRange : Nat, cargoLevel : CargoLevel, curCargo : Cargo,
      detected : Representation, waitTimer : Rat, obstructionPoints : List-Location, curTask : TaskStatus, 
-        auctions : Auction, workers : OidSet, transporters : OidSet, remainingFuel   : Nat .
+        auctions : Auction, workers : OidSet, transporters : OidSet, remainingFuel : Nat, workState : WorkState .
     class Worker | movementType : MovementType .
     class Transporter .
     
@@ -51,6 +53,9 @@ omod ROBOT is
     op detectedSpeed : Rat -> Information [ctor] .
     op [W:_ F:_ H:_] : Level Level GrowingState -> Information [ctor] .
     op noTask : -> TaskStatus .
+
+    ops noWork : -> InactiveWork [ctor] .
+    op [__] : Oid TaskType -> ActiveWork [ctor] .
 
     ops flying ground : -> MovementType [ctor] .
     ops saladSeed potatoSeed turnipSeed pepperSeed tomatoSeed cucumberSeed wheatSeed ryeSeed peachSeed : -> Seed [ctor] .
@@ -83,7 +88,9 @@ omod ROBOT is
     op prepareAuction : Object TidSet -> Configuration .
     op auctionTimer : -> Timer .
     op rejectTask : Object -> Bool .
+    op startWorkGL : Object -> Object .
     op needsResupply : Object -> Bool .
+    op sameSubject : WorkState WorkState -> Bool [comm] .
 
     var CONF : Configuration .
     vars S S2 S2' S3 S4 S5 : String .
@@ -99,7 +106,6 @@ omod ROBOT is
     var GS : GrowingState .
     var C : Content .
     var TC : TransporterCargo .
-    var R : Representation .
     var PS : PathSet .
     var MC : MsgContent .
     var CID : Cid .
@@ -116,17 +122,20 @@ omod ROBOT is
     var TIDS : TidSet .
     vars AS AS2 : AttributeSet .
 
-    var TT : TaskType .
+    vars TT TT2 : TaskType .
     var TS : TaskStatus .
     var TPT : TransporterTask .
     var WT : WorkerTask .
+    var AW : ActiveWork .
+    vars WS WS2 : WorkState .
 
     var AU : Auction .
     var B : Bid .
 
+
     eq auctionTimer = [cur: 10 - base: 10] .
     eq calculateBid(CONF, LL) = listLength(dijsktraChain(CONF, LL)) .
-    eq rejectTask(< S : Robot | state : STATE, curTask : TS >) = (STATE == broken) or (TS =/= noTask) .
+    eq rejectTask(< S : Robot | state : STATE, curTask : TS >) = (STATE == crashed) or (TS =/= noTask) .
     eq needsResupply(< S : Worker | curTask : [S2, water, N], curCargo : fertilizer >) = true .
     eq needsResupply(< S : Worker | curTask : [S2, fertilize, N], curCargo : water >) = true .
     eq needsResupply(< S : Worker | cargoLevel : empty >) = true .
@@ -150,14 +159,14 @@ omod ROBOT is
     eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : south >) = (X, Y - N) .
     eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : north >) = (X - N, Y) .
 
-    eq S notIn {S : CID | (X,Y) ; I} R = false .
-    eq S notIn R = true [owise] .
+    eq S notIn {S : CID | (X,Y) ; I} REP = false .
+    eq S notIn REP = true [owise] .
  
     ceq $breaksPath((X,Y) (X,Y2), {S2 : CID | (X,Y3) ; north ; I}) = true if Y > Y2 .
     ceq $breaksPath((X,Y) (X2,Y), {S2 : CID | (X3,Y) ; east ; I}) = true if X > X2 .
     ceq $breaksPath((X,Y) (X,Y2), {S2 : CID | (X,Y3) ; south ; I}) = true if Y < Y2 .
     ceq $breaksPath((X,Y) (X2,Y), {S2 : CID | (X3,Y) ; west ; I}) = true if X < X2 .
-    eq $breaksPath(LL, R) = false [owise] .
+    eq $breaksPath(LL, REP) = false [owise] .
     ceq breaksPath(LL, {S2 : CID | (X,Y) ; I}) = false if between((X,Y), LL) == nil .
     eq breaksPath(LL, {S2 : Obstacle | (X,Y) ; I}) =
         if between((X,Y), LL) == nil then
@@ -174,6 +183,8 @@ omod ROBOT is
     eq parseTasksGL({S : GrowingLoc | [W: L F: L2 H: GS] ; TaskNr: N ; I}) = $parseTasksGL({S : GrowingLoc | [W: L F: L2 H: GS] ; TaskNr: N ; I}) .
 
     eq assignTask(< S : Robot | curTask : TS >, TID) = < S : Robot | curTask : TID, state : planningPath > .
+    eq sameSubject([S TT], [S TT2]) = true .
+    eq sameSubject(WS, WS2) = false [owise] .
 
     eq prepareAuction(< S : Robot | >, none) = < S : Robot | > .
     eq prepareAuction(< S : Robot | >, TIDS) =
@@ -201,20 +212,19 @@ omod ROBOT is
         =>
         if (TT == water)
         then
-            < S : Robot | state : moving, curCargo : water, cargoLevel : full, remainingFuel : 100 >
+            < S : Robot | state : moving, curCargo : water, cargoLevel : full >
             < S3 : Map | >
         else
             if (TT == fertilize)
             then
-                < S : Robot | state : moving, curCargo : fertilizer, cargoLevel : full, remainingFuel : 100 >
+                < S : Robot | state : moving, curCargo : fertilizer, cargoLevel : full >
                 < S3 : Map | >
             else
-                < S : Robot | state : moving, remainingFuel : 100 >
+                < S : Robot | state : moving >
                 < S3 : Map | >
             fi
         fi .
         
-
     rl [replanPath] :
         < S : Robot | state : replanning, remainingPath : LL (X,Y), detected : nil >
         < S2 : Map | >
@@ -320,7 +330,8 @@ omod ROBOT is
             msg won TID from S to determineWinner(B, S, natInf) 
         fi .
 
-
+    ***add in collection Point for transporter.
+    ***additional rule or equation, get the list of additional locations to travel to to complete.
     rl [planPath] :
         < S : Robot | location : (X,Y), obstructionPoints : LL, state : planningPath, curTask : [S3, TT, N] >
         < S2 : Map | allIntersections : < S3 : GrowingLoc | location : (X2,Y2), AS >  < S4 : RefuelStation | location : (X3,Y3), AS2 > CONF >
@@ -344,48 +355,39 @@ omod ROBOT is
         else
             prepareAuction(< S : Robot | detected : REP >, parseTasksGL({S2 : GrowingLoc | (X2,Y2) ; [W: L F: L2 H: GS] ; TaskNr: N ; I}))
         fi .
-***(
-    can still hold the auction even if busy
-    change canCompleteNow to check for curTask as well?
-    cna then combine the rules in to detectGrowingLoc
-    free or not, can then prepare auction
-    rl [detectGrowingLocBusy] :
-        < S : Robot | detected : {S2 : GrowingLoc | I}, curTask : TID >
-        =>
-        < S : Robot | > .
-)***
+
     ***When approaching a slower entity, brake to match speed.
     crl [approachSameDirectionEntity] : 
-        < S : Robot | location : (X,Y), speed : SP, direction : D, detected : {S2 : HumanVehicle | (X2,Y2) ; D ; detectedSpeed(SP2) ; I} R >
+        < S : Robot | location : (X,Y), speed : SP, direction : D, detected : {S2 : HumanVehicle | (X2,Y2) ; D ; detectedSpeed(SP2) ; I} REP >
         =>
         if < S : Robot | > directlyApproaching (X2,Y2) then
             if (distance((X,Y), (X2,Y2)) / SP) < 5 then
-                < S : Robot | speed : 0, state : idle, detected : R > 
+                < S : Robot | speed : 0, state : idle, detected : REP > 
             else
                 if SP2 < SP then
-                    < S : Robot | speed : SP2, detected : R >
+                    < S : Robot | speed : SP2, detected : REP >
                 else
-                    < S : Robot | detected : R >
+                    < S : Robot | detected : REP >
                 fi
             fi
         else
-            < S : Robot | detected : R >
+            < S : Robot | detected : REP >
         fi
         if SP > 0 .
 
     ***if the detected obstacle is in the way then the robot will have to replan its path.
     ***If the robot no longer has a path to its goal, it will cancel the current task and work on removing the obstacle.
     crl [detectObstacle] : 
-        < S : Robot | location : (X,Y), remainingPath : LL (X2,Y2), state : STATE, detected : {S2 : Obstacle | (X3,Y3) ; I} R, obstructionPoints : LL2 > 
+        < S : Robot | location : (X,Y), remainingPath : LL (X2,Y2), state : STATE, detected : {S2 : Obstacle | (X3,Y3) ; I} REP, obstructionPoints : LL2 > 
         < S3 : Map | >
         =>
         ***if the obstacle is in the robot's way, add it to obstructionPoints and prepare to replan path.
         if between((X3,Y3), (X,Y) LL (X2,Y2)) =/= nil then
-            < S : Robot | state : replanning, detected : R, obstructionPoints : (X3,Y3) LL2 >
+            < S : Robot | state : replanning, detected : REP, obstructionPoints : (X3,Y3) LL2 >
             < S3 : Map | > 
             (msg obstacleAt (X3,Y3) from S to worker)
         else
-            < S : Robot | detected : R >
+            < S : Robot | detected : REP >
             < S3 : Map | > 
             (msg obstacleAt (X3,Y3) from S to worker)
         fi
@@ -410,14 +412,14 @@ omod ROBOT is
 
     ***In contrast to detection of person, if a human operated vehicle is on the planned path, replan path.
     crl [detectHumanVehicle] : 
-        < S : Robot | location : (X,Y), remainingPath : LL, speed : SP, state : STATE, detected : {S2 : HumanVehicle | (X2,Y2) ; D ; I} R, obstructionPoints : LL2 >
+        < S : Robot | location : (X,Y), remainingPath : LL, speed : SP, state : STATE, detected : {S2 : HumanVehicle | (X2,Y2) ; D ; I} REP, obstructionPoints : LL2 >
         < S3 : Map | >
         =>
         if breaksPath((X,Y) LL, {S2 : HumanVehicle | (X2,Y2) ; D ; I}) then
-            < S : Robot | state : replanning, detected : R, obstructionPoints : LL2 >
+            < S : Robot | state : replanning, detected : REP, obstructionPoints : LL2 >
             < S3 : Map | >
         else
-            < S : Robot | detected : R >
+            < S : Robot | detected : REP >
             < S3 : Map | >
         fi
         if (STATE == moving) or (STATE == replanning) .
@@ -425,39 +427,67 @@ omod ROBOT is
     ***When a robot detects another on its path on an immediate collision course, if they are too close then it will immediately try to stop to limit the potential damage.
     ***If they are further away, then start communication to check which one will replan path.
     crl [detectIncomingRobot] :
-        < S : Robot | location : (X,Y), speed : SP, direction : D, state : moving, detected : {S2 : Robot | (X2,Y2) ; D2 ; I} R >
+        < S : Robot | location : (X,Y), speed : SP, direction : D, state : moving, detected : {S2 : Robot | (X2,Y2) ; D2 ; I} REP >
         =>
         ***Collision prevention with braking
         if (distance((X,Y), (X2,Y2)) / SP) > 3 then
-            < S : Robot | speed : 0, state : waiting, detected : R, waitTimer : 10 >
+            < S : Robot | speed : 0, state : waiting, detected : REP, waitTimer : 10 >
         else
-            < S : Robot | speed : 5, detected : R >
+            < S : Robot | speed : 5, detected : REP >
         fi
         if opposite(D,D2) .
 
     ***When first detecting a robot request its path and transmit own path to check for collision.
     rl [detectRobot] :
-        < S : Robot | location : (X,Y), remainingPath : LL, detected : {S2 : Robot | (X2,Y2)} R >
+        < S : Robot | location : (X,Y), remainingPath : LL, detected : {S2 : Robot | D ; detectedSpeed(SP); (X2,Y2)} REP >
         =>
         (msg requestPath path((X,Y) LL) from S to S2)
         < S : Robot | > .
 
     rl [detectHuman] :
-        < S : Robot | detected : {S2 : Human | (X,Y)} R >
+        < S : Robot | detected : {S2 : Human | (X,Y)} REP >
         =>
         < S : Robot | > .   
 
     ***Rules for when robot has arrived at growingloc and starts a task.
     rl [startGrowingLocTask] :
-        < S : Robot | location : (X,Y), curTask : [S2, TT, N], remainingPath : nil >
+        < S : Robot | location : (X,Y), curTask : [S2, TT, N], remainingPath : nil, workState : noWork >
         < S2 : GrowingLoc | growingArea : A, location : (X,Y) >
         =>
         if canCompleteNow(< S : Robot | >, [S2, TT,N]) =/= none
         then
-            < S : Robot | state : moving, speed : 1, remainingPath : coverArea((X,Y), A) >
+            < S : Robot | remainingPath : coverArea((X,Y), A), workState : [S2 TT], speed : 1, state : moving >
             < S2 : GrowingLoc | >
         else
             < S : Robot | state : planningPath >
             < S2 : GrowingLoc | >
         fi .
+    
+    rl [finishGrowingLocTask] :
+        < S : Robot | location : (X,Y), curTask : [S2, TT, N], remainingPath : nil, workState : [S2 TT] >
+        < S2 : GrowingLoc | location : (X,Y) >
+        =>
+        < S : Robot | curTask : noTask, workState : noWork >
+        taskComplete(< S2 : GrowingLoc | >, [S2, TT, N]) .  
+
+    ***Rules for when robot has arrived at growingloc and starts a task.
+    rl [startGrowingLocTask] :
+        < S : Robot | location : (X,Y), curTask : [S2, TT, N], remainingPath : nil, workState : noWork >
+        < S2 : GrowingLoc | growingArea : A, location : (X,Y) >
+        =>
+        if canCompleteNow(< S : Robot | >, [S2, TT,N]) =/= none
+        then
+            < S : Robot | remainingPath : coverArea((X,Y), A), workState : [S2 TT], speed : 1, state : moving >
+            < S2 : GrowingLoc | >
+        else
+            < S : Robot | state : planningPath >
+            < S2 : GrowingLoc | >
+        fi .
+    
+    rl [finishGrowingLocTask] :
+        < S : Robot | location : (X,Y), curTask : [S2, TT, N], remainingPath : nil, workState : [S2 TT] >
+        < S2 : GrowingLoc | location : (X,Y) >
+        =>
+        < S : Robot | cargoLevel : empty, curTask : noTask, workState : noWork >
+        taskComplete(< S2 : GrowingLoc | >, [S2, TT, N]) .  
 endom

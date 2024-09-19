@@ -7,10 +7,10 @@ omod ENTITY is
     
     sort State .
 
-    class Entity | direction : Direction, speed : Rat, maxSpeed : Int, remainingPath : List-Location, state : State .
+    class Entity | direction : Direction, speed : Rat, maxSpeed : Rat, remainingPath : List-Location, state : State .
     subclass Entity < PhysicalObj .    
 
-    ops moving idle crashed waiting resupplying fertilizing watering harvesting transporting unloading replanning planningPath broken : -> State [ctor] .
+    ops moving idle crashed waiting resupplying transporting unloading replanning planningPath : -> State [ctor] .
     op setDirection : Location Location -> Direction .
     ops inFront : Object Object -> Object [comm] .
     op _isBehind_ : Object Object -> Bool .
@@ -22,6 +22,7 @@ omod ENTITY is
     var SP : Rat .
     var LL : List-Location .
     var CONF : Configuration .
+    var STATE : State .
 
     ceq setDirection((X,Y), (X,Y2)) = north if Y2 > Y .
     ceq setDirection((X,Y), (X2,Y)) = east if X2 > X .
@@ -52,4 +53,8 @@ omod ENTITY is
         < S : Entity | location : (X , Y), remainingPath : (X , Y) (X2, Y2) LL, state : moving > 
         =>
         < S : Entity | direction : setDirection((X , Y), (X2, Y2)), remainingPath : (X2,Y2) LL > .
+    rl [startTravel] :
+        < S : Entity | location : (X,Y), remainingPath : (X,Y) (X2,Y2) LL, state : STATE, maxSpeed : SP >
+        =>
+        < S : Entity | direction : setDirection((X,Y), (X2,Y2)), remainingPath : (X2,Y2) LL, speed : SP > .
 endom

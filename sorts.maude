@@ -24,7 +24,7 @@ omod SORTS is
     ops salad potatoes turnips pepper tomatoes cucumbers: -> Vegetable [ctor] .
     ops wheat rye : -> Grain [ctor] .
     op peaches : -> Fruit [ctor] .
-    ops water fertilize remove repair : -> WorkerTask [ctor] .
+    ops water fertilize plant remove repair : -> WorkerTask [ctor] .
     op harvest : -> TransporterTask [ctor] .
     op [_,_,_] : Oid TaskType Nat -> Tid .
     op none : -> TidSet [ctor] .
@@ -32,6 +32,7 @@ omod SORTS is
     op _\_ : TidSet TidSet -> TidSet [assoc] .
 
     op opposite : Direction Direction -> Bool [comm] .
+    op differentAxes : Direction Direction -> Bool [comm] .
 
     vars D D2 : Direction .
     var TID : Tid .
@@ -40,6 +41,11 @@ omod SORTS is
     eq opposite(north, south) = true .
     eq opposite(east, west) = true .
     eq opposite(D, D2) = false [owise] .
+    eq differentAxes(north, west) = true .
+    eq differentAxes(north, east) = true .
+    eq differentAxes(south, west) = true .
+    eq differentAxes(south, east) = true .
+    eq differentAxes(D, D2) = false [owise] .
     eq TIDS \ none = TIDS .
     eq none \ TIDS = none .
     eq (TID TIDS) \ (TID TIDS2) = TIDS \ TIDS2 .
