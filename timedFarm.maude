@@ -9,13 +9,14 @@ omod TIMED-FARM is
     protecting ROBOT .
     protecting TIME-INF .
     protecting MAP .
-    protecting GROWINGLOC .
+    protecting FIELD .
     protecting OBSTACLE .
     protecting BUILDINGS .
 
     sort ClockedConfiguration .
 
     op  _@_ : Configuration Time -> ClockedConfiguration [ctor] .
+    op $maxTimeAdvanceRobot : Configuration -> Time .
     op maxTimeAdvance : Configuration -> Time .
     op timeEffect : Object Time -> Object .
     op calculateAdvance : Object Object -> Time .
@@ -44,55 +45,52 @@ omod TIMED-FARM is
     var GS : GrowingState .
     var REP : Representation .
     var C : Cargo .
+    var FUNC : FunctioningState .
     var MSG : Msg .
     var MC : MsgContent .
-    var REC : Receiver .
     vars WS WS2 : WorkState .
+    var TID : Tid .
     var TT : TaskType .
 
     eq < S : Robot | curTask : [S2, TT, N] > detects < S2 : Locatable | > = false .
     eq < S : Robot | location : (X,Y), detected : REP, detectionRange : N > detects < S2 : Locatable | location : (X2,Y2) > = (S2 notIn REP) and ((X2,Y2) inArea(makeArea((X,Y), N))) .
     eq < S : Robot | > detects < S2 : Locatable | > = true [owise] .
 
-    eq updateLocation(< S : Entity | location : (X, Y), direction : north >) = < S : Entity | location : (X, Y - 1) > .
-    eq updateLocation(< S : Entity | location : (X, Y), direction : east >) = < S : Entity | location : (X - 1, Y) > .
-    eq updateLocation(< S : Entity | location : (X, Y), direction : south >) = < S : Entity | location : (X, Y + 1) > .
-    eq updateLocation(< S : Entity | location : (X, Y), direction : west >) = < S : Entity | location : (X + 1, Y) > .
+    eq updateLocation(< S : Robot | location : (X, Y), direction : north >) = < S : Robot | location : (X, Y - 1) > .
+    eq updateLocation(< S : Robot | location : (X, Y), direction : east >) = < S : Robot | location : (X - 1, Y) > .
+    eq updateLocation(< S : Robot | location : (X, Y), direction : south >) = < S : Robot | location : (X, Y + 1) > .
+    eq updateLocation(< S : Robot | location : (X, Y), direction : west >) = < S : Robot | location : (X + 1, Y) > .
 
-    eq collision(< S : Entity | location : (X, Y) >, < S2 : Obstacle | >) =  updateLocation(< S : Entity | speed : 0, state : crashed >) < S2 : Obstacle | > .
-    ceq collision(< S : Entity | speed : SP >, < S2 : Entity | speed : SP2 >) = updateLocation(< S : Entity | speed : 0, state : crashed >) < S2 : Entity | speed : 0, state : crashed > if SP >= SP2 .
+    eq collision(< S : Robot | location : (X, Y) >, < S2 : Obstacle | >) =  updateLocation(< S : Robot | speed : 0, state : crashed >) < S2 : Obstacle | > .
+    ceq collision(< S : Robot | speed : SP >, < S2 : Robot | speed : SP2 >) = updateLocation(< S : Robot | speed : 0, state : crashed >) < S2 : Robot | speed : 0, state : crashed > if SP >= SP2 .
 
-    eq handleCollisions(< S : Entity | location : (X, Y) > < S2 : PhysicalObj | location : (X, Y) > CONF) = collision(< S : Entity | >, < S2 : PhysicalObj | >) handleCollisions(CONF) .
+    eq handleCollisions(< S : Robot | location : (X, Y) > < S2 : PhysicalObj | location : (X, Y) > CONF) = collision(< S : Robot | >, < S2 : PhysicalObj | >) handleCollisions(CONF) .
     eq handleCollisions(CONF) = CONF [owise] .
 
     ***A crash is unavoidable if the distance is shorter than the stopping distance.
-    eq unavoidableCrash(< S : Entity | >, none) = false .
-    eq unavoidableCrash(< S : Entity | speed : 0 >, O) = false .
-
-    ceq unavoidableCrash(< S : Entity | location : (X, Y), direction : D, speed : SP >, < S2 : Entity | location : (X2, Y2), direction : D2, speed : SP2 >) = 
-        if distance((X, Y), (X2, Y2)) <= stoppingDistance(< S : Entity | >) + stoppingDistance(< S2 : Entity | >) then
+    eq unavoidableCrash(< S : Robot | >, none) = false .
+    eq unavoidableCrash(< S : Robot | speed : 0 >, O) = false .
+    ceq unavoidableCrash(< S : Robot | location : (X, Y), direction : D, speed : SP >, < S2 : Robot | location : (X2, Y2), direction : D2, speed : SP2 >) = 
+        if distance((X, Y), (X2, Y2)) <= stoppingDistance(< S : Robot | >) + stoppingDistance(< S2 : Robot | >) then
             true
         else
             false
         fi
     if opposite(D, D2) .
-    eq unavoidableCrash(< S : Entity | location : (X, Y) >, < S2 : PhysicalObj | location : (X2, Y2) >) = 
-        if distance((X, Y), (X2, Y2)) <= stoppingDistance(< S : Entity | >) then
+    eq unavoidableCrash(< S : Robot | location : (X, Y) >, < S2 : PhysicalObj | location : (X2, Y2) >) = 
+        if distance((X, Y), (X2, Y2)) <= stoppingDistance(< S : Robot | >) then
             true
         else
             false
         fi [owise] .
 
-    ***For calculateAdvance, if a crash is unavoidable then the time returned is the amount of time until the crash happens, the entity's detectionRange is ignored.
-    ***If a crash is avoidable, then the time to advance is either the time until one of the objects involved can be detected, or until they crash.
-    eq calculateAdvance(< S : Entity | location : (X, Y), speed : SP, remainingPath : (X2,Y2) LL >, none) = distance((X, Y), (X2,Y2)) / SP .
-    ***Entities moving in the same direction
-    eq calculateAdvance(< S : Entity | location : (X, Y), speed : SP, direction : D, detectionRange : N >, < S2 : Entity | location : (X2, Y2), speed : SP2, direction : D, detectionRange : N2 >) = 
+    eq calculateAdvance(< S : Robot | location : (X,Y), remainingPath : (X2,Y2), speed : SP >, none) = distance((X,Y), (X2,Y2)) / SP .
+    eq calculateAdvance(< S : Robot | location : (X, Y), speed : SP, direction : D, detectionRange : N >, < S2 : Robot | location : (X2, Y2), speed : SP2, direction : D, detectionRange : N2 >) = 
         ***If two entities move in the same direction, and the one behind isn't faster then calculateAdvance is inf since they wont collide.
         if SP2 >= SP then
             inf
         else
-            if unavoidableCrash(< S : Entity | >, < S2 : Entity | >) then
+            if unavoidableCrash(< S : Robot | >, < S2 : Robot | >) then
                 distance((X, Y), (X2,Y2)) / (SP - SP2) 
             else
                 ***If the entities are sufficiently far away from each other, check for detection ranges. 
@@ -107,9 +105,8 @@ omod TIMED-FARM is
                 fi
             fi
         fi .
-    ***calc maxTimeAdvance for entities moving towards one another.
-    ceq calculateAdvance(< S : Entity | location : (X, Y), speed : SP, direction : D, detectionRange : N >, < S2 : Entity | location : (X2,Y2), speed : SP2, direction : D2, detectionRange : N2 >) = 
-        if unavoidableCrash(< S : Entity | >, < S2 : Entity | >) then
+    ceq calculateAdvance(< S : Robot | location : (X, Y), speed : SP, direction : D, detectionRange : N >, < S2 : Robot | location : (X2,Y2), speed : SP2, direction : D2, detectionRange : N2 >) = 
+        if unavoidableCrash(< S : Robot | >, < S2 : Robot | >) then
             distance((X, Y), (X2,Y2)) / (SP + SP2)
         else
             if distance((X, Y), (X2,Y2)) > max(N, N2) then
@@ -123,9 +120,8 @@ omod TIMED-FARM is
             fi
         fi
         if opposite(D,D2) .
-    ceq calculateAdvance(< S : Entity | location : (X,Y), speed : SP, direction : D, remainingPath : (X2,Y2) LL >, < S2 : Entity | speed : SP2, direction : D2 >) = distance((X,Y), (X2,Y2)) / SP if differentAxes(D,D2) and SP2 > 0 .
-    eq calculateAdvance(< S : Entity | location : (X, Y), speed : SP, detectionRange : N >, < S2 : Obstacle | location : (X2,Y2) >) = 
-        if unavoidableCrash(< S : Entity | >, < S2 : Obstacle | >) then
+    eq calculateAdvance(< S : Robot | location : (X, Y), speed : SP, detectionRange : N >, < S2 : Obstacle | location : (X2,Y2) >) = 
+        if unavoidableCrash(< S : Robot | >, < S2 : Obstacle | >) then
             distance((X, Y), (X2,Y2)) / SP
         else
             if (distance((X, Y), (X2,Y2)) > N) then
@@ -135,56 +131,42 @@ omod TIMED-FARM is
             fi 
         fi .
 
-    eq maxTimeAdvance(< S : Map | > CONF) = maxTimeAdvance(CONF) .
-    ***must ignore timers at 0 if their change has been made.
-    eq maxTimeAdvance(< S : GrowingLoc | > CONF) = min(untilTimerExpire(< S : GrowingLoc | >), maxTimeAdvance(CONF)) .
-
-    ceq maxTimeAdvance(< S : Robot | detected : REP > CONF) = 0 if REP =/= nil .
-    ceq maxTimeAdvance(< S : Robot | waitTimer : R, handledTime : false > CONF) = min(R, maxTimeAdvance(< S : Robot | handledTime : true > CONF)) if R > 0 .
-    ceq maxTimeAdvance(< S : Robot | location : (X,Y), state : STATE > < S2 : RefuelStation | location : (X,Y) > CONF) = 0 if (needsResupply(< S : Robot | >) and (STATE =/= resupplying)) .
-    eq maxTimeAdvance(< S : Robot | waitTimer : 0, state : waiting > CONF) = 0 .
-    ceq maxTimeAdvance(< S : Robot | state : STATE > CONF) = 0 if (STATE == replanning) or (STATE == planningPath).
-    eq maxTimeAdvance(< S : Robot | location : (X,Y), curTask : [S2, TT, N], workState : noWork > < S2 : GrowingLoc | location : (X,Y) >) = 0 .
-    eq maxTimeAdvance(< S : Entity | remainingPath : nil, handledTime : false > CONF) = maxTimeAdvance(< S : Entity | handledTime : true > CONF) .
-    eq maxTimeAdvance(< S : Entity | state : crashed, handledTime : false > CONF) = maxTimeAdvance(< S : Entity | handledTime : true > CONF) .
-    ***Finds the first object that is between the entity and the first part of its path. Then uses calculateAdvance to determine the amount of time that can pass based on the object found.
-    ceq maxTimeAdvance(< S : Entity | location : (X, Y), speed : SP, remainingPath : (X2, Y2) LL, handledTime : false > CONF)
+    ceq $maxTimeAdvanceRobot(< S : Robot | detected : REP > CONF) = 0 if REP =/= nil .
+    ceq $maxTimeAdvanceRobot(< S : Robot | location : (X,Y), state : FUNC, curTask : TID > < S2 : ResupplyStation | location : (X,Y) > CONF) = 0 if needsResupply(< S : Robot | >, TID) and (FUNC =/= resupplying) .
+    ceq $maxTimeAdvanceRobot(< S : Robot | state : FUNC, location : (X,Y), curTask : [S2, TT, N], workState : noWork > < S2 : Field | location : (X,Y) > CONF) = 0 if canCompleteNow(< S : Robot | >, [S2, TT, N]) .
+    ceq $maxTimeAdvanceRobot(< S : Robot | state : STATE > CONF) = 0 if (STATE == replanning) or (STATE == planningPath) .
+    eq $maxTimeAdvanceRobot(< S : Robot | state : crashed, detected : nil > CONF) = inf .
+    eq $maxTimeAdvanceRobot(< S : Robot | state : idle, remainingPath : nil, detected : nil > CONF) = maxTimeAdvance(CONF) .
+    ceq $maxTimeAdvanceRobot(< S : Robot | state : STATE, workState : [S2 TT T], detected : nil > CONF) = T if (STATE == repairing) or (STATE == removing) .
+    ceq $maxTimeAdvanceRobot(< S : Robot | state : moving, location : (X, Y), speed : SP, remainingPath : (X2, Y2) LL, detected : nil > CONF)
     =
-    min(calculateAdvance(< S : Entity | >, objectInWay((X, Y), (X2,Y2), CONF)), maxTimeAdvance(< S : Entity | handledTime : true > CONF))
-    if SP > 0 .
-
-    eq maxTimeAdvance(MSG CONF) = 0 .
-
+    calculateAdvance(< S : Robot | >, objectInWay((X, Y), (X2,Y2), CONF))
+    if SP > 0 [owise] .
+    eq maxTimeAdvance(< S : Map | > CONF) = maxTimeAdvance(CONF) .
+    eq maxTimeAdvance(< S : Field | > CONF) = min(untilTimerExpire(< S : Field | >), maxTimeAdvance(CONF)) .
+    eq maxTimeAdvance(< S : Robot | handledTime : false > CONF) = min($maxTimeAdvanceRobot(< S : Robot | > CONF), maxTimeAdvance(< S : Robot | handledTime : true > CONF)) .
+    eq maxTimeAdvance(dly(MSG, T) CONF) = min(T, maxTimeAdvance(CONF)).
     eq maxTimeAdvance(CONF) = inf [owise] .
 
-    ***call timeEffect on every object in the configuration.
-    eq timeEffect(none, T) = none .
-    eq timeEffect(< S : Map | allIntersections : CONF > CONF2, T) = < S : Map | allIntersections : timeEffect(CONF, T) > timeEffect(CONF2, T) .
-    eq timeEffect(< S : Intersection | > CONF, T) = < S : Intersection | > timeEffect(CONF, T) [owise] .
-    eq timeEffect(< S : Obstacle | > CONF, T) = < S : Obstacle | > timeEffect(CONF, T) .
-    eq timeEffect(MSG CONF, T) = MSG timeEffect(CONF, T) .
-    ceq timeEffect(< S : Robot | waitTimer : R > CONF, R2) = < S : Robot | waitTimer : minusToZero(R,R2) > timeEffect(CONF, R2) if R > 0 .
+    eq timeEffect(dly(MSG, T) CONF, T2) = dly(MSG, T monus T2) timeEffect(CONF, T) .
+    ceq timeEffect(< S : Robot | state : STATE, remainingPath : nil > CONF, T) = decreaseTimers(< S : Robot | >, T) timeEffect(CONF, T) if (STATE == removing) or (STATE == repairing) or (STATE == idle) .
+    eq timeEffect(< S : Robot | state : crashed > CONF, T) = decreaseTimers(< S : Robot | >, T) timeEffect(CONF,T) .
+    eq timeEffect(< S : Robot | state : moving, location : (X, Y), direction : north, speed : SP, remainingPath : (X2,Y2) LL > CONF, R) = decreaseTimers(< S : Robot | location : (X, Y + (SP * R)) >, R) timeEffect(CONF, R) .
+    eq timeEffect(< S : Robot | state : moving, location : (X, Y), direction : east, speed : SP, remainingPath : (X2,Y2) LL > CONF, R) = decreaseTimers(< S : Robot | location : (X + (SP * R), Y) >, R) timeEffect(CONF, R) .
+    eq timeEffect(< S : Robot | state : moving, location : (X, Y), direction : south, speed : SP, remainingPath : (X2,Y2) LL > CONF, R) = decreaseTimers(< S : Robot | location : (X, Y - (SP * R)) >, R) timeEffect(CONF, R) .
+    eq timeEffect(< S : Robot | state : moving, location : (X, Y), direction : west, speed : SP, remainingPath : (X2,Y2) LL > CONF, R) = decreaseTimers(< S : Robot | location : (X - (SP * R), Y) >, R) timeEffect(CONF, R) .
 
-    ***Entities move in the direction depending on how much time passes and their speed.
-    eq timeEffect(< S : Entity | remainingPath : nil > CONF, T) = < S : Entity | > timeEffect(CONF, T) [owise] .
-    eq timeEffect(< S : Entity | state : crashed > CONF, T) = < S : Entity | > timeEffect(CONF,T) .
-    eq timeEffect(< S : Entity | location : (X, Y), direction : north, speed : SP, remainingPath : (X2,Y2) LL > CONF, R) = < S : Entity | location : (X, Y + (SP * R)) > timeEffect(CONF, R) [owise] .
-    eq timeEffect(< S : Entity | location : (X, Y), direction : east, speed : SP, remainingPath : (X2,Y2) LL > CONF, R) = < S : Entity | location : (X + (SP * R), Y) > timeEffect(CONF, R) [owise] .
-    eq timeEffect(< S : Entity | location : (X, Y), direction : south, speed : SP, remainingPath : (X2,Y2) LL > CONF, R) = < S : Entity | location : (X, Y - (SP * R)) > timeEffect(CONF, R) [owise] .
-    eq timeEffect(< S : Entity | location : (X, Y), direction : west, speed : SP, remainingPath : (X2,Y2) LL > CONF, R) = < S : Entity | location : (X - (SP * R), Y) > timeEffect(CONF, R) [owise] .
-
-    ***TimeEffect for GrowingLoc
-    eq timeEffect(< S : GrowingLoc | waterLevel : good, fertilizerLevel : good > CONF, T) = decreaseTimers(< S : GrowingLoc | >, T) timeEffect(CONF, T) .
-    eq timeEffect(< S : GrowingLoc | waterTimer : TR, fertilizerTimer : TR2 > CONF, T) = < S : GrowingLoc | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T) > timeEffect(CONF, T) .
+    ***TimeEffect for Field
+    eq timeEffect(< S : Field | waterLevel : good, fertilizerLevel : good > CONF, T) = decreaseTimers(< S : Field | >, T) timeEffect(CONF, T) .
+    eq timeEffect(< S : Field | waterTimer : TR, fertilizerTimer : TR2 > CONF, T) = < S : Field | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T) > timeEffect(CONF, T) .
+    eq timeEffect(CONF, T) = CONF [owise] .
 
     ceq detect(< S : Robot | location : (X, Y), detectionRange : N, detected : REP > < S2 : Obstacle | location : (X2,Y2) > CONF) =
         detect(< S : Robot | detected : {S2 : Obstacle | (X2,Y2)} REP > < S2 : Obstacle | > CONF) if < S : Robot | > detects < S2 : Obstacle | > .
     ceq detect(< S : Robot | location : (X, Y), detectionRange : N, detected : REP, workState : WS > < S2 : Robot | location : (X2,Y2), direction : D, speed : SP, workState : WS2 > CONF) =
-        detect(< S : Robot | detected : {S2 : Robot | (X2,Y2) ; D ; detectedSpeed(SP)} REP > < S2 : Robot | > CONF) if (< S : Robot | > detects < S2 : Robot | >) and (not sameSubject(WS, WS2)) .
+        detect(< S : Robot | detected : {S2 : Robot | (X2,Y2) ; D ; detectedSpeed(SP)} REP > < S2 : Robot | > CONF) if (< S : Robot | > detects < S2 : Robot | >) .
     ceq detect(< S : Robot | location : (X, Y), detectionRange : N, detected : REP > < S2 : HumanVehicle | location : (X2,Y2), direction : D, speed : SP > CONF) =
         detect(< S : Robot | detected : {S2 : HumanVehicle | (X2,Y2) ; D ; detectedSpeed(SP)} REP > < S2 : HumanVehicle | > CONF) if < S : Robot | > detects < S2 : HumanVehicle | > . 
-    ceq detect(< S : Robot | location : (X,Y), detectionRange : N, detected : REP > < S2 : GrowingLoc | location : (X2,Y2), waterLevel : L, fertilizerLevel : L2, growingState : GS, taskNr : N2 > CONF) =
-        detect(< S : Robot | detected : {S2 : GrowingLoc | (X2,Y2) ; [W: L F: L2 H: GS] ; TaskNr: N2} REP > < S2 : GrowingLoc | > CONF) if < S : Robot | > detects < S2 : GrowingLoc | > .
     eq detect(CONF) = CONF [owise] .
 
     crl [timeEffect] :

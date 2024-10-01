@@ -1,0 +1,81 @@
+load oidSet .
+load time-inf .
+load nat-inf .
+load location .
+
+omod TASK is
+    protecting LOCATION .
+    protecting OID-SET .
+    sorts WorkerTask TransporterTask TaskType .
+    sorts Tid TidSet .
+
+    subsorts WorkerTask TransporterTask < TaskType .
+    subsort Tid < TidSet .
+
+    ops watering fertilize plant : -> WorkerTask [ctor] .
+    ops removeAt_ repairAt_ : Location -> WorkerTask [ctor] .
+    op harvest : -> TransporterTask [ctor] .
+    op [_,_,_] : Oid TaskType Nat -> Tid .
+    op none : -> TidSet [ctor] .
+    op __ : TidSet TidSet -> TidSet [ctor assoc comm id: none] .
+    op _\_ : TidSet TidSet -> TidSet [assoc] .
+    op getTaskOid : Tid -> Oid .
+
+    var TID : Tid .
+    var TIDS TIDS2 : TidSet .
+    var O : Oid .
+    var TT : TaskType .
+    var N : Nat .
+
+    eq TIDS \ none = TIDS .
+    eq none \ TIDS = none .
+    eq (TID TIDS) \ (TID TIDS2) = TIDS \ TIDS2 .
+    eq TIDS \ TIDS2 = TIDS [owise] .
+    eq getTaskOid([O, TT, N]) = O .
+endom 
+
+omod AUCTION is
+    protecting TIMER .
+    protecting NAT-INF .
+    protecting TASK .
+
+    sort Bid .
+    sort Auction .
+    op noBid : -> Bid [ctor] .
+    op noAuction : -> Auction [ctor] .
+    op __ : Bid Bid -> Bid [assoc comm ctor id: noBid] .
+    op __ : Auction Auction -> Auction [assoc comm ctor id: noAuction] .
+    op [_bids_] : Oid Nat -> Bid [ctor] .
+    op [_rejects] : Oid -> Bid [ctor] .
+    op [Task:__|_] : Tid Timer Bid -> Auction [ctor] .
+
+    op determineWinner : Bid Oid NatInf -> Oid .
+    op allBidsReceived : Bid OidSet -> Bool .
+    op closed : Tid Auction -> Bool .
+    op bidders : Bid -> OidSet .
+    op auctionTimer : -> Timer .
+
+    var TID : Tid .
+    var T : Timer .
+    var B : Bid .
+    var AU : Auction .
+    var OS : OidSet .
+    vars OID OID2 : Oid .
+    vars NI NI2 : NatInf .
+
+    eq auctionTimer = [cur: 10 - base: 10] .
+    eq closed(TID, [Task: TID T | B] AU) = false .
+    eq closed(TID, AU) = true [owise] .
+    eq bidders(noBid) = none .
+    eq bidders([OID bids NI] B) = OID bidders(B) .
+    eq allBidsReceived(B, OS) = (OS \ bidders(B)) == none .
+    eq determineWinner(noBid, OID, NI) = OID .
+    eq determineWinner([OID bids NI] B, OID2, NI2) =
+        if NI < NI2
+        then
+            determineWinner(B, OID, NI)
+        else
+            determineWinner(B, OID2, NI2)
+        fi .
+endom
+

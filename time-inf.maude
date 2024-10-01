@@ -42,13 +42,11 @@ omod TIMER is
     op none : -> TimerSet [ctor] .
     op __ : TimerSet TimerSet -> TimerSet [ctor assoc comm id: none] .
     op [cur:_- base:_] : Time Time -> Timer [ctor] .
-    op minusToZero : Time Time -> Time .
+    op _monus_ : Time Time -> Time .
     op reset : Timer -> Timer .
     op decrease : Timer Time -> Timer .
     op expired : Timer -> Bool .
-    ***Objects with timers overload this to decrease all timers when used.
     op decreaseTimers : Object Time -> Object .
-    ***overload to check when the first timer would go to zero.
     op untilTimerExpire : Object -> Time .
     op minCur : TimerSet -> Time .
 
@@ -60,9 +58,9 @@ omod TIMER is
     var C : Cid .
     var A : Attribute .
 
-    eq minusToZero(T, T2) = if (T - T2) < 0 then 0 else T - T2 fi .
+    eq T monus T2 = if (T - T2) < 0 then 0 else T - T2 fi .
     eq reset([cur: T - base: T2]) = [cur: T2 - base: T2] .
-    eq decrease([cur: T - base: T2], T3) = [cur: minusToZero(T, T3) - base: T2] .
+    eq decrease([cur: T - base: T2], T3) = [cur: T monus T3 - base: T2] .
     eq expired([cur: 0 - base: T2]) = true .
     eq expired(TR) = false [owise] .
     eq minCur(none) = inf .
