@@ -9,8 +9,10 @@ load human .
 load obstacle .
 load buildings .
 load auctioneer .
+load fail .
 omod ROBOT is 
     protecting AUCTIONEER .
+    protecting FAIL .
     protecting MESSAGE .
     protecting OBSTACLE .
     protecting MAP .
@@ -67,9 +69,8 @@ omod ROBOT is
     op __ : Representation Representation -> Representation [assoc comm id: nil ctor] .
     ***Todo: refine this based on what information the robot should know.
     op {_:_|_} : Oid Cid Information -> Representation .
-    ***Checks if an object already is in the representation .
     op _notIn_ : String Representation -> Bool .
-    ***checks if the given represenation is incompatible with path. If continuing the path would lead to a head-on collision.
+    op getLocation : Object -> Location .
     ops breaksPath $breaksPath : List-Location Representation -> Bool .
     op canCompleteNow : Object TidSet -> Bool .
     op $parseTasksGL : Representation -> TidSet .
@@ -92,6 +93,8 @@ omod ROBOT is
     op $planPath : Object List-Location List-Location -> List-Location .
     op planPath : Object Tid Configuration -> List-Location .
 
+    op $speedPrevention : Object Representation -> Object .
+    op $locationPrevention : Object Representation -> Object .
     op crashPrevention : Object Representation -> Object .
 
     vars CONF CONF2 : Configuration .
@@ -138,6 +141,7 @@ omod ROBOT is
     eq REMOVAL-TIME = 5 .
     eq REPAIR-TIME = 5 .
     eq SAFE-SPEED = 1 .
+    eq getLocation(< S : Robot | location : (X,Y) >) = (X,Y) .
     eq decreaseTimers(< S : Robot | state : removing, workState : [S2 (removeAt (X,Y)) TIME] >, TIME2) = < S : Robot | workState : [S2 (removeAt (X,Y)) (TIME monus TIME2)] > .
     eq decreaseTimers(< S : Robot | >, TIME) = < S : Robot | > [owise] .
     eq rejectTask(< S : Robot | state : STATE, curTask : TS >) = rejectMsg(< S : Robot | >) or (TS =/= noTask) .
@@ -192,7 +196,38 @@ omod ROBOT is
         fi .
     eq breaksPath(LL, {S2 : CID | (X,Y) ; D ; I}) = $breaksPath(between((X,Y), LL), {S2 : CID | (X,Y) ; D ; I}) [owise] .
 
+    eq $locationPrevention(< S : Robot | location : (X,Y), remainingPath : LL >, {S2 : Obstacle | (X,Y2)}) =
+        if Y > Y2
+        then
+            < S : Robot | remainingPath : (X,Y2 + 1) >
+        else
+            < S : Robot | remainingPath : (X,Y2 - 1) >
+        fi . 
+    eq $locationPrevention(< S : Robot | location : (X,Y) >, {S2 : Obstacle | (X2,Y)}) =
+        if X > X2
+        then
+            < S : Robot | remainingPath : (X2 + 1,Y) >
+        else
+            < S : Robot | remainingPath : (X2 - 1,Y) >
+        fi .
+    eq crashPrevention(< S : Robot | location : (X,Y), remainingPath : (X2,Y2) LL >, {S2 : CID | (X3,Y3) ; I}) = 
+        if between((X3,Y3), (X,Y) (X2,Y2)) =/= nil
+        then
+            $locationPrevention(< S : Robot | >, {S2 : CID | (X3,Y3) ; I})
+        else
+            < S : Robot | >
+        fi .
 
+    rl [fail] :
+        < S : Robot | curTask : TS >
+        < "FAIL" : Fail | >
+        =>
+        if TS == noTask
+        then
+            < S : Robot | state : failed >
+        else
+            startAuction(< S : Robot | state : failed >, TS)
+        fi .
     rl [replanPath] :
         < S : Robot | state : replanning, remainingPath : LL (X,Y), detected : nil, curTask : TID >
         < S3 : Map | >
@@ -234,6 +269,11 @@ omod ROBOT is
             msg accept TID from S to S2 
         fi .
 
+    crl [arriveAtFixLoc] : 
+        < S : Robot | location : (X,Y), remainingPath : (X,Y), state : STATE >
+        =>
+        < S : Robot | remainingPath : nil >
+        if (STATE == removing) or (STATE == repairing) .
     rl [detectRobot] :
         < S : Robot | location : (X,Y), remainingPath : LL, detected : {S2 : Robot | D ; detectedSpeed(SP); (X2,Y2)} REP >
         =>
@@ -242,31 +282,23 @@ omod ROBOT is
         (msg requestPath path((X,Y) LL) from S to S2)
         < S : Robot | > .
     rl [detectObstacle] : 
-        < S : Robot | location : (X,Y), remainingPath : LL (X2,Y2), detected : {S2 : Obstacle | (X3,Y3) ; I} REP, obstructionPoints : LL2, workers : OS > 
-        < S2 : Obstacle | location : (X3,Y3) >
+        < S : Robot | location : (X,Y), remainingPath : LL, detected : {S2 : Obstacle | (X2,Y2)} REP, obstructionPoints : LL2, workers : OS > 
+        < S2 : Obstacle | location : (X2,Y2) >
         < S3 : Map | > 
         =>
-        if canCompleteNow(< S : Robot | >, [S2, removeAt (X3,Y3), 1])
+        if canCompleteNow(< S : Robot | >, [S2, removeAt (X2,Y2), 1])
         then
-            ***crash prot is only needed if directly approaching.
-            ***do crash prot, which should set destination to working range less than destination compared to location.
-            ***if between (X,Y) and (X2,Y2) (first loc of remainingpath.) then we do crash prot first
-
-            < S : Robot | state : moving,
-                remainingPath : planPath(< S : Robot | >, [S2, removeAt (X3,Y3), 1], < S3 : Map | > < S2 : Obstacle | >),
-                detected : REP, curTask : [S2, removeAt (X3,Y3), 1] >
+            crashPrevention(< S : Robot | state : moving,
+                remainingPath : planPath(< S : Robot | >, [S2, removeAt (X2,Y2), 1], < S3 : Map | > < S2 : Obstacle | >),
+                detected : REP, curTask : [S2, removeAt (X2,Y2), 1] >, {S2 : Obstacle | (X2,Y2)})
             < S2 : Obstacle | >
             < S3 : Map | >
         else
-            if between((X3,Y3), (X,Y) LL (X2,Y2)) =/= nil
+            if between((X2,Y2), (X,Y) LL) =/= nil
             then
-                startAuction(< S : Robot | state : replanning, detected : REP, obstructionPoints : (X3,Y3) LL2 >, [S2, removeAt (X3,Y3), 1])
-                < S2 : Obstacle | >
-                < S3 : Map | >
+                startAuction(< S : Robot | state : replanning, detected : REP, obstructionPoints : (X2,Y2) LL2 >, [S2, removeAt (X2,Y2), 1])
             else
-                startAuction(< S : Robot | detected : REP, obstructionPoints : (X3, Y3) LL2 >, [S2, removeAt (X3,Y3), 1])
-                < S2 : Obstacle | >
-                < S3 : Map | >
+                startAuction(< S : Robot | detected : REP, obstructionPoints : (X2, Y2) LL2 >, [S2, removeAt (X2,Y2), 1])
             fi
         fi .
 

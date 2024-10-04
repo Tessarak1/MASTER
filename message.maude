@@ -18,7 +18,6 @@ omod MESSAGE is including MESSAGE-WRAPPER .
   protecting TIME-INF .
   
   sort DlyMsg .
-
   subsort Msg < DlyMsg < Configuration .
   subsort TidSet < MsgContent .
 

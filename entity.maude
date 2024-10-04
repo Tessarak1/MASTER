@@ -49,14 +49,14 @@ omod ENTITY is
 
     eq < S : Entity | > isBehind < S2 : Entity | > = false [owise] .
     ***Formula for calculating distance an entity needs to come to a complete halt.
-    eq stoppingDistance(< S : Entity | speed : SP >) = ((SP / 10) ^ 2) / 2 .
+    eq stoppingDistance(< S : Entity | speed : SP >) =  ((SP / 5) ^ 2) / 2 .
 
     rl [finish] :
         < S : Entity | location : (X, Y), remainingPath : (X,Y), state : moving >
         =>
         < S : Entity | speed : 0, remainingPath : nil, state : idle > .
     rl [nextIntersection] :
-        < S : Entity | location : (X , Y), remainingPath : (X , Y) (X2, Y2) LL, state : moving > 
+        < S : Entity | location : (X , Y), remainingPath : (X , Y) (X2, Y2) LL > 
         =>
         < S : Entity | direction : setDirection((X , Y), (X2, Y2)), remainingPath : (X2,Y2) LL > .
     rl [startTravel] :

@@ -87,7 +87,7 @@ omod PATHFINDER is
     eq updateDistances(noQueue) = noQueue .
     eq updateDistances(DE PQ) = DE updateDistances(updateNeighbors(DE, PQ)) .
     
-    eq $buildPath(OID, PQ [< OID : Intersection | location : (X,Y) >, NI, "Start"] PQ2) = (X,Y) .
+    eq $buildPath(OID, PQ [< OID : Intersection | location : (X,Y) >, NI, "Start"] PQ2) = nil .
     ceq $buildPath(OID, PQ [< OID : Intersection | location : (X,Y) >, NI, OID2] PQ2) = $buildPath(OID2, PQ PQ2) (X,Y) if OID2 =/= "Start" .
     eq $buildPath(OID, PQ) = nil [owise] .
     eq buildPath(OID, OID2, PQ [< OID2 : Intersection | location : (X,Y) >, NI, OID3] PQ2) = $buildPath(OID3, PQ) (X,Y) .

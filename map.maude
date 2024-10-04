@@ -26,6 +26,7 @@ omod MAP is
     op $addPath : Location Path PathSet -> PathSet .
     op addPath : Location Path PathSet -> PathSet .
     op transformMap : Object Location List-Location -> Object .
+    op outsideMap : Location PathSet -> Bool .
 
     vars X X2 X3 Y Y2 Y3 : Rat .
     vars S S2 : String .
@@ -38,6 +39,8 @@ omod MAP is
     var AS : AttributeSet .
     var N : Nat .
 
+    ceq outsideMap((X,Y), {(X2,Y2) (X3,Y3)} PS) = false if between((X,Y), (X2,Y2) (X3,Y3)) =/= nil .
+    eq outsideMap((X,Y), PS) = true [owise] .
     eq returnByLocation(< S : Intersection | location : (X, Y) > CONF, (X, Y) LL) = < S : Intersection | > returnByLocation(CONF, LL) .
     eq returnByLocation(< S : Intersection | location : (X, Y) > < S2 : Intersection | location : (X2, Y2) > CONF, {(X, Y) (X2, Y2)} PS) = < S : Intersection | > < S2 : Intersection | > returnByLocation(CONF, PS) .
     eq returnByLocation(CONF, LL) = none [owise] .
