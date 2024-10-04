@@ -51,8 +51,8 @@ omod PATHFINDER is
     op buildPath : Oid Oid PQueue -> List-Location .
     op dijkstraSearch : Configuration Oid Oid -> List-Location .
     op dijkstraSearch : Configuration Location Location -> List-Location .
-    op dijsktraChain : Configuration OidList -> List-Location .
-    op dijsktraChain : Configuration List-Location -> List-Location .
+    op dijkstraChain : Configuration OidList -> List-Location .
+    op dijkstraChain : Configuration List-Location -> List-Location .
     ops coverVertical coverHorizontal : List-Location List-Location -> List-Location .
     ops coverArea $coverArea : Location Area -> List-Location .
     op backToStart : Location Location -> List-Location .
@@ -87,7 +87,7 @@ omod PATHFINDER is
     eq updateDistances(noQueue) = noQueue .
     eq updateDistances(DE PQ) = DE updateDistances(updateNeighbors(DE, PQ)) .
     
-    eq $buildPath(OID, PQ [< OID : Intersection | location : (X,Y) >, NI, "Start"] PQ2) = (X,Y) .
+    eq $buildPath(OID, PQ [< OID : Intersection | location : (X,Y) >, NI, "Start"] PQ2) = nil .
     ceq $buildPath(OID, PQ [< OID : Intersection | location : (X,Y) >, NI, OID2] PQ2) = $buildPath(OID2, PQ PQ2) (X,Y) if OID2 =/= "Start" .
     eq $buildPath(OID, PQ) = nil [owise] .
     eq buildPath(OID, OID2, PQ [< OID2 : Intersection | location : (X,Y) >, NI, OID3] PQ2) = $buildPath(OID3, PQ) (X,Y) .
@@ -97,10 +97,10 @@ omod PATHFINDER is
     eq dijkstraSearch(< OID : Intersection | location : (X,Y) > < OID2 : Intersection | location : (X2,Y2) > CONF, (X,Y), (X2,Y2)) =
         dijkstraSearch(< OID : Intersection | location : (X,Y) > < OID2 : Intersection | location : (X2,Y2) > CONF, OID, OID2) .
 
-    eq dijsktraChain(CONF, OID ; OID2) = dijkstraSearch(CONF, OID, OID2) .
-    eq dijsktraChain(CONF, OID ; OID2 ; OL) = dijkstraSearch(CONF, OID, OID2) dijsktraChain(CONF, OID2 ; OL) .
-    eq dijsktraChain(CONF, (X,Y) (X2,Y2)) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) .
-    eq dijsktraChain(CONF, (X,Y) (X2,Y2) LL) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) dijsktraChain(CONF, (X2,Y2) LL) .
+    eq dijkstraChain(CONF, OID ; OID2) = dijkstraSearch(CONF, OID, OID2) .
+    eq dijkstraChain(CONF, OID ; OID2 ; OL) = dijkstraSearch(CONF, OID, OID2) dijkstraChain(CONF, OID2 ; OL) .
+    eq dijkstraChain(CONF, (X,Y) (X2,Y2)) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) .
+    eq dijkstraChain(CONF, (X,Y) (X2,Y2) LL) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) dijkstraChain(CONF, (X2,Y2) LL) .
 
     ***Only used in square areas to return from first location to last.
     eq backToStart((X,Y), (X2,Y2)) = (X,Y2) (X2,Y2) .
@@ -128,5 +128,4 @@ omod PATHFINDER is
     eq $coverArea((X,Y3), area((X,Y), (X2,Y), (X,Y2), (X2,Y2))) = (X,Y) (X,Y2) coverVertical((X,Y) (X,Y2), (X2,Y) (X2,Y2)) .
     eq $coverArea((X3,Y), area((X,Y), (X2,Y), (X,Y2), (X2,Y2))) = (X,Y) (X2,Y) coverHorizontal((X,Y) (X2,Y), (X,Y2) (X2,Y2)).
     eq coverArea((X,Y), A) = $coverArea((X,Y), A) backToStart(last($coverArea((X,Y), A)), (X,Y)) .
-
 endom   

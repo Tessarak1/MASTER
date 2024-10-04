@@ -1,0 +1,13 @@
+omod FAIL is
+    protecting STRING .
+    protecting INT .
+    class Fail .
+    subsort String < Oid .
+
+    op makeFail : Nat -> Configuration .
+
+    var N : Nat .
+    var NZ : NzNat .
+    eq makeFail(0) = none .
+    eq makeFail(NZ) = < "FAIL" : Fail | > makeFail(NZ - 1) .
+endom

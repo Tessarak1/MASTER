@@ -1,0 +1,81 @@
+***This file is the superclass for fields and greenhouses. The only notable difference between the two is the
+***type of crops that are grown there
+load auctioneer .
+load intersection .
+omod FIELD is
+    protecting INTERSECTION .
+    protecting MESSAGE .
+    protecting TIMER .
+    protecting AUCTIONEER .
+
+    sort GrowingState .
+    sort Level .
+
+    class Field | growingState : GrowingState, waterLevel : Level, fertilizerLevel : Level, 
+        waterTimer : Timer, fertilizerTimer : Timer, growTimer : Timer, growingArea : Area .
+
+    subclass Field < Intersection Auctioneer .
+
+    ops low good : -> Level [ctor] .
+    ops empty growing harvest : -> GrowingState [ctor] .
+    op taskComplete : Object Tid -> Object .
+    ops waterTime fertilizerTime growTime : Object -> Time .
+
+    var S : String .
+    var L L2 : Level .
+    vars T T2 : Time .
+    vars TR TR2 TR3 TR4 : Timer .
+    var GS : GrowingState .
+    var N : Nat .
+    var TT : TaskType .
+    var OS : OidSet .
+    var AU : Auction .
+    var B : Bid .
+
+    eq taskComplete(< S : Field | waterTimer : TR, waterLevel : low >, [S, watering, N]) = < S : Field | waterLevel : good, waterTimer : reset(TR) > .
+    eq taskComplete(< S : Field | fertilizerTimer : TR, fertilizerLevel : low >, [S, fertilize, N]) = < S : Field | fertilizerLevel : good, fertilizerTimer : reset(TR) > .
+    eq taskComplete(< S : Field | growingState : empty >, [S, plant, N]) = < S : Field | growingState : growing > .
+    eq taskComplete(< S : Field | growingState : harvest, growTimer : TR >, [S, harvest, N]) = < S : Field | growingState : empty, growTimer : reset(TR) > .
+    eq decreaseTimers(< S : Field | waterLevel : good, fertilizerLevel : good, waterTimer : TR, fertilizerTimer : TR2, growingState : growing, growTimer : TR3 >, T) =
+        < S : Field | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T), growTimer : decrease(TR3, T) > .
+    eq decreaseTimers(< S : Field | waterTimer : TR, fertilizerTimer : TR2 >, T) =
+        < S : Field | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T) > [owise] .
+    eq waterTime(< S : Field | auctions : [Task: [S, watering, N] TR | B] AU >) = natInf .
+    eq waterTime(< S : Field | waterTimer : [cur: T - base: T2] >) = T [owise] .
+    eq fertilizerTime(< S : Field | auctions : [Task: [S, fertilize, N] TR | B] AU >) = natInf .
+    eq fertilizerTime(< S : Field | fertilizerTimer : [cur: T - base: T2] >) = T [owise] .
+    eq growTime(< S : Field | auctions : [Task: [S, harvest, N] TR | B] AU >) = natInf .
+    eq growTime(< S : Field | growTimer : [cur: T - base: T2] >) = T [owise] .
+    eq untilTimerExpire(< S : Field | >) = min(growTime(< S : Field | >), min(waterTime(< S : Field | >), fertilizerTime(< S : Field | >))) .
+
+    crl [depletedWater] :
+        < S : Field | waterLevel : good, waterTimer : TR >
+        =>
+        < S : Field | waterLevel : low >
+        if expired(TR) .
+    crl [depletedFertilizer] :
+        < S : Field | fertilizerLevel : good, fertilizerTimer : TR >
+        =>
+        < S : Field | fertilizerLevel : low >
+        if expired(TR) .
+    crl [finishedGrowth] :
+        < S : Field | growingState : growing, growTimer : TR >
+        =>
+        < S : Field | growingState : harvest >
+        if expired(TR) .
+    crl [startWaterAuction] :
+        < S : Field | waterLevel : low, taskNr : N, auctions : AU >
+        =>
+        startAuction(< S : Field | >, [S, watering, N])
+        if closed([S, watering, N], AU) .
+    crl [startFertilizerAuction] :
+        < S : Field | fertilizerLevel : low, taskNr : N, auctions : AU >
+        =>
+        startAuction(< S : Field | >, [S, fertilize, N])
+        if closed([S, fertilize, N], AU) .
+    crl [startHarvestAuction] :
+        < S : Field | growingState : harvest, taskNr : N, auctions : AU >
+        =>
+        startAuction(< S : Field | >, [S, harvest, N])
+        if closed([S, harvest, N], AU) .
+endom

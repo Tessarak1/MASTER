@@ -1,36 +1,37 @@
-load intersection .
-load sorts .
+load location .
+load task .
+load time-inf .
 ***Code for message-wrapper is taken from assignment 3 regarding sliding window in maude.
 omod MESSAGE-WRAPPER is
+  protecting OID-SET .
+
   sort MsgContent .
-  sort Receiver .
-  ***For now, a message can be picked up by harvesters or receivers.
-  ops worker transporter human : -> Receiver [ctor] .
+
   op noContent : -> MsgContent [ctor] .
   op __ : MsgContent MsgContent -> MsgContent [assoc comm ctor id: noContent] .
-  subsort Oid < Receiver .
-  op msg_from_to_ : MsgContent Oid Receiver -> Msg [ctor] .
+  op msg_from_to_ : MsgContent Oid Oid -> Msg [ctor] .
 endom
  
 omod MESSAGE is including MESSAGE-WRAPPER .
-  protecting STRING .
-  protecting INTERSECTION .
   protecting LIST-LOCATION .
-  protecting SORTS .
+  protecting TASK .
+  protecting TIME-INF .
   
-  subsort String < Oid .
+  sort DlyMsg .
+  subsort Msg < DlyMsg < Configuration .
   subsort TidSet < MsgContent .
-  op obstacleAt_ : Location -> MsgContent .
+
+  op dly : Msg Time -> DlyMsg [ctor right id: 0] .
+  ops obstacleAt_ removed_ : Location -> MsgContent .
   op path : List-Location -> MsgContent .
   op requestPath : -> MsgContent .
-  op bid_on_ : Nat Tid -> MsgContent .
   op broadcast : Oid MsgContent OidSet -> Configuration .
-  ops won_ reject_ accept_ : Tid -> MsgContent .
-  
+  op MSG-DELAY : -> Time .
   vars OID OID2 : Oid .
   var MC : MsgContent .
   var OIDS : OidSet .
 
+  eq MSG-DELAY = 1 .
   eq broadcast(OID, MC, none) = none .
-  eq broadcast(OID, MC, OID2 OIDS) = (msg MC from OID to OID2) broadcast(OID, MC, OIDS) .
+  eq broadcast(OID, MC, OID2 OIDS) = dly((msg MC from OID to OID2), MSG-DELAY) broadcast(OID, MC, OIDS) .
 endom

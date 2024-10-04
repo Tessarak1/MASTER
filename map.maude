@@ -14,20 +14,21 @@ omod MAP is
     op returnByName : Configuration Oid -> Configuration .
     op returnByName : Object Oid -> Configuration .
     op $removeConnection : PathSet Configuration -> Configuration .
-    op removeConnection : PathSet Configuration -> Configuration .
-    op removeIntersection : String Configuration -> Configuration .
+    op removeConnection : PathSet Object -> Object .
     op newNeighbor : String OidSet Configuration -> Configuration .
     op createPathSet : Configuration -> PathSet .
     op findPath : List-Location PathSet -> PathSet .
     op getIntersections : Object -> Configuration .
     op getPathSet : Object -> PathSet .
-    op $newIntersection : Location Path Object -> Object .
-    op newIntersection : Location Object -> Configuration .
+    op $newIntersection : Location Path Object Nat -> Object .
+    op $newIntersectionCounter : List-Location Object Nat -> Object .
+    op newIntersection : List-Location Object -> Object .
     op $addPath : Location Path PathSet -> PathSet .
     op addPath : Location Path PathSet -> PathSet .
     op transformMap : Object Location List-Location -> Object .
+    op outsideMap : Location PathSet -> Bool .
 
-    vars X X2 X3 Y Y2 Y3 : Int .
+    vars X X2 X3 Y Y2 Y3 : Rat .
     vars S S2 : String .
     var CONF : Configuration .
     var O : Object .
@@ -35,7 +36,11 @@ omod MAP is
     var LL : List-Location .
     var L : Location .
     var PS PS2 : PathSet .
+    var AS : AttributeSet .
+    var N : Nat .
 
+    ceq outsideMap((X,Y), {(X2,Y2) (X3,Y3)} PS) = false if between((X,Y), (X2,Y2) (X3,Y3)) =/= nil .
+    eq outsideMap((X,Y), PS) = true [owise] .
     eq returnByLocation(< S : Intersection | location : (X, Y) > CONF, (X, Y) LL) = < S : Intersection | > returnByLocation(CONF, LL) .
     eq returnByLocation(< S : Intersection | location : (X, Y) > < S2 : Intersection | location : (X2, Y2) > CONF, {(X, Y) (X2, Y2)} PS) = < S : Intersection | > < S2 : Intersection | > returnByLocation(CONF, PS) .
     eq returnByLocation(CONF, LL) = none [owise] .
@@ -52,8 +57,6 @@ omod MAP is
     eq removeConnection(PS, < S : Map | allIntersections : CONF, paths : PS2 >) =
         < S : Map | allIntersections : $removeConnection(PS, CONF), paths : removePaths(PS2, PS) > .
 
-    eq removeIntersection(S, < S : Intersection | > CONF) = CONF .
-
     eq newNeighbor(S, none, CONF) = CONF .
     eq newNeighbor(S, S2 OS, < S2 : Intersection | neighbors : OS2 > CONF) = < S2 : Intersection | neighbors : S OS2 > newNeighbor(S, OS, CONF) .
 
@@ -66,26 +69,22 @@ omod MAP is
     eq findPath(nil, PS) = es .
     ceq findPath((X,Y) LL, {(X2,Y2) (X3,Y3)} PS) = {(X2,Y2) (X3,Y3)} findPath(LL, PS) if (X,Y) inRange({(X2,Y2) (X3,Y3)}) .
     eq findPath((X,Y) LL, {(X2,Y2) (X3,Y3)} PS) = findPath(LL, {(X2,Y2) (X3,Y3)} PS) [owise] .
-    
-    ***used when a new intersection at (X,Y) is added to map.
-    ***removes the path between (X2, Y2) and (X3,Y3) and sets (X,Y) between .
-
     eq addPath((X,Y), {(X2,Y2) (X3,Y3)}, {(X2,Y2) (X3,Y3)} PS) = {(X,Y) (X2,Y2)} {(X,Y) (X3,Y3)} PS .
     eq addPath((X,Y), {(X2,Y2) (X3,Y3)}, PS) = {(X,Y) (X2,Y2)} {(X,Y) (X3,Y3)} PS [owise] .
-
-    ***location of new intersection, path it interrupts and the map.
-    eq $newIntersection((X,Y), {(X2,Y2) (X3,Y3)}, < S : Map | allIntersections : CONF, paths : PS >) =
-        < S : Map | allIntersections : < "Temporary" : Intersection | location : (X,Y), neighbors : oidSet(returnByLocation(CONF, (X2,Y2) (X3,Y3))) > 
-        newNeighbor("Temporary", oidSet(returnByLocation(CONF, (X2,Y2) (X3,Y3))), CONF),
-        paths : addPath((X,Y), {(X2,Y2) (X3,Y3)}, PS) > .
-
-    ***adds a new intersection at location (X,Y) between two intersections.
-        eq newIntersection((X,Y), < S : Map | allIntersections : CONF, paths : PS >) =
-        if (findPath((X,Y), PS) == es) or (returnByLocation(CONF, (X,Y)) =/= none) then
-            < S : Map | >
+    eq $newIntersection((X,Y), {(X2,Y2) (X3,Y3)}, < S : Map | allIntersections : CONF, paths : PS >, N) =
+        < S : Map | allIntersections : < string(N, 10) : Intersection | location : (X,Y), neighbors : oidSet(returnByLocation(CONF, (X2,Y2) (X3,Y3))) > 
+            newNeighbor(string(N, 10), oidSet(returnByLocation(CONF, (X2,Y2) (X3,Y3))), CONF),
+            paths : addPath((X,Y), {(X2,Y2) (X3,Y3)}, PS) > .
+    eq $newIntersectionCounter(nil, < S : Map | >, N) = < S : Map | > .
+    eq $newIntersectionCounter((X,Y) LL, < S : Map | allIntersections : CONF, paths : PS >, N) =
+        if (findPath((X,Y), PS) == es) or (returnByLocation(CONF, (X,Y)) =/= none)
+        then
+            $newIntersectionCounter(LL, < S : Map | >, N)
         else
-            $newIntersection((X,Y), findPath((X,Y), PS), removeConnection(findPath((X,Y), PS), < S : Map | >))
+            $newIntersectionCounter(LL, $newIntersection((X,Y), findPath((X,Y), PS), removeConnection(findPath((X,Y), PS), < S : Map | >), N), N + 1)
         fi .
+    eq newIntersection(LL, < S : Map | >) =
+        $newIntersectionCounter(LL, < S : Map | >, 0) .
 
     eq getIntersections(< S : Map | allIntersections : CONF >) = CONF .
     eq getPathSet(< S : Map | paths : PS >) = PS .

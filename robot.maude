@@ -4,49 +4,52 @@ load time-inf .
 load pathfinder .
 load message .
 load map .
-load growingLoc .
+load field .
 load human .
 load obstacle .
 load buildings .
-load auction .
+load auctioneer .
+load fail .
 omod ROBOT is 
-    protecting AUCTION .
+    protecting AUCTIONEER .
+    protecting FAIL .
     protecting MESSAGE .
     protecting OBSTACLE .
     protecting MAP .
     protecting HUMAN .
     protecting TIME-INF .
-    protecting GROWINGLOC .
+    protecting FIELD .
     protecting PATHFINDER .
     protecting BUILDINGS .
 
     sort CargoLevel .
     sorts WorkerCargo TransporterCargo Cargo .
-    sort MovementType . 
+    sorts Seed Water Fertilizer Produce .
     ***Type of object detected and Identificator.
     sort Representation .
     sort TaskStatus . 
-    sorts WorkState ActiveWork InactiveWork .
-    subsorts ActiveWork InactiveWork < WorkState .
-    
+    sorts WorkState ActiveWork TimedWork .
     sort Information .
+
     subsorts Location Direction < Information .
     subsort Tid < TaskStatus .
-
-    class Robot | detectionRange : Nat, cargoLevel : CargoLevel, curCargo : Cargo,
-     detected : Representation, waitTimer : Rat, obstructionPoints : List-Location, curTask : TaskStatus, 
-        auctions : Auction, workers : OidSet, transporters : OidSet, remainingFuel : Nat, workState : WorkState .
-    class Worker | movementType : MovementType .
-    class Transporter .
-    
-    subclass Worker Transporter < Robot < Entity .
-    
-    ***Workers can plant fields or greenhouses, so they should have seeds as part of cargo.
-    sort Seed .
+    subsorts ActiveWork TimedWork < WorkState .
     subsort Seed Water Fertilizer < WorkerCargo .
     subsort Produce < TransporterCargo .
     subsort TransporterCargo WorkerCargo < Cargo .
-    subsort Empty Full < CargoLevel .
+
+    class Robot | detectionRange : Nat, cargoLevel : CargoLevel, curCargo : Cargo,
+        detected : Representation, obstructionPoints : List-Location,
+        curTask : TaskStatus, workState : WorkState .
+    class Worker .
+    class Transporter .
+    
+    subclass Worker Transporter < Robot < Entity Auctioneer .
+
+    op water : -> Water [ctor] .
+    op fertilizer : -> Fertilizer [ctor] .
+    op seed : -> Seed [ctor] .
+
     op _;_ : Information Information -> Information [ctor assoc comm id: noInfo] .
     op noInfo : -> Information [ctor] .
     op TaskNr:_ : Nat -> Information [ctor] .
@@ -54,57 +57,56 @@ omod ROBOT is
     op [W:_ F:_ H:_] : Level Level GrowingState -> Information [ctor] .
     op noTask : -> TaskStatus .
 
-    ops noWork : -> InactiveWork [ctor] .
+    ops noWork : -> WorkState [ctor] .
     op [__] : Oid TaskType -> ActiveWork [ctor] .
-
-    ops flying ground : -> MovementType [ctor] .
-    ops saladSeed potatoSeed turnipSeed pepperSeed tomatoSeed cucumberSeed wheatSeed ryeSeed peachSeed : -> Seed [ctor] .
-    op distance : Object Object -> Rat [comm] .
-    op processing : Representation Time -> Representation [frozen (1) right id: 0] .
-    ***Robot does dijkstraSearch from the first intersection to the second.
-    ***Used for shorthand to perform dijkstra on an updated map.
-    op updatePath : Object Configuration Location Location -> Object .
-    ***returns the front-facing location where the robots detection border is.
+    op [___] : Oid TaskType Time -> TimedWork [ctor] .
+    ops empty full : -> CargoLevel [ctor] .
+    op seed : -> Seed [ctor] .
     op detectionBorder : Object -> Location .
-    op updatePath : Object Configuration List-Location -> Object .
     op replanPath : Object Object Location -> Object .
 
     op nil : -> Representation [ctor] .
     op __ : Representation Representation -> Representation [assoc comm id: nil ctor] .
     ***Todo: refine this based on what information the robot should know.
     op {_:_|_} : Oid Cid Information -> Representation .
-    ***Checks if an object already is in the representation .
     op _notIn_ : String Representation -> Bool .
-    ***checks if the given represenation is incompatible with path. If continuing the path would lead to a head-on collision.
+    op getLocation : Object -> Location .
     ops breaksPath $breaksPath : List-Location Representation -> Bool .
-
-    op canCompleteNow : Object TidSet -> TidSet .
+    op canCompleteNow : Object TidSet -> Bool .
     op $parseTasksGL : Representation -> TidSet .
     op parseTasksGL : Representation -> TidSet .
-    op travelToCurTask : Object -> Object .
     op assignTask : Object Tid -> Object .
-    op calculateBid : Configuration List-Location -> Nat .
-    op startAuction : Object TidSet -> Configuration .
+    op calculateBid : Object Tid Object -> Rat .
     op prepareAuction : Object TidSet -> Configuration .
     op auctionTimer : -> Timer .
-    op rejectTask : Object -> Bool .
+    ops rejectTask rejectMsg : Object -> Bool .
     op startWorkGL : Object -> Object .
-    op needsResupply : Object -> Bool .
-    op sameSubject : WorkState WorkState -> Bool [comm] .
 
-    var CONF : Configuration .
+    op SAFE-SPEED : -> Rat .
+    ops REMOVAL-TIME REPAIR-TIME : -> Time .
+    op WORK-RANGE : -> Rat .
+    ops needsResupply needsCPoint : Object Tid -> Bool .
+    ops resupplyLocCheck cPointLocCheck : Object Tid Location -> List-Location .
+    op performChecks : Object Tid Configuration -> List-Location .
+    op $removalPlanPath : Object List-Location -> Object .
+    op $planPathLocations : Object Tid Configuration -> List-Location .
+    op $planPath : Object List-Location List-Location -> List-Location .
+    op planPath : Object Tid Configuration -> List-Location .
+
+    op $speedPrevention : Object Representation -> Object .
+    op $locationPrevention : Object Representation -> Object .
+    op crashPrevention : Object Representation -> Object .
+
+    vars CONF CONF2 : Configuration .
     vars S S2 S2' S3 S4 S5 : String .
-
     vars X Y : Rat .
     vars X2 Y2 : Rat .
     vars X3 Y3 : Rat .
-
     vars N N2 : Nat .
     var A : Area .
     vars LL LL2 : List-Location .
     vars L L2 : Level .
     var GS : GrowingState .
-    var C : Content .
     var TC : TransporterCargo .
     var PS : PathSet .
     var MC : MsgContent .
@@ -118,9 +120,12 @@ omod ROBOT is
     var OL : OidList .
     var T : Timer .
     vars TIME TIME2 : Time .
-    var TID : Tid .
+    vars TID TID2 : Tid .
     var TIDS : TidSet .
     vars AS AS2 : AttributeSet .
+    var CL : CargoLevel .
+    var FUNC : FunctioningState .
+    var INC : IncapacitatedState .
 
     vars TT TT2 : TaskType .
     var TS : TaskStatus .
@@ -128,32 +133,47 @@ omod ROBOT is
     var WT : WorkerTask .
     var AW : ActiveWork .
     vars WS WS2 : WorkState .
-
+    var TW : TimedWork .
     var AU : Auction .
     var B : Bid .
 
-
-    eq auctionTimer = [cur: 10 - base: 10] .
-    eq calculateBid(CONF, LL) = listLength(dijsktraChain(CONF, LL)) .
-    eq rejectTask(< S : Robot | state : STATE, curTask : TS >) = (STATE == crashed) or (TS =/= noTask) .
-    eq needsResupply(< S : Worker | curTask : [S2, water, N], curCargo : fertilizer >) = true .
-    eq needsResupply(< S : Worker | curTask : [S2, fertilize, N], curCargo : water >) = true .
-    eq needsResupply(< S : Worker | cargoLevel : empty >) = true .
-    eq needsResupply(< S : Robot | remainingFuel : 0 >) = true .
-    eq needsResupply(< S : Robot | >) = false [owise] .
-
-    eq canCompleteNow(< S : Worker | cargoLevel : full, curCargo : water >, [S2, water, N] TIDS) = [S2, water, N] .
-    eq canCompleteNow(< S : Worker | cargoLevel : full, curCargo : fertilizer >, [S2, fertilize, N] TIDS) = [S2, fertilize, N] .
-    eq canCompleteNow(< S : Transporter | cargoLevel : empty >, [S2, harvest, N] TIDS) = [S2, harvest, N] .
-    eq canCompleteNow(< S : Robot | >, TIDS) = none [owise] .
-
-    eq updatePath(< S : Robot | location : (X,Y) >, < S2 : Map | allIntersections : < S3 : Intersection | location : (X,Y) > < S4 : Intersection | location : (X2,Y2) > CONF >, (X2,Y2)) = 
-        < S : Robot | remainingPath : (X,Y) dijkstraSearch(< S3 : Intersection | location : (X,Y) > < S4 : Intersection | location : (X2,Y2) > CONF, S3, S4)> .
-
-    ***Robot, map and obstructionPoints    
-    eq replanPath(< S : Robot | location : (X,Y), obstructionPoints : LL2 >, < S2 : Map | allIntersections : CONF >, (X2,Y2)) =
-        updatePath(< S : Robot | state : moving >, transformMap(< S2 : Map | >, (X,Y), LL2), (X2,Y2)) .
-
+    eq WORK-RANGE = 1 .
+    eq REMOVAL-TIME = 5 .
+    eq REPAIR-TIME = 5 .
+    eq SAFE-SPEED = 1 .
+    eq getLocation(< S : Robot | location : (X,Y) >) = (X,Y) .
+    eq decreaseTimers(< S : Robot | state : removing, workState : [S2 (removeAt (X,Y)) TIME] >, TIME2) = < S : Robot | workState : [S2 (removeAt (X,Y)) (TIME monus TIME2)] > .
+    eq decreaseTimers(< S : Robot | >, TIME) = < S : Robot | > [owise] .
+    eq rejectTask(< S : Robot | state : STATE, curTask : TS >) = rejectMsg(< S : Robot | >) or (TS =/= noTask) .
+    eq rejectMsg(< S : Robot | state : INC >) = true .
+    eq rejectMsg(< S : Robot | >) = false [owise] .
+    eq needsCPoint(< S : Worker | >, TID) = false .
+    eq needsCPoint(< S : Transporter | cargoLevel : CL >, TID) = CL == full .
+    eq needsResupply(< S : Worker | curCargo : fertilizer >, [S2, watering, N]) = true .
+    eq needsResupply(< S : Worker | curCargo : water >, [S2, fertilize, N]) = true .
+    eq needsResupply(< S : Worker | cargoLevel : empty >, TID) = true .
+    eq needsResupply(< S : Robot | >, TID) = false [owise] .
+    eq cPointLocCheck(< S : Robot | >, TID, (X,Y)) = if needsCPoint(< S : Robot | >, TID) then (X,Y) else nil fi .
+    eq resupplyLocCheck(< S : Robot | >, TID, (X,Y)) = if needsResupply(< S : Robot | >, TID) then (X,Y) else nil fi .
+    eq performChecks(< S : Robot | >, TID, < S2 : ResupplyStation | location : (X,Y) > < S3 : CollectionStation | location : (X2,Y2) > CONF) =
+        resupplyLocCheck(< S : Robot | >, TID, (X,Y)) cPointLocCheck(< S : Robot | >, TID, (X2,Y2)) .
+    eq canCompleteNow(< S : Worker | state : FUNC >, [S2, removeAt (X,Y), N]) = true .
+    eq canCompleteNow(< S : Worker | state : FUNC >, [S2, repairAt (X,Y), N]) = true .
+    eq canCompleteNow(< S : Worker | state : FUNC, cargoLevel : full, curCargo : water >, [S2, watering, N]) = true .
+    eq canCompleteNow(< S : Worker | state : FUNC, cargoLevel : full, curCargo : fertilizer >, [S2, fertilize, N]) = true .
+    eq canCompleteNow(< S : Transporter | cargoLevel : empty >, [S2, harvest, N]) = true .
+    eq canCompleteNow(< S : Robot | state : INC >, TID) = false .
+    ceq canCompleteNow(< S : Robot | curTask : TID >, TID2) = false if TID =/= noTask .
+    eq canCompleteNow(< S : Robot | >, TIDS) = false [owise] .
+    eq $removalPlanPath(< S : Map | paths : PS >, LL) = removeConnection(findPath(LL, PS), < S : Map | >) .
+    eq $planPathLocations(< S : Robot | location : (X,Y) >, [S2, TT, N], < S2 : Locatable | location : (X2,Y2) > CONF) =
+        (X,Y) performChecks(< S : Robot | >, [S2, TT, N], < S2 : Locatable | location : (X2,Y2) > CONF) (X2,Y2) .
+    eq $planPath(< S : Map | allIntersections : CONF >, LL, LL2) = dijkstraChain(getIntersections($removalPlanPath(newIntersection(LL, < S : Map | >), LL2)), LL) .
+    eq calculateBid(< S : Robot | >, TID, < S2 : Map | >) = listLength(planPath(< S : Robot | >, TID, < S2 : Map | >)) .
+    ***Gotta add the obstacle to the Conf that is sent in
+    eq planPath(< S : Robot | obstructionPoints : LL >, [S2, TT, N], < S3 : Map | allIntersections : CONF > CONF2) =
+        $planPath(< S3 : Map | >,
+            $planPathLocations(< S : Robot | >, [S2, TT, N], CONF CONF2), LL) .
     eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : north >) = (X, Y + N) .
     eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : east >) = (X + N, Y) .
     eq detectionBorder(< S : Robot | location : (X,Y), detectionRange : N, direction : south >) = (X, Y - N) .
@@ -161,7 +181,7 @@ omod ROBOT is
 
     eq S notIn {S : CID | (X,Y) ; I} REP = false .
     eq S notIn REP = true [owise] .
- 
+
     ceq $breaksPath((X,Y) (X,Y2), {S2 : CID | (X,Y3) ; north ; I}) = true if Y > Y2 .
     ceq $breaksPath((X,Y) (X2,Y), {S2 : CID | (X3,Y) ; east ; I}) = true if X > X2 .
     ceq $breaksPath((X,Y) (X,Y2), {S2 : CID | (X,Y3) ; south ; I}) = true if Y < Y2 .
@@ -176,41 +196,138 @@ omod ROBOT is
         fi .
     eq breaksPath(LL, {S2 : CID | (X,Y) ; D ; I}) = $breaksPath(between((X,Y), LL), {S2 : CID | (X,Y) ; D ; I}) [owise] .
 
-    eq $parseTasksGL({S : GrowingLoc | [W: low F: L2 H: GS] ; TaskNr: N ; I}) = [S, water, N] $parseTasksGL({S : GrowingLoc | [W: good F: L2 H: GS] ; TaskNr: N ; I}) .
-    eq $parseTasksGL({S : GrowingLoc | [W: L F: low H: GS] ; TaskNr: N ; I}) =  [S, fertilize, N] $parseTasksGL({S : GrowingLoc | [W: L F: good H: GS] ; TaskNr: N ; I}) .
-    eq $parseTasksGL({S : GrowingLoc | [W: L F: L2 H: harvest] ; TaskNr: N ; I}) =  [S, harvest, N] $parseTasksGL({S : GrowingLoc | [W: L F: good H: empty] ; TaskNr: N ; I}) .
-    eq $parseTasksGL(REP) = none [owise] .
-    eq parseTasksGL({S : GrowingLoc | [W: L F: L2 H: GS] ; TaskNr: N ; I}) = $parseTasksGL({S : GrowingLoc | [W: L F: L2 H: GS] ; TaskNr: N ; I}) .
-
-    eq assignTask(< S : Robot | curTask : TS >, TID) = < S : Robot | curTask : TID, state : planningPath > .
-    eq sameSubject([S TT], [S TT2]) = true .
-    eq sameSubject(WS, WS2) = false [owise] .
-
-    eq prepareAuction(< S : Robot | >, none) = < S : Robot | > .
-    eq prepareAuction(< S : Robot | >, TIDS) =
-        if canCompleteNow(< S : Robot | >, TIDS) == none then
-            startAuction(< S : Robot | >, TIDS)
+    eq $locationPrevention(< S : Robot | location : (X,Y), remainingPath : LL >, {S2 : Obstacle | (X,Y2)}) =
+        if Y > Y2
+        then
+            < S : Robot | remainingPath : (X,Y2 + 1) >
         else
-            startAuction(assignTask(< S : Robot | >, canCompleteNow(< S : Robot | >, TIDS)), TIDS \ canCompleteNow(< S : Robot | >, TIDS))
+            < S : Robot | remainingPath : (X,Y2 - 1) >
+        fi . 
+    eq $locationPrevention(< S : Robot | location : (X,Y) >, {S2 : Obstacle | (X2,Y)}) =
+        if X > X2
+        then
+            < S : Robot | remainingPath : (X2 + 1,Y) >
+        else
+            < S : Robot | remainingPath : (X2 - 1,Y) >
+        fi .
+    eq crashPrevention(< S : Robot | location : (X,Y), remainingPath : (X2,Y2) LL >, {S2 : CID | (X3,Y3) ; I}) = 
+        if between((X3,Y3), (X,Y) (X2,Y2)) =/= nil
+        then
+            $locationPrevention(< S : Robot | >, {S2 : CID | (X3,Y3) ; I})
+        else
+            < S : Robot | >
         fi .
 
-    eq startAuction(< S : Robot | >, none) = < S : Robot | > .
-    eq startAuction(< S : Robot | auctions : AU, workers : OS >, [S2, WT, N] TIDS) =  broadcast(S, [S2, WT, N], OS) startAuction(< S : Robot | auctions : [Task: [S2, WT, N] auctionTimer | noBid] AU >, TIDS) .
-    eq startAuction(< S : Robot | auctions : AU, transporters : OS >, [S2, TPT, N] TIDS) =  broadcast(S, [S2, TPT, N], OS) startAuction(< S : Robot | auctions : [Task: [S2, TPT, N] auctionTimer | noBid] AU >, TIDS) .
+    rl [fail] :
+        < S : Robot | curTask : TS >
+        < "FAIL" : Fail | >
+        =>
+        if TS == noTask
+        then
+            < S : Robot | state : failed >
+        else
+            startAuction(< S : Robot | state : failed >, TS)
+        fi .
+    rl [replanPath] :
+        < S : Robot | state : replanning, remainingPath : LL (X,Y), detected : nil, curTask : TID >
+        < S3 : Map | >
+        =>
+        < S : Robot | state : moving, remainingPath : planPath(< S : Robot | >, TID, < S3 : Map | >) >
+        < S3 : Map | > .
 
+    rl [rcvObstacleRemovedMsg] : 
+        < S : Robot | obstructionPoints : LL >
+        msg removed (X,Y) from S2 to S
+        =>
+        < S : Robot | obstructionPoints : remove(LL, (X,Y)) > .
+    crl [rcvTaskMsgBusy] :
+        < S : Robot | >
+        msg TID from S2 to S
+        =>
+        < S : Robot | >
+        msg busy TID from S to S2 
+        if rejectTask(< S : Robot  | >) .
+    crl [rcvTaskMsgFree] :
+        < S : Robot | location : (X,Y), obstructionPoints : LL >
+        < S2 : Map | allIntersections : CONF >
+        msg [S3, TT, N] from S3 to S
+        =>
+        < S : Robot | >
+        < S2 : Map | >
+        (msg bid calculateBid(< S : Robot | >, [S3, TT, N], < S2 : Map | >) on [S3, TT, N] from S3 to S)
+        if not rejectTask(< S : Robot | >) .
+    rl [winAuction] :
+        < S : Robot | >
+        msg won TID from S2 to S
+        =>
+        if rejectMsg(< S : Robot | >)
+        then
+            < S : Robot | >
+            msg reject TID from S to S2
+        else
+            < S : Robot | state : planningPath, curTask : TID >
+            msg accept TID from S to S2 
+        fi .
+
+    crl [arriveAtFixLoc] : 
+        < S : Robot | location : (X,Y), remainingPath : (X,Y), state : STATE >
+        =>
+        < S : Robot | remainingPath : nil >
+        if (STATE == removing) or (STATE == repairing) .
+    rl [detectRobot] :
+        < S : Robot | location : (X,Y), remainingPath : LL, detected : {S2 : Robot | D ; detectedSpeed(SP); (X2,Y2)} REP >
+        =>
+        ***This has to be refined to detect deadlocks, and to follow as well . or is slowdown done elsewhere?
+        ***instead of one rule for detect robot have cluases based on direction and speed .
+        (msg requestPath path((X,Y) LL) from S to S2)
+        < S : Robot | > .
+    rl [detectObstacle] : 
+        < S : Robot | location : (X,Y), remainingPath : LL, detected : {S2 : Obstacle | (X2,Y2)} REP, obstructionPoints : LL2, workers : OS > 
+        < S2 : Obstacle | location : (X2,Y2) >
+        < S3 : Map | > 
+        =>
+        if canCompleteNow(< S : Robot | >, [S2, removeAt (X2,Y2), 1])
+        then
+            crashPrevention(< S : Robot | state : moving,
+                remainingPath : planPath(< S : Robot | >, [S2, removeAt (X2,Y2), 1], < S3 : Map | > < S2 : Obstacle | >),
+                detected : REP, curTask : [S2, removeAt (X2,Y2), 1] >, {S2 : Obstacle | (X2,Y2)})
+            < S2 : Obstacle | >
+            < S3 : Map | >
+        else
+            if between((X2,Y2), (X,Y) LL) =/= nil
+            then
+                startAuction(< S : Robot | state : replanning, detected : REP, obstructionPoints : (X2,Y2) LL2 >, [S2, removeAt (X2,Y2), 1])
+            else
+                startAuction(< S : Robot | detected : REP, obstructionPoints : (X2, Y2) LL2 >, [S2, removeAt (X2,Y2), 1])
+            fi
+        fi .
+
+    crl [startObstacleRemoval] :
+        < S : Robot | location : (X,Y), curTask : [S2, removeAt (X2,Y2), N], workState : noWork >
+        < S2 : Obstacle | location : (X2,Y2) >
+        =>
+        < S : Robot | state : removing, workState : [S2 (removeAt (X2,Y2)) REMOVAL-TIME] >
+        < S2 : Obstacle | > 
+        if canCompleteNow(< S : Robot | >, [S2, removeAt (X2,Y2), N]) and distance((X,Y), (X2,Y2)) <= WORK-RANGE .
+    rl [finishObstacleRemoval] :
+        < S : Robot | location : (X,Y), curTask : [S2, removeAt (X2,Y2), N], workState : [S2 (removeAt (X2,Y2)) 0],
+            workers : OS, transporters : OS2 >
+        < S2 : Obstacle | location : (X2,Y2) >
+        =>
+        < S : Robot | state : idle, curTask : noTask, workState : noWork >
+        broadcast(S, removed (X2,Y2), OS OS2) .
     crl [startResupply] :
-        < S : Robot | state : STATE, location : (X,Y) >
-        < S2 : Map | allIntersections : < S3 : RefuelStation | location : (X,Y), AS > CONF >
+        < S : Robot | state : FUNC, location : (X,Y), curTask : TID >
+        < S2 : Map | allIntersections : < S3 : ResupplyStation | location : (X,Y), AS > CONF >
         =>
         < S : Robot | state : resupplying > 
-        < S2 : Map | >
-        if needsResupply(< S : Robot | >) and STATE =/= resupplying .
-
+        < S2 : Map | > 
+        if needsResupply(< S : Robot | >, TID) .
     rl [finishResupply] :
         < S : Robot | location : (X,Y), state : resupplying, curTask : [S2, TT, N] >
-        < S3 : Map | allIntersections : < S4 : RefuelStation | location : (X,Y), AS > CONF > 
+        < S3 : Map | allIntersections : < S4 : ResupplyStation | location : (X,Y), AS > CONF > 
         =>
-        if (TT == water)
+        if (TT == watering)
         then
             < S : Robot | state : moving, curCargo : water, cargoLevel : full >
             < S3 : Map | >
@@ -224,270 +341,22 @@ omod ROBOT is
                 < S3 : Map | >
             fi
         fi .
-        
-    rl [replanPath] :
-        < S : Robot | state : replanning, remainingPath : LL (X,Y), detected : nil >
-        < S2 : Map | >
-        =>
-        replanPath(< S : Robot | >, < S2 : Map | >, (X,Y))
-        < S2 : Map | > .
-
-    crl [receiveTaskMsgBusy] :
-        < S : Robot | curTask : TS >
-        msg TID from S2 to S
-        =>
-        < S : Robot | >
-        if TS =/= noTask .
-
-    rl [receiveTaskMsgFree] :
-        < S : Robot | location : (X,Y), curTask : noTask >
-        < S2 : Map | allIntersections : < S3 : RefuelStation | location : (X2,Y2), AS > < S4 : GrowingLoc | location : (X3,Y3), AS2 > CONF >
-        msg [S4, TT, N] from S5 to S
-        =>
-        if canCompleteNow(< S : Robot | >, [S4, TT, N]) == none
-        then
-            < S : Robot | >
-            < S2 : Map | >
-            msg bid calculateBid(< S3 : RefuelStation | location : (X2,Y2), AS > < S4 : GrowingLoc | location : (X3,Y3), AS2 > CONF,
-            (X,Y) (X2,Y2) (X3,Y3)) on [S4, TT, N] from S to S5
-        else
-            < S : Robot | >
-            < S2 : Map | >
-            msg bid calculateBid(< S3 : RefuelStation | location : (X2,Y2), AS > < S4 : GrowingLoc | location : (X3,Y3), AS2 > CONF,
-                (X,Y) (X3,Y3)) on [S4, TT, N] from S to S5
-        fi .
-
-    crl [rejectBid] :
-        < S : Robot | auctions : AU >
-        msg bid N on TID from S2 to S
-        =>
-        < S : Robot | >
-        if closed(TID, AU) .
-
-    rl [acceptBidTransporter] :
-        < S : Robot | auctions : [Task: [S2, TPT, N] T | B] AU, transporters : OS >
-        msg bid N2 on [S2, TPT, N] from S3 to S
-        =>
-        if allBidsReceived(B [S3 bids N2], OS)
-        then
-            < S : Robot | >
-            msg won [S2, TPT, N] from S to determineWinner(B [S3 bids N2], S, natInf)
-        else
-            < S : Robot | auctions : [Task: [S2, TPT, N] T | [S3 bids N] B] AU >
-        fi .
-
-    rl [acceptBidWorker] :
-        < S : Robot | auctions : [Task: [S2, WT, N] T | B] AU, workers : OS >
-        msg bid N2 on [S2, WT, N] from S3 to S
-        =>
-        if allBidsReceived(B [S3 bids N2], OS)
-        then
-            < S : Robot | >
-            msg won [S2, WT, N] from S to determineWinner(B [S3 bids N2], S, natInf)
-        else
-            < S : Robot | auctions : [Task: [S2, WT, N] T | [S3 bids N2] B] AU >
-        fi .
-
-    rl [auctionTimeExpire] :
-        < S : Robot | auctions : [Task: TID [cur: 0 - base: TIME] | B] AU >
-        =>
-        if bidders(B) == none
-        then
-            startAuction(< S : Robot | auctions : AU >, TID)
-        else
-            < S : Robot | >
-            msg won TID from S to determineWinner(B, S, natInf)
-        fi .
-
-    rl [winAuction] :
-        < S : Robot | >
-        msg won TID from S2 to S
-        =>
-        if rejectTask(< S : Robot | >)
-        then
-            < S : Robot | >
-            msg reject TID from S to S2
-        else
-            < S : Robot | curTask : TID, state : planningPath >
-            msg accept TID from S to S2 
-        fi .
-
-    rl [winnerAccepts] :
-        < S : Robot | auctions : [Task: TID T | B] AU >
-        msg accept TID from S2 to S
-        =>
-        < S : Robot | auctions : AU > .
-    
-    rl [winnerRejects] :
-        < S : Robot | auctions : [Task: TID T | [S2 bids N] B] AU >
-        msg reject TID from S2 to S
-        =>
-        if bidders(B) == none
-        then
-            startAuction(< S : Robot | auctions : AU >, TID)
-        else
-            < S : Robot | >
-            msg won TID from S to determineWinner(B, S, natInf) 
-        fi .
-
-    ***add in collection Point for transporter.
-    ***additional rule or equation, get the list of additional locations to travel to to complete.
-    rl [planPath] :
-        < S : Robot | location : (X,Y), obstructionPoints : LL, state : planningPath, curTask : [S3, TT, N] >
-        < S2 : Map | allIntersections : < S3 : GrowingLoc | location : (X2,Y2), AS >  < S4 : RefuelStation | location : (X3,Y3), AS2 > CONF >
-        =>
-        if canCompleteNow(< S : Robot | >, [S3, TT, N]) == none
-        then
-            < S : Robot | state : moving,
-                remainingPath : dijsktraChain(getIntersections(transformMap(< S2 : Map | >, (X,Y), LL)), (X,Y) (X3,Y3) (X2,Y2)) >
-            < S2 : Map | >
-        else
-            < S : Robot | state : moving, 
-                remainingPath : dijsktraChain(getIntersections(transformMap(< S2 : Map | >, (X,Y), LL)), (X,Y) (X2,Y2)) >
-            < S2 : Map | >
-        fi .
-
-    rl [detectGrowingLocFree] :
-        < S : Robot | detected : {S2 : GrowingLoc | (X2,Y2) ; [W: L F: L2 H: GS] ; TaskNr: N ; I} REP, curTask : noTask >
-        =>
-        if L == good and L2 == good and GS =/= harvest then
-            < S : Robot | detected : REP >
-        else
-            prepareAuction(< S : Robot | detected : REP >, parseTasksGL({S2 : GrowingLoc | (X2,Y2) ; [W: L F: L2 H: GS] ; TaskNr: N ; I}))
-        fi .
-
-    ***When approaching a slower entity, brake to match speed.
-    crl [approachSameDirectionEntity] : 
-        < S : Robot | location : (X,Y), speed : SP, direction : D, detected : {S2 : HumanVehicle | (X2,Y2) ; D ; detectedSpeed(SP2) ; I} REP >
-        =>
-        if < S : Robot | > directlyApproaching (X2,Y2) then
-            if (distance((X,Y), (X2,Y2)) / SP) < 5 then
-                < S : Robot | speed : 0, state : idle, detected : REP > 
-            else
-                if SP2 < SP then
-                    < S : Robot | speed : SP2, detected : REP >
-                else
-                    < S : Robot | detected : REP >
-                fi
-            fi
-        else
-            < S : Robot | detected : REP >
-        fi
-        if SP > 0 .
-
-    ***if the detected obstacle is in the way then the robot will have to replan its path.
-    ***If the robot no longer has a path to its goal, it will cancel the current task and work on removing the obstacle.
-    crl [detectObstacle] : 
-        < S : Robot | location : (X,Y), remainingPath : LL (X2,Y2), state : STATE, detected : {S2 : Obstacle | (X3,Y3) ; I} REP, obstructionPoints : LL2 > 
-        < S3 : Map | >
-        =>
-        ***if the obstacle is in the robot's way, add it to obstructionPoints and prepare to replan path.
-        if between((X3,Y3), (X,Y) LL (X2,Y2)) =/= nil then
-            < S : Robot | state : replanning, detected : REP, obstructionPoints : (X3,Y3) LL2 >
-            < S3 : Map | > 
-            (msg obstacleAt (X3,Y3) from S to worker)
-        else
-            < S : Robot | detected : REP >
-            < S3 : Map | > 
-            (msg obstacleAt (X3,Y3) from S to worker)
-        fi
-        if (STATE == moving) or (STATE == replanning) .
-
-    ***Robot - Human interaction rules.
-    crl [detectHumanPerson] :
-        < S : Robot | location : (X,Y), speed : SP, direction : D, state : STATE, detected : {S2 : Human | (X2,Y2) ; detectedSpeed(SP2) ; I} >
-        =>
-        if < S : Robot | > directlyApproaching (X2,Y2) then
-            ***if too close then start braking
-            if (distance((X,Y), (X2,Y2)) / SP) < 3 then
-                < S : Robot | speed : 0 >
-            else
-                < S : Robot | speed : 5 >
-            fi
-        else
-            ***If the human is close but not in front of the robot slow down to limit possible accidents.
-            < S : Robot | speed : 5 >
-        fi
-        if (STATE == moving) or (STATE == replanning) .
-
-    ***In contrast to detection of person, if a human operated vehicle is on the planned path, replan path.
-    crl [detectHumanVehicle] : 
-        < S : Robot | location : (X,Y), remainingPath : LL, speed : SP, state : STATE, detected : {S2 : HumanVehicle | (X2,Y2) ; D ; I} REP, obstructionPoints : LL2 >
-        < S3 : Map | >
-        =>
-        if breaksPath((X,Y) LL, {S2 : HumanVehicle | (X2,Y2) ; D ; I}) then
-            < S : Robot | state : replanning, detected : REP, obstructionPoints : LL2 >
-            < S3 : Map | >
-        else
-            < S : Robot | detected : REP >
-            < S3 : Map | >
-        fi
-        if (STATE == moving) or (STATE == replanning) .
-
-    ***When a robot detects another on its path on an immediate collision course, if they are too close then it will immediately try to stop to limit the potential damage.
-    ***If they are further away, then start communication to check which one will replan path.
-    crl [detectIncomingRobot] :
-        < S : Robot | location : (X,Y), speed : SP, direction : D, state : moving, detected : {S2 : Robot | (X2,Y2) ; D2 ; I} REP >
-        =>
-        ***Collision prevention with braking
-        if (distance((X,Y), (X2,Y2)) / SP) > 3 then
-            < S : Robot | speed : 0, state : waiting, detected : REP, waitTimer : 10 >
-        else
-            < S : Robot | speed : 5, detected : REP >
-        fi
-        if opposite(D,D2) .
-
-    ***When first detecting a robot request its path and transmit own path to check for collision.
-    rl [detectRobot] :
-        < S : Robot | location : (X,Y), remainingPath : LL, detected : {S2 : Robot | D ; detectedSpeed(SP); (X2,Y2)} REP >
-        =>
-        (msg requestPath path((X,Y) LL) from S to S2)
-        < S : Robot | > .
-
-    rl [detectHuman] :
-        < S : Robot | detected : {S2 : Human | (X,Y)} REP >
-        =>
-        < S : Robot | > .   
-
-    ***Rules for when robot has arrived at growingloc and starts a task.
     rl [startGrowingLocTask] :
         < S : Robot | location : (X,Y), curTask : [S2, TT, N], remainingPath : nil, workState : noWork >
-        < S2 : GrowingLoc | growingArea : A, location : (X,Y) >
+        < S2 : Field | growingArea : A, location : (X,Y) >
         =>
-        if canCompleteNow(< S : Robot | >, [S2, TT,N]) =/= none
+        if canCompleteNow(< S : Robot | >, [S2, TT,N])
         then
             < S : Robot | remainingPath : coverArea((X,Y), A), workState : [S2 TT], speed : 1, state : moving >
-            < S2 : GrowingLoc | >
+            < S2 : Field | >
         else
             < S : Robot | state : planningPath >
-            < S2 : GrowingLoc | >
+            < S2 : Field | >
         fi .
-    
     rl [finishGrowingLocTask] :
         < S : Robot | location : (X,Y), curTask : [S2, TT, N], remainingPath : nil, workState : [S2 TT] >
-        < S2 : GrowingLoc | location : (X,Y) >
-        =>
-        < S : Robot | curTask : noTask, workState : noWork >
-        taskComplete(< S2 : GrowingLoc | >, [S2, TT, N]) .  
-
-    ***Rules for when robot has arrived at growingloc and starts a task.
-    rl [startGrowingLocTask] :
-        < S : Robot | location : (X,Y), curTask : [S2, TT, N], remainingPath : nil, workState : noWork >
-        < S2 : GrowingLoc | growingArea : A, location : (X,Y) >
-        =>
-        if canCompleteNow(< S : Robot | >, [S2, TT,N]) =/= none
-        then
-            < S : Robot | remainingPath : coverArea((X,Y), A), workState : [S2 TT], speed : 1, state : moving >
-            < S2 : GrowingLoc | >
-        else
-            < S : Robot | state : planningPath >
-            < S2 : GrowingLoc | >
-        fi .
-    
-    rl [finishGrowingLocTask] :
-        < S : Robot | location : (X,Y), curTask : [S2, TT, N], remainingPath : nil, workState : [S2 TT] >
-        < S2 : GrowingLoc | location : (X,Y) >
+        < S2 : Field | location : (X,Y) >
         =>
         < S : Robot | cargoLevel : empty, curTask : noTask, workState : noWork >
-        taskComplete(< S2 : GrowingLoc | >, [S2, TT, N]) .  
+        taskComplete(< S2 : Field | >, [S2, TT, N]) .  
 endom
