@@ -1,9 +1,0 @@
-load entity .
-omod HUMAN is
-    protecting ENTITY .
-
-    class Human .
-    class HumanPerson .
-    class HumanVehicle .
-    subclass HumanPerson HumanVehicle < Human < Entity .
-endom

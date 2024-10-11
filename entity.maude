@@ -3,15 +3,15 @@ omod ENTITY is
     protecting PHYSICAL-OBJ .
     protecting LIST-LOCATION .
     
-    sorts FunctioningState IncapacitatedState State .
+    sorts IncapacitatedState FunctioningState State .
     sort Direction .
 
-    subsort FunctioningState IncapacitatedState < State .
+    subsort IncapacitatedState FunctioningState < State .
 
     class Entity | direction : Direction, speed : Rat, maxSpeed : Rat, remainingPath : List-Location, state : State .
     subclass Entity < PhysicalObj .    
 
-    ops crashed failed : -> IncapacitatedState [ctor] .
+    ops crashed failed : -> IncapacitatedState [ctor] .
     ops moving idle waiting resupplying repairing removing unloading replanning planningPath : -> FunctioningState [ctor] .
     op setDirection : Location Location -> Direction .
     ops inFront : Object Object -> Object [comm] .
@@ -48,7 +48,6 @@ omod ENTITY is
     ceq < S : Entity | location : (X,Y), direction : west > isBehind < S2 : Entity | location : (X2,Y2), direction : west > = true if X > X2 .
 
     eq < S : Entity | > isBehind < S2 : Entity | > = false [owise] .
-    ***Formula for calculating distance an entity needs to come to a complete halt.
     eq stoppingDistance(< S : Entity | speed : SP >) =  ((SP / 5) ^ 2) / 2 .
 
     rl [finish] :
@@ -60,7 +59,7 @@ omod ENTITY is
         =>
         < S : Entity | direction : setDirection((X , Y), (X2, Y2)), remainingPath : (X2,Y2) LL > .
     rl [startTravel] :
-        < S : Entity | location : (X,Y), remainingPath : (X,Y) (X2,Y2) LL, state : STATE, maxSpeed : SP >
+        < S : Entity | location : (X,Y), remainingPath : (X2,Y2) LL, state : idle, maxSpeed : SP >
         =>
-        < S : Entity | direction : setDirection((X,Y), (X2,Y2)), remainingPath : (X2,Y2) LL, speed : SP > .
+        < S : Entity | state : moving, direction : setDirection((X,Y), (X2,Y2)), remainingPath : (X2,Y2) LL, speed : SP > .
 endom

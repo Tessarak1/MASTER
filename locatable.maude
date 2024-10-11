@@ -1,5 +1,5 @@
 load location 
-load oidSet 
+load oidSet
 omod LOCATABLE is
     protecting LOCATION .
     protecting OID-SET .

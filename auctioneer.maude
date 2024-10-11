@@ -40,7 +40,6 @@ omod AUCTIONEER is
     eq startAuction(< S : Auctioneer | >, none) = < S : Auctioneer | > .
     eq startAuction(< S : Auctioneer | auctions : AU, workers : OS >, [S2, WT, N] TIDS) = broadcast(S, [S2, WT, N], OS) startAuction(< S : Auctioneer | auctions : [Task: [S2, WT, N] auctionTimer | noBid] AU >, TIDS) .
     eq startAuction(< S : Auctioneer | auctions : AU, transporters : OS >, [S2, TPT, N] TIDS) =  broadcast(S, [S2, TPT, N], OS) startAuction(< S : Auctioneer | auctions : [Task: [S2, TPT, N] auctionTimer | noBid] AU >, TIDS) .
-    ***Done equationally to get right OIDSET of receivers to check for allBidsReceived.
     eq handleBidMsg(< S : Auctioneer | auctions : [Task: [S, TPT, N] T | B] AU, transporters : OS >, msg BMC from S2 to S) =
         if allBidsReceived(bmcToBid(msg BMC from S2 to S) B, OS)
         then

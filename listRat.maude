@@ -1,0 +1,34 @@
+load list
+fmod LIST-RAT is
+    protecting CONVERSION .
+    protecting LIST .
+
+    sort List-Rat .
+    
+    subsort Rat < List-Rat < List .
+
+    op min : List-Rat -> Rat .
+    ops $quadraticFormulaMinus $quadraticFormulaPlus : Rat Rat Rat -> Rat .
+    op quadraticFormula : Rat Rat Rat -> List-Rat .
+
+    vars R R2 R3 : Rat .
+    var LR : List-Rat .
+
+    eq min(nil) = 0 .
+    eq min(R nil) = R .
+    eq min(R R2 LR) = min(R, min(R2, LR)) .
+
+    ***one for plus one for minus.
+    ***and we send in detectionRange as part of C.
+    ***need to do both for - and +, ignore negative results, and then take the min.
+    ***calculate coefficients to send in to quadratic formula, then apply posOnly and take min.
+    ***first check distances for which range to send in as part of c.
+    ***< S : Robot | location : (X,Y), speed : SP, detectionRange : R > < S2 : Robot | location : (X,Y), speed : SP, detectionRange : R2 >
+    ***Distansene og speedsene, og 1 av rangesene.
+    ***A = SP ^ 2 + SP2 ^ 2.
+    ***B = 2(SP * D - S)
+    eq $quadraticFormulaMinus(R, R2, R3) = ((-1 * R2) - rat(sqrt(float((R2 ^ 2) - (4 * R * R3))))) / (2 * R) . 
+    eq $quadraticFormulaPlus(R, R2, R3) = ((-1 * R2) + rat(sqrt(float((R2 ^ 2) - (4 * R * R3))))) / (2 * R) . 
+    eq quadraticFormula(R, R2, R3) = $quadraticFormulaMinus(R, R2, R3) $quadraticFormulaPlus(R, R2, R3) .
+
+endfm

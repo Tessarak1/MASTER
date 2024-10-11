@@ -77,22 +77,23 @@ omod FINAL-TESTS is
   op map : -> Object .
   op GLREP : -> Object .
   op GL : -> Object .
-  ops I1 I2 I3 I4 : -> Object .
+  ops I1 I2 I3 I4 I5 : -> Object .
   ops resupply cpoint : -> Object .
   op obstacles : -> Configuration .
 
-  eq rob = < "R1" : Worker | location : (0,0), speed : 1, direction : east, remainingPath : (30,0),
-    state : moving, detected : nil, detectionRange : 2, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : water, 
+  eq rob = < "R1" : Worker | location : (-30,0), speed : 1, direction : east, remainingPath : (0,0) (30,0),
+    state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : water, 
     auctions : noAuction, curTask : noTask, workers : "R2" "R3", transporters : none, workState : noWork > .
-  eq rob2 = < "R2" : Worker | location : (30,0), speed : 1, direction : west, remainingPath : (0,0),
-    state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : (5,0), cargoLevel : full, curCargo : fertilizer, 
+  eq rob2 = < "R2" : Worker | location : (30,0), speed : 1, direction : west, remainingPath : (0,0) (0,-30),
+    state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
     auctions : noAuction, curTask : noTask, workers : "R1" "R3", workState : noWork > .  
-  eq rob3 = < "R3" : Worker | location : (0,40), speed : 1, direction : east, remainingPath : nil, state : idle, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
+  eq rob3 = < "R3" : Worker | location : (20,0), speed : 1, direction : east, remainingPath : nil, state : idle, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
     auctions : noAuction, curTask : noTask, workers : "R1" "R2", transporters : none, workState : noWork > . 
-  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" "GL" > .
+  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" "GL" "I5" > .
   eq I2 = < "I2" : Intersection | location : (30, 0), neighbors : "I1" "I4" "CPoint" > .
   eq I3 = < "I3" : Intersection | location : (0, 30), neighbors : "I1" "I4" "Resupply" > .
   eq I4 = < "I4" : Intersection | location : (30,30), neighbors : "I2" "I3" > .
+  eq I5 = < "I5" : Intersection | location : (0,-30)  , neighbors : "I1" > .
   eq GL = < "GL" : Field | location : (-30, 0), neighbors : "I1", growingState : harvest, waterLevel : low, fertilizerLevel : good, 
     waterTimer : [cur: 0 - base: 1000], fertilizerTimer : [cur: 10000 - base: 100], growTimer : [cur: 10000 - base: 100], taskNr : 1,
     growingArea : area((-40,0), (-40,-10), (-30,0), (-30,-10)), workers : "R1" "R2" "R3", transporters : none,
@@ -100,8 +101,8 @@ omod FINAL-TESTS is
   eq GLREP = < "GL" : Field | location : (-30, 0), neighbors : "I1" > .
   eq resupply = < "Resupply" : ResupplyStation | location : (0,40), neighbors : "I3" > .
   eq cpoint = < "CPoint" : CollectionStation | location : (40,0), neighbors : "I2" > .
-  eq locations = I1 I2 I3 I4 GLREP resupply cpoint .
-  eq obstacles = < "O1" : Obstacle | location : (5,0) > < "O2" : Obstacle | location : (-25,0) > .
+  eq locations = I1 I2 I3 I4 I5 GLREP resupply cpoint .
+  eq obstacles = < "O1" : Obstacle | location : (1,0) > .
   eq map = < "Map" : Map | allIntersections : locations, paths : createPathSet(locations) > .
-  eq farm = map rob rob2 makeFail(1) @ 0 .
+  eq farm = map rob rob2 @ 0 .
 endom

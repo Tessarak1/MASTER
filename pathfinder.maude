@@ -1,13 +1,10 @@
 load map .
 load nat-inf .
-***The input is conf, to maintain the starting location and distance to other intersections.
 omod DIJKSTRA-EDGE is
     protecting MAP .
     protecting NAT-INF .
     
-    ***datasort to be used in DijkstraSearch. NI represents current distance to intersection I .
     sort DijkstraEdge .
-    ***Relevant object, distance to it and previous node in the shortest path to relevant node
     op [_,_,_] : Object NatInf Oid -> DijkstraEdge [ctor] .
     op getCurDist : DijkstraEdge -> NatInf .
     op getIntersection : DijkstraEdge -> Object .
@@ -42,8 +39,6 @@ endom
 
 omod PATHFINDER is
     protecting PRIORITY-QUEUE .
-    ***INPUT: A set of intersections CONF, and a starting Intersection I.
-    ***transforms every intersection into a DijkstraEdge and sets distance to natInf for everything except for the DE corresponding to I.
     op PQConvert : Object Configuration -> PQueue .
     op updateNeighbors : DijkstraEdge PQueue -> PQueue .
     op updateDistances : PQueue -> PQueue .

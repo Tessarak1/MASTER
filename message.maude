@@ -8,7 +8,7 @@ omod MESSAGE-WRAPPER is
   sort MsgContent .
 
   op noContent : -> MsgContent [ctor] .
-  op __ : MsgContent MsgContent -> MsgContent [assoc comm ctor id: noContent] .
+  op _._ : MsgContent MsgContent -> MsgContent [assoc comm ctor id: noContent] .
   op msg_from_to_ : MsgContent Oid Oid -> Msg [ctor] .
 endom
  

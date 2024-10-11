@@ -3,7 +3,6 @@ omod PHYSICAL-OBJ is
     protecting STRING .
     protecting LOCATABLE .
 
-    ***The handledTime attribute is used in timedFarm to terminate MaxTimeAdvance
     class PhysicalObj | handledTime : Bool .
     subclass PhysicalObj < Locatable .
 
@@ -22,10 +21,8 @@ omod PHYSICAL-OBJ is
     eq distance(< S : PhysicalObj | location : L >, < S' : PhysicalObj | location : L' >) = distance(L, L') .
 
     eq objectSet((X,Y), (X2,Y2), none) = none .
-    ceq objectSet((X,Y), (X,Y2), < S : PhysicalObj | location : (X,Y3) > CONF) = < S : PhysicalObj | > objectSet((X,Y), (X,Y2), CONF) if (Y3 > Y) and (Y3 <= Y2) .
-    ceq objectSet((X,Y), (X,Y2), < S : PhysicalObj | location : (X,Y3) > CONF) = < S : PhysicalObj | > objectSet((X,Y), (X,Y2), CONF) if (Y3 <= Y) and (Y3 > Y2) .
-    ceq objectSet((X,Y), (X2,Y), < S : PhysicalObj | location : (X3, Y) > CONF) = < S : PhysicalObj | > objectSet((X,Y), (X2,Y), CONF) if X3 > X and X3 <= X2 .
-    ceq objectSet((X,Y), (X2,Y), < S : PhysicalObj | location : (X3, Y) > CONF) = < S : PhysicalObj | > objectSet((X,Y), (X2,Y), CONF) if X3 <= X and X3 > X2 .
+    ceq objectSet((X,Y), (X,Y2), < S : PhysicalObj | location : (X,Y3) > CONF) = < S : PhysicalObj | > objectSet((X,Y), (X,Y2), CONF) if Y3 inInterval(Y, Y2).
+    ceq objectSet((X,Y), (X2,Y), < S : PhysicalObj | location : (X3, Y) > CONF) = < S : PhysicalObj | > objectSet((X,Y), (X2,Y), CONF) if X3 inInterval(X,X2) .
     eq objectSet((X,Y), (X2,Y2), CONF) = none [owise] .
 
     ceq objectInWay((X,Y), (X2,Y2), CONF) = minDistance(none, (X,Y), objectSet((X,Y), (X2,Y2), CONF)) if objectSet((X,Y), (X2,Y2), CONF) =/= none .

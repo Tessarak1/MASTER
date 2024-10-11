@@ -28,7 +28,6 @@ omod FIELD is
     var GS : GrowingState .
     var N : Nat .
     var TT : TaskType .
-    var OS : OidSet .
     var AU : Auction .
     var B : Bid .
 
