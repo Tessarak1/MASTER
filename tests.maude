@@ -81,10 +81,10 @@ omod FINAL-TESTS is
   ops resupply cpoint : -> Object .
   op obstacles : -> Configuration .
 
-  eq rob = < "R1" : Worker | location : (-30,0), speed : 1, direction : east, remainingPath : (0,0) (30,0),
+  eq rob = < "R1" : Worker | location : (-10,0), speed : 2, direction : east, remainingPath : (0,0),
     state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : water, 
     auctions : noAuction, curTask : noTask, workers : "R2" "R3", transporters : none, workState : noWork > .
-  eq rob2 = < "R2" : Worker | location : (30,0), speed : 1, direction : west, remainingPath : (0,0) (0,-30),
+  eq rob2 = < "R2" : Worker | location : (0,10), speed : 2, direction : south, remainingPath : (0,0),
     state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
     auctions : noAuction, curTask : noTask, workers : "R1" "R3", workState : noWork > .  
   eq rob3 = < "R3" : Worker | location : (20,0), speed : 1, direction : east, remainingPath : nil, state : idle, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 

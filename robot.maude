@@ -35,7 +35,7 @@ omod ROBOT is
     subsort Produce < TransporterCargo .
     subsort TransporterCargo WorkerCargo < Cargo .
 
-    class Robot | detectionRange : Nat, cargoLevel : CargoLevel, curCargo : Cargo,
+    class Robot | detectionRange : Rat, cargoLevel : CargoLevel, curCargo : Cargo,
         detected : Representation, obstructionPoints : List-Location,
         curTask : TaskStatus, workState : WorkState .
     class Worker .
