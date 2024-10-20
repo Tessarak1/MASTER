@@ -1,6 +1,6 @@
 load oidSet .
 load time-inf .
-load nat-inf .
+load rat-inf .
 load location .
 
 omod TASK is
@@ -36,7 +36,7 @@ endom
 
 omod AUCTION is
     protecting TIMER .
-    protecting NAT-INF .
+    protecting RAT-INF .
     protecting TASK .
 
     sort Bid .
@@ -45,11 +45,11 @@ omod AUCTION is
     op noAuction : -> Auction [ctor] .
     op __ : Bid Bid -> Bid [assoc comm ctor id: noBid] .
     op __ : Auction Auction -> Auction [assoc comm ctor id: noAuction] .
-    op [_bids_] : Oid Nat -> Bid [ctor] .
+    op [_bids_] : Oid Rat -> Bid [ctor] .
     op [_rejects] : Oid -> Bid [ctor] .
     op [Task:__|_] : Tid Timer Bid -> Auction [ctor] .
 
-    op determineWinner : Bid Oid NatInf -> Oid .
+    op determineWinner : Bid Oid RatInf -> Oid .
     op allBidsReceived : Bid OidSet -> Bool .
     op closed : Tid Auction -> Bool .
     op bidders : Bid -> OidSet .
@@ -61,21 +61,21 @@ omod AUCTION is
     var AU : Auction .
     var OS : OidSet .
     vars OID OID2 : Oid .
-    vars NI NI2 : NatInf .
+    vars RI RI2 : RatInf .
 
     eq auctionTimer = [cur: 10 - base: 10] .
     eq closed(TID, [Task: TID T | B] AU) = false .
     eq closed(TID, AU) = true [owise] .
     eq bidders(noBid) = none .
-    eq bidders([OID bids NI] B) = OID bidders(B) .
+    eq bidders([OID bids RI] B) = OID bidders(B) .
     eq allBidsReceived(B, OS) = (OS \ bidders(B)) == none .
-    eq determineWinner(noBid, OID, NI) = OID .
-    eq determineWinner([OID bids NI] B, OID2, NI2) =
-        if NI < NI2
+    eq determineWinner(noBid, OID, RI) = OID .
+    eq determineWinner([OID bids RI] B, OID2, RI2) =
+        if RI < RI2
         then
-            determineWinner(B, OID, NI)
+            determineWinner(B, OID, RI)
         else
-            determineWinner(B, OID2, NI2)
+            determineWinner(B, OID2, RI2)
         fi .
 endom
 

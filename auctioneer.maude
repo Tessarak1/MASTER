@@ -9,7 +9,7 @@ omod AUCTIONEER is
     class Auctioneer | auctions : Auction, workers : OidSet, transporters : OidSet, taskNr : Nat .
 
     op handleBidMsg : Object Msg -> Object .
-    op bid_on_ : Nat Tid -> BidMsgContent [ctor] .
+    op bid_on_ : Rat Tid -> BidMsgContent [ctor] .
     op busy_ : Tid -> BidMsgContent [ctor] .
     ops won_ reject_ accept_ : Tid -> AuctionMsgContent [ctor] .
     op taskId : AuctionMsgContent -> Tid .
@@ -17,7 +17,7 @@ omod AUCTIONEER is
     op startAuction : Object TidSet -> Configuration .
 
     vars S S2 : String .
-    var N : Nat .
+    var R : Rat .
     var TID : Tid .
     var TIDS : TidSet .
     var AU : Auction .
@@ -30,31 +30,31 @@ omod AUCTIONEER is
     var WT : WorkerTask .
     var OS : OidSet .
 
-    eq taskId(bid N on TID) = TID .
+    eq taskId(bid R on TID) = TID .
     eq taskId(busy TID) = TID .
     eq taskId(won TID) = TID .
     eq taskId(reject TID) = TID .
     eq taskId(accept TID) = TID .
-    eq bmcToBid(msg bid N on TID from S to S2) = [S bids N] .
+    eq bmcToBid(msg bid R on TID from S to S2) = [S bids R] .
     eq bmcToBid(msg reject TID from S to S2) = [S rejects] .
     eq startAuction(< S : Auctioneer | >, none) = < S : Auctioneer | > .
-    eq startAuction(< S : Auctioneer | auctions : AU, workers : OS >, [S2, WT, N] TIDS) = broadcast(S, [S2, WT, N], OS) startAuction(< S : Auctioneer | auctions : [Task: [S2, WT, N] auctionTimer | noBid] AU >, TIDS) .
-    eq startAuction(< S : Auctioneer | auctions : AU, transporters : OS >, [S2, TPT, N] TIDS) =  broadcast(S, [S2, TPT, N], OS) startAuction(< S : Auctioneer | auctions : [Task: [S2, TPT, N] auctionTimer | noBid] AU >, TIDS) .
-    eq handleBidMsg(< S : Auctioneer | auctions : [Task: [S, TPT, N] T | B] AU, transporters : OS >, msg BMC from S2 to S) =
+    eq startAuction(< S : Auctioneer | auctions : AU, workers : OS >, [S2, WT, R] TIDS) = broadcast(S, [S2, WT, R], OS) startAuction(< S : Auctioneer | auctions : [Task: [S2, WT, R] auctionTimer | noBid] AU >, TIDS) .
+    eq startAuction(< S : Auctioneer | auctions : AU, transporters : OS >, [S2, TPT, R] TIDS) =  broadcast(S, [S2, TPT, R], OS) startAuction(< S : Auctioneer | auctions : [Task: [S2, TPT, R] auctionTimer | noBid] AU >, TIDS) .
+    eq handleBidMsg(< S : Auctioneer | auctions : [Task: [S, TPT, R] T | B] AU, transporters : OS >, msg BMC from S2 to S) =
         if allBidsReceived(bmcToBid(msg BMC from S2 to S) B, OS)
         then
-            < S : Auctioneer | auctions : [Task: [S, TPT, N] T | bmcToBid(msg BMC from S2 to S) B] AU >
-            msg won [S, TPT, N] from S to determineWinner(bmcToBid(msg BMC from S2 to S) B, S, natInf)
+            < S : Auctioneer | auctions : [Task: [S, TPT, R] T | bmcToBid(msg BMC from S2 to S) B] AU >
+            msg won [S, TPT, R] from S to determineWinner(bmcToBid(msg BMC from S2 to S) B, S, ratInf)
         else
-            < S : Auctioneer | auctions : [Task: [S, TPT, N] T | bmcToBid(msg BMC from S2 to S) B] AU >
+            < S : Auctioneer | auctions : [Task: [S, TPT, R] T | bmcToBid(msg BMC from S2 to S) B] AU >
         fi .
-    eq handleBidMsg(< S : Auctioneer | auctions : [Task: [S, WT, N] T | B] AU, workers : OS >, msg BMC from S2 to S) =
+    eq handleBidMsg(< S : Auctioneer | auctions : [Task: [S, WT, R] T | B] AU, workers : OS >, msg BMC from S2 to S) =
         if allBidsReceived(bmcToBid(msg BMC from S2 to S) B, OS)
         then
-            < S : Auctioneer | auctions : [Task: [S, WT, N] T | bmcToBid(msg BMC from S2 to S) B] AU >
-            msg won [S, WT, N] from S to determineWinner(bmcToBid(msg BMC from S2 to S) B, S, natInf)
+            < S : Auctioneer | auctions : [Task: [S, WT, R] T | bmcToBid(msg BMC from S2 to S) B] AU >
+            dly(msg won [S, WT, R] from S to determineWinner(bmcToBid(msg BMC from S2 to S) B, S, ratInf), 1)
         else
-            < S : Auctioneer | auctions : [Task: [S, WT, N] T | bmcToBid(msg BMC from S2 to S) B] >
+            < S : Auctioneer | auctions : [Task: [S, WT, R] T | bmcToBid(msg BMC from S2 to S) B] >
         fi .
 
     crl [rcvBidMsg] :
@@ -69,7 +69,7 @@ omod AUCTIONEER is
         =>
         < S : Auctioneer | auctions : AU > .
     rl [rcvRejectMsg] :
-        < S : Auctioneer | auctions : [Task: TID T | [S2 bids N] B] AU >
+        < S : Auctioneer | auctions : [Task: TID T | [S2 bids R] B] AU >
         msg reject TID from S2 to S
         =>
         if bidders(B) == none
@@ -77,6 +77,6 @@ omod AUCTIONEER is
             startAuction(< S : Auctioneer | auctions : AU >, TID)
         else
             < S : Auctioneer | >
-            msg won TID from S to determineWinner(B, S, natInf)
+            dly(msg won TID from S to determineWinner(B, S, ratInf), MSG-DELAY)
         fi .
 endom 

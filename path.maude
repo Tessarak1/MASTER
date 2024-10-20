@@ -12,13 +12,12 @@ fmod PATH is
     op __ : PathSet PathSet -> PathSet [assoc comm id: es] .
 
     ***Checks if the first int is in the interval between the two other ints.
-    op _inRange(_,_) : Int Int Int -> Bool .
+    op _inRange(_,_) : Rat Rat Rat -> Bool .
     op _inRange(_) : Location Path -> Bool .
-    op getLocations : Path -> List-Location .
-    op removePaths : PathSet PathSet -> PathSet .
+    op _\_ : PathSet PathSet -> PathSet .
 
-    vars I I2 I3 : Int .
-    vars X X2 X3 Y Y2 Y3 : Int .
+    vars I I2 I3 : Rat .
+    vars X X2 X3 Y Y2 Y3 : Rat .
     vars PS PS2 : PathSet .
 
     eq {(X,Y) (X2,Y2)} {(X,Y) (X2,Y2)} = {(X,Y) (X2,Y2)} .
@@ -27,9 +26,7 @@ fmod PATH is
 
     ceq (X,Y) inRange({(X2,Y2) (X3,Y3)}) = true if X inRange(X2,X3) and Y inRange(Y2,Y3) .
     eq (X,Y) inRange({(X2,Y2) (X3,Y3)}) = false [owise] .
-
-    eq getLocations({(X, Y) (X2, Y2)}) = (X,Y) (X2,Y2) .
-
-    eq removePaths(PS, es) = PS .
-    eq removePaths({(X,Y) (X2,Y2)} PS, {(X,Y) (X2,Y2)} PS2) = removePaths(PS, PS2) .
+    
+    eq ({(X,Y) (X2,Y2)} PS) \ ({(X,Y) (X2,Y2)} PS2) = PS \ PS2 .
+    eq PS \ PS2 = PS [owise] .
 endfm

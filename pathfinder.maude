@@ -1,20 +1,20 @@
 load map .
-load nat-inf .
+load rat-inf .
 omod DIJKSTRA-EDGE is
     protecting MAP .
-    protecting NAT-INF .
+    protecting RAT-INF .
     
     sort DijkstraEdge .
-    op [_,_,_] : Object NatInf Oid -> DijkstraEdge [ctor] .
-    op getCurDist : DijkstraEdge -> NatInf .
+    op [_,_,_] : Object RatInf Oid -> DijkstraEdge [ctor] .
+    op getCurDist : DijkstraEdge -> RatInf .
     op getIntersection : DijkstraEdge -> Object .
 
     var O : Object . 
-    var NI : NatInf .
+    var RI : RatInf .
     var OID : Oid .
 
-    eq getCurDist([O, NI, OID]) = NI .
-    eq getIntersection([O, NI, OID]) = O .
+    eq getCurDist([O, RI, OID]) = RI .
+    eq getIntersection([O, RI, OID]) = O .
 endom
 
 omod PRIORITY-QUEUE is
@@ -31,15 +31,16 @@ omod PRIORITY-QUEUE is
     var PQ : PQueue .
     vars O O2 : Object .
     var OID OID2 : Oid .
-    vars NI NI2 : NatInf .
+    vars RI RI2 : RatInf .
 
     eq put(DE, noQueue) = DE .
-    eq put([O, NI, OID], [O2, NI2, OID2] PQ) = if (NI < NI2) then [O, NI, OID] [O2, NI2, OID2] PQ else [O2, NI2, OID2] put([O, NI, OID], PQ) fi .
+    eq put([O, RI, OID], [O2, RI2, OID2] PQ) = if (RI < RI2) then [O, RI, OID] [O2, RI2, OID2] PQ else [O2, RI2, OID2] put([O, RI, OID], PQ) fi .
 endom
 
 omod PATHFINDER is
     protecting PRIORITY-QUEUE .
-    op PQConvert : Object Configuration -> PQueue .
+
+    op PQConvert : Location Configuration -> PQueue .
     op updateNeighbors : DijkstraEdge PQueue -> PQueue .
     op updateDistances : PQueue -> PQueue .
     op $buildPath : Oid PQueue -> List-Location .
@@ -56,38 +57,35 @@ omod PATHFINDER is
     var CONF : Configuration .
     vars OS OS2 : OidSet .
     var OL : OidList .
-    vars X X2 X3 X4 Y Y2 Y3 Y4 : Int .
+    vars X X2 X3 X4 Y Y2 Y3 Y4 : Rat .
     vars OID OID2 OID3 OID4 : Oid .
     vars PQ PQ2 : PQueue .
-    vars NI NI2 : NatInf .
+    vars RI RI2 : RatInf .
     var DE : DijkstraEdge .
     var A : Area .
     var LL : List-Location .
 
-    eq PQConvert(I, none) = noQueue .
-    eq PQConvert(I, I CONF) = [I, 0, "Start"] PQConvert(I, CONF) .
-    eq PQConvert(I, I2 CONF) = [I2, natInf, "Placeholder"] PQConvert(I, CONF) [owise] .
+    eq PQConvert((X,Y), none) = noQueue .
+    eq PQConvert((X,Y), < OID : Intersection | location : (X,Y) > CONF) = [< OID : Intersection | >, 0, "Start"] PQConvert((X,Y), CONF) .   
+    eq PQConvert((X,Y), I2 CONF) = [I2, ratInf, "Placeholder"] PQConvert((X,Y), CONF) [owise] .
 
-    eq updateNeighbors([< OID : Intersection | neighbors : none >, NI, OID2], PQ) = PQ .
-    eq updateNeighbors([< OID : Intersection | location : (X,Y), neighbors : OID2 OS >, NI, OID3], PQ [< OID2 : Intersection | location : (X2,Y2), neighbors : OID OS2 >, NI2, OID4] PQ2) =
-        ***if new distance is shorter then update distance and OID to OID2 by using put.
-        if (distance((X,Y), (X2,Y2)) + NI) < NI2 then
-            updateNeighbors([< OID : Intersection | neighbors : OS >, NI, OID3], put([< OID2 : Intersection | neighbors : OS2 >, distance((X,Y), (X2,Y2)) + NI, OID], PQ PQ2))
+    eq updateNeighbors([< OID : Intersection | neighbors : none >, RI, OID2], PQ) = PQ .
+    eq updateNeighbors([< OID : Intersection | location : (X,Y), neighbors : OID2 OS >, RI, OID3], PQ [< OID2 : Intersection | location : (X2,Y2), neighbors : OID OS2 >, RI2, OID4] PQ2) =
+        if (distance((X,Y), (X2,Y2)) + RI) < RI2 then
+            updateNeighbors([< OID : Intersection | neighbors : OS >, RI, OID3], put([< OID2 : Intersection | neighbors : OS2 >, distance((X,Y), (X2,Y2)) + RI, OID], PQ PQ2))
         else
-            updateNeighbors([< OID : Intersection | neighbors : OS >, NI, OID3], PQ [< OID2 : Intersection | neighbors : OS2 >, NI2, OID4] PQ2)
+            updateNeighbors([< OID : Intersection | neighbors : OS >, RI, OID3], PQ [< OID2 : Intersection | neighbors : OS2 >, RI2, OID4] PQ2)
         fi .
-
-    ***Recur updateNeighbors on each of the elements in PQueue, removing the lowest every time.
-    ***returns a PQueue with every distance value and recent OID updated.
     eq updateDistances(noQueue) = noQueue .
     eq updateDistances(DE PQ) = DE updateDistances(updateNeighbors(DE, PQ)) .
     
-    eq $buildPath(OID, PQ [< OID : Intersection | location : (X,Y) >, NI, "Start"] PQ2) = nil .
-    ceq $buildPath(OID, PQ [< OID : Intersection | location : (X,Y) >, NI, OID2] PQ2) = $buildPath(OID2, PQ PQ2) (X,Y) if OID2 =/= "Start" .
+    eq $buildPath(OID, PQ [< OID : Intersection | location : (X,Y) >, RI, "Start"] PQ2) = nil .
+    ceq $buildPath(OID, PQ [< OID : Intersection | location : (X,Y) >, RI, OID2] PQ2) = $buildPath(OID2, PQ PQ2) (X,Y) if OID2 =/= "Start" .
     eq $buildPath(OID, PQ) = nil [owise] .
-    eq buildPath(OID, OID2, PQ [< OID2 : Intersection | location : (X,Y) >, NI, OID3] PQ2) = $buildPath(OID3, PQ) (X,Y) .
+    
+    eq buildPath(OID, OID2, PQ [< OID2 : Intersection | location : (X,Y) >, RI, OID3] PQ2) = $buildPath(OID3, PQ) (X,Y) .
 
-    eq dijkstraSearch(< OID : Intersection | > CONF, OID, OID2) = buildPath(OID, OID2, updateDistances(PQConvert(< OID : Intersection | >, < OID : Intersection | > CONF))) .
+    eq dijkstraSearch(< OID : Intersection | location : (X,Y) > CONF, OID, OID2) = buildPath(OID, OID2, updateDistances(PQConvert((X,Y), < OID : Intersection | > CONF))) .
     eq dijkstraSearch(CONF, (X,Y), (X,Y)) = nil .
     eq dijkstraSearch(< OID : Intersection | location : (X,Y) > < OID2 : Intersection | location : (X2,Y2) > CONF, (X,Y), (X2,Y2)) =
         dijkstraSearch(< OID : Intersection | location : (X,Y) > < OID2 : Intersection | location : (X2,Y2) > CONF, OID, OID2) .
@@ -96,11 +94,7 @@ omod PATHFINDER is
     eq dijkstraChain(CONF, OID ; OID2 ; OL) = dijkstraSearch(CONF, OID, OID2) dijkstraChain(CONF, OID2 ; OL) .
     eq dijkstraChain(CONF, (X,Y) (X2,Y2)) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) .
     eq dijkstraChain(CONF, (X,Y) (X2,Y2) LL) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) dijkstraChain(CONF, (X2,Y2) LL) .
-
-    ***Only used in square areas to return from first location to last.
     eq backToStart((X,Y), (X2,Y2)) = (X,Y2) (X2,Y2) .
-
-    ***assumed that "coverage" of an area means that the robot traverses every whole number value for X and Y within the bounds of that area.
     eq coverHorizontal((X,Y) (X2, Y), (X,Y) (X2,Y)) = nil .
     eq coverHorizontal((X,Y) (X2, Y), (X2,Y) (X,Y)) = nil .
     eq coverHorizontal((X,Y) (X2,Y), (X3,Y2) (X4,Y2)) =

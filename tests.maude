@@ -1,73 +1,5 @@
 load timedFarm .
 
-omod LEADER-ELECTION-TESTS is
-  protecting TIMED-FARM .
-  ops rob rob2 : -> Object .
-  op farm : -> ClockedConfiguration .
-  op locations : -> Configuration .
-  op map : -> Object .
-  eq rob2 = < "R2" : Worker | location : (100,0), speed : 100, direction : west, remainingPath : (0,0), state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil > .
-  eq rob = < "R1" : Worker | location : (0,0), speed : 100, direction : east, remainingPath : (100,0), state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil > .
-  ops I1 I2 I3 I4 : -> Object .
-  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" "I4" > .
-  eq I2 = < "I2" : Intersection | location : (-10, 0), neighbors : "I1" > .
-  eq I3 = < "I3" : Intersection | location : (10, 0), neighbors : "I1" > .
-  eq I4 = < "I4" : Field | location : (0,-10), neighbors : "I1", growingState : growing, waterLevel : low, fertilizerLevel : good, waterTimer : [cur: 10 - base: 100], fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 200 - base: 200], taskNr : 0, growingArea : area((-10,-10), (10,-10), (-10, -20), (10,-20)) > .
-  eq locations = I1 I2 I3 I4 .
-  eq map = < "Map" : Map | allIntersections : locations, paths : createPathSet(locations) > .
-  eq farm = rob rob2 map @ 0 .
-endom
-
-omod REPLAN-TESTS is
-  protecting TIMED-FARM .
-  ops rob : -> Object .
-  op farm : -> ClockedConfiguration .
-  op locations : -> Configuration .
-  op obstacles : -> Configuration .
-  op map : -> Object .
-  op testfnc : -> Object .
-
-  eq rob = < "R1" : Worker | location : (0,0), speed : 1, direction : east, remainingPath : (10,0), state : moving, detected : nil, detectionRange : 3, handledTime : false, obstructionPoints : nil > .
-  ops I1 I2 I3 I4 : -> Object .
-  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" > .
-  eq I2 = < "I2" : Intersection | location : (10, 0), neighbors : "I1" "I4" > .
-  eq I3 = < "I3" : Intersection | location : (0, 10), neighbors : "I1" "I4" > .
-  eq I4 = < "I4" : Intersection | location : (10,10), neighbors : "I2" "I3" > .
-  eq locations = I1 I2 I3 I4 .
-  eq obstacles = < "O1" : Obstacle | location : (5,0) > .
-  eq map = < "Map" : Map | allIntersections : locations, paths : createPathSet(locations) > .
-  eq farm = rob map obstacles @ 0 .
-endom
-
-omod TASK-TESTS is
-  protecting TIMED-FARM .
-
-  ops rob : -> Object .
-  op farm : -> ClockedConfiguration .
-  op locations : -> Configuration .
-  op obstacles : -> Configuration .
-  op map : -> Object .
-  op testfnc : -> Object .
-  op GLREP : -> Object .
-
-  var N : Nat .
-  var S : String .
-  
-  eq rob = < "R1" : Worker | location : (8,0), speed : 1, direction : west, remainingPath : (8,0), state : moving, detected : { "GL" : Field | (-10,0) ; [W: low F: good H: growing]}, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : water, curTask : noTask > .
-  ops I1 I2 I3 I4 : -> Object .
-  op GL : -> Object .
-  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" "GL" > .
-  eq I2 = < "I2" : Intersection | location : (10, 0), neighbors : "I1" "I4" > .
-  eq I3 = < "I3" : Intersection | location : (0, 10), neighbors : "I1" "I4" > .
-  eq I4 = < "I4" : Intersection | location : (10,10), neighbors : "I2" "I3" > .
-  eq GL = < "GL" : Field | location : (-10, 0), neighbors : "I1", growingState : harvest, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 100 - base: 100], fertilizerTimer : [cur: 100 - base: 100], growTimer : [cur: 100 - base: 100] > .
-  eq GLREP = < "GL" : Field | location : (-10, 0), neighbors : "I1" > .
-  eq locations = I1 I2 I3 I4 GLREP .
-  eq obstacles = < "O1" : Obstacle | location : (5,0) > .
-  eq map = < "Map" : Map | allIntersections : locations, paths : createPathSet(locations) > .
-  eq farm = rob map GL @ 0 .
-endom
-
 omod FINAL-TESTS is
   protecting TIMED-FARM .
 
@@ -75,34 +7,57 @@ omod FINAL-TESTS is
   op farm : -> ClockedConfiguration .
   op locations : -> Configuration .
   op map : -> Object .
-  op GLREP : -> Object .
-  op GL : -> Object .
-  ops I1 I2 I3 I4 I5 : -> Object .
+  ops GLREP1 GLREP2 GLREP3 GLREP4 : -> Object .
+  ops GL1 GL2 GL3 GL4 : -> Object .
+  ops I1 I2 I3 I4 I5 I6 I7 I8 I8 : -> Object .
   ops resupply cpoint : -> Object .
   op obstacles : -> Configuration .
 
-  eq rob = < "R1" : Worker | location : (-10,0), speed : 2, direction : east, remainingPath : (0,0),
+  eq rob = < "R1" : Worker | location : (60,-60), speed : 1, direction : east, remainingPath : (90, -60) (120, -60),
     state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : water, 
-    auctions : noAuction, curTask : noTask, workers : "R2" "R3", transporters : none, workState : noWork > .
-  eq rob2 = < "R2" : Worker | location : (0,10), speed : 2, direction : south, remainingPath : (0,0),
-    state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
+    auctions : noAuction, curTask : ["GL", watering, 1], workers : "R2" "R3", transporters : none, workState : noWork > .
+  eq rob2 = < "R2" : Worker | location : (70,-60), speed : 1, direction : west, remainingPath : nil,
+    state : idle, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
     auctions : noAuction, curTask : noTask, workers : "R1" "R3", workState : noWork > .  
   eq rob3 = < "R3" : Worker | location : (20,0), speed : 1, direction : east, remainingPath : nil, state : idle, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
     auctions : noAuction, curTask : noTask, workers : "R1" "R2", transporters : none, workState : noWork > . 
-  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I3" "GL" "I5" > .
-  eq I2 = < "I2" : Intersection | location : (30, 0), neighbors : "I1" "I4" "CPoint" > .
-  eq I3 = < "I3" : Intersection | location : (0, 30), neighbors : "I1" "I4" "Resupply" > .
-  eq I4 = < "I4" : Intersection | location : (30,30), neighbors : "I2" "I3" > .
-  eq I5 = < "I5" : Intersection | location : (0,-30)  , neighbors : "I1" > .
-  eq GL = < "GL" : Field | location : (-30, 0), neighbors : "I1", growingState : harvest, waterLevel : low, fertilizerLevel : good, 
+  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I4" "CPoint" > .
+  eq I2 = < "I2" : Intersection | location : (60,0), neighbors : "I1" "I3" "I6" > .
+  eq I3 = < "I3" : Intersection | location : (120,0), neighbors : "I2" "I8" "Resupply" > .
+  eq I4 = < "I4" : Intersection | location : (0,-60), neighbors : "I1" "I5" > .
+  eq I5 = < "I5" : Intersection | location : (30,-60)  , neighbors : "I4" "I6" "GL1" "GL3" > .
+  eq I6 = < "I6" : Intersection | location : (60,-60)  , neighbors : "I5" "I7" "I2" > .
+  eq I7 = < "I7" : Intersection | location : (90,-60)  , neighbors : "I6" "I8" "GL2" "GL4" > .
+  eq I8 = < "I8" : Intersection | location : (120,-60)  , neighbors : "I7" "I3" > .
+  eq GL1 = < "GL1" : Field | location : (30, -50), neighbors : "I5", growingState : harvest, waterLevel : low, fertilizerLevel : good, 
     waterTimer : [cur: 0 - base: 1000], fertilizerTimer : [cur: 10000 - base: 100], growTimer : [cur: 10000 - base: 100], taskNr : 1,
-    growingArea : area((-40,0), (-40,-10), (-30,0), (-30,-10)), workers : "R1" "R2" "R3", transporters : none,
+    growingArea : area((10,-10), (50,-10), (10,-50), (50,-50)), workers : "R1", transporters : none,
     auctions : noAuction > .
-  eq GLREP = < "GL" : Field | location : (-30, 0), neighbors : "I1" > .
-  eq resupply = < "Resupply" : ResupplyStation | location : (0,40), neighbors : "I3" > .
-  eq cpoint = < "CPoint" : CollectionStation | location : (40,0), neighbors : "I2" > .
-  eq locations = I1 I2 I3 I4 I5 GLREP resupply cpoint .
+  eq GL2 = < "GL2" : Field | location : (90, -50), neighbors : "I7", growingState : harvest, waterLevel : low, fertilizerLevel : good, 
+    waterTimer : [cur: 0 - base: 1000], fertilizerTimer : [cur: 10000 - base: 100], growTimer : [cur: 10000 - base: 100], taskNr : 1,
+    growingArea : area((70,-10), (110,-10), (70, -50), (110,-50)), workers : "R1" "R2" "R3", transporters : none,
+    auctions : noAuction > .
+  eq GL3 = < "GL3" : Field | location : (30, -70), neighbors : "I5", growingState : harvest, waterLevel : low, fertilizerLevel : good, 
+    waterTimer : [cur: 0 - base: 1000], fertilizerTimer : [cur: 10000 - base: 100], growTimer : [cur: 10000 - base: 100], taskNr : 1,
+    growingArea : area((10,-70), (50,-70), (10,-110), (50,-110)), workers : "R1" "R2" "R3", transporters : none,
+    auctions : noAuction > .
+  eq GL4 = < "GL4" : Field | location : (90, -70), neighbors : "I5", growingState : harvest, waterLevel : low, fertilizerLevel : good, 
+    waterTimer : [cur: 0 - base: 1000], fertilizerTimer : [cur: 10000 - base: 100], growTimer : [cur: 10000 - base: 100], taskNr : 1,
+    growingArea : area((70,-70), (110,-70), (70,-110), (110,-110)), workers : "R1" "R2" "R3", transporters : none,
+    auctions : noAuction > .
+  eq GLREP1 = < "GL1" : Field | location : (30, -50), neighbors : "I5" > .
+  eq GLREP2 = < "GL2" : Field | location : (90, -50), neighbors : "I7" >  .
+  eq GLREP3 = < "GL3" : Field | location : (30,-70), neighbors : "I5" > .
+  eq GLREP4 = < "GL4" : Field | location : (90,-70), neighbors : "I7" > .
+  eq resupply = < "Resupply" : ResupplyStation | location : (120,40), neighbors : "I3" > .
+  eq cpoint = < "CPoint" : CollectionStation | location : (0,40), neighbors : "I1" > .
+  eq locations = I1 I2 I3 I4 I5 I6 I7 I8 GLREP1 GLREP2 GLREP3 GLREP4 resupply cpoint .
   eq obstacles = < "O1" : Obstacle | location : (1,0) > .
   eq map = < "Map" : Map | allIntersections : locations, paths : createPathSet(locations) > .
   eq farm = map rob rob2 @ 0 .
 endom
+
+red yieldPath(rob2, map, ((65, -60) (90, -60) (120, -60))) .
+red addAndRemove(map, (70,-60), (65,-60)) .
+red $yieldPath((70,-60), addAndRemove(map, (70,-60), (65,-60)), (65,-60)) .
+red updateDistances(PQConvert((70,-60), getIntersections(addAndRemove(map, (70,-60), (65,-60))))) .
