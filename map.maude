@@ -43,22 +43,25 @@ omod MAP is
     eq returnByLocation(< OID : Intersection | location : (X, Y) > CONF, (X, Y) LL) = < OID : Intersection | > returnByLocation(CONF, LL) .
     eq returnByLocation(< OID : Intersection | location : (X, Y) > < OID2 : Intersection | location : (X2, Y2) > CONF, {(X, Y) (X2, Y2)} PS) = < OID : Intersection | > < OID2 : Intersection | > returnByLocation(CONF, PS) .
     eq returnByLocation(CONF, LL) = none [owise] .
+
     eq $removeConnection(es, CONF) = CONF .
     eq $removeConnection({(X,Y) (X2,Y2)} PS, < OID : Intersection | location : (X,Y), neighbors : OID2 OS > < OID2 : Intersection | location : (X2,Y2), neighbors : OID OS2 > CONF) =
         $removeConnection(PS, < OID : Intersection | neighbors : OS > < OID2 : Intersection | neighbors : OS2 > CONF) .
     eq removeConnection(< OID : Map | allIntersections : CONF, paths : PS >, LL) =
         < OID : Map | allIntersections : $removeConnection(findPath(LL, PS), CONF), paths : PS \ findPath(LL, PS) > .
+    
     eq newNeighbor(OID, none, CONF) = CONF .
     eq newNeighbor(OID, OID2 OS, < OID2 : Intersection | neighbors : OS2 > CONF) = < OID2 : Intersection | neighbors : OID OS2 > newNeighbor(OID, OS, CONF) .
     eq createPathSet(none) = es .
     eq createPathSet(< OID : Intersection | neighbors : none > CONF) = createPathSet(CONF) .
     eq createPathSet(< OID : Intersection | location : (X,Y), neighbors : OID2 OS > < OID2 : Intersection | location : (X2,Y2), neighbors : OID OS2 > CONF) =
         {(X,Y) (X2,Y2)} createPathSet(< OID : Intersection | neighbors : OS > < OID2 : Intersection | neighbors : OS2 > CONF) .
+
     eq findPath((X,Y) LL, es) = es .
     eq findPath(nil, PS) = es .
-    ceq findPath((X,Y) LL, {(X2,Y2) (X3,Y3)} PS) = {(X2,Y2) (X3,Y3)} findPath(LL, PS) if (X,Y) inRange({(X2,Y2) (X3,Y3)}) .
-    eq findPath((X,Y) LL, {(X,Y) (X2,Y2)} PS) = {(X,Y) (X2,Y2)} findPath((X,Y) LL, PS) .
+    ceq findPath((X,Y) LL, {(X2,Y2) (X3,Y3)} PS) = {(X2,Y2) (X3,Y3)} findPath((X,Y) LL, PS) if (X,Y) inRange({(X2,Y2) (X3,Y3)}) .
     eq findPath((X,Y) LL, {(X2,Y2) (X3,Y3)} PS) = findPath(LL, {(X2,Y2) (X3,Y3)} PS) [owise] .
+
     eq addPath((X,Y), {(X2,Y2) (X3,Y3)}, {(X2,Y2) (X3,Y3)} PS) = {(X,Y) (X2,Y2)} {(X,Y) (X3,Y3)} PS .
     eq addPath((X,Y), {(X2,Y2) (X3,Y3)}, PS) = {(X,Y) (X2,Y2)} {(X,Y) (X3,Y3)} PS [owise] .
     eq $newIntersection((X,Y), {(X2,Y2) (X3,Y3)}, < OID : Map | allIntersections : CONF, paths : PS >, N) =

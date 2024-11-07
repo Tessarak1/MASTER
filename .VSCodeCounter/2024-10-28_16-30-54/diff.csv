@@ -1,0 +1,10 @@
+"filename", "language", "Maude", "Markdown", "JSON", "comment", "blank", "total"
+"c:\Users\samue\MASTER\.VSCodeCounter\2024-10-24_15-06-33\details.md", "Markdown", 0, 33, 0, 0, 6, 39
+"c:\Users\samue\MASTER\.VSCodeCounter\2024-10-24_15-06-33\diff-details.md", "Markdown", 0, 9, 0, 0, 6, 15
+"c:\Users\samue\MASTER\.VSCodeCounter\2024-10-24_15-06-33\diff.md", "Markdown", 0, 12, 0, 0, 7, 19
+"c:\Users\samue\MASTER\.VSCodeCounter\2024-10-24_15-06-33\results.json", "JSON", 0, 0, 1, 0, 0, 1
+"c:\Users\samue\MASTER\.VSCodeCounter\2024-10-24_15-06-33\results.md", "Markdown", 0, 14, 0, 0, 7, 21
+"c:\Users\samue\MASTER\field.maude", "Maude", 3, 0, 0, 0, 2, 5
+"c:\Users\samue\MASTER\robot.maude", "Maude", 1, 0, 0, 8, 7, 16
+"c:\Users\samue\MASTER\timedFarm.maude", "Maude", 0, 0, 0, 6, 2, 8
+"Total", "-", 4, 68, 1, 14, 37, 124

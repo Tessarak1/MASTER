@@ -45,7 +45,6 @@ fmod LIST-LOCATION is
     op last : List-Location -> Location  .
     op between : Location List-Location -> List-Location .
     op remove : List-Location List-Location -> List-Location .
-    ***returns total length of path
     op listLength : List-Location -> Rat .
         
     vars LL LL2 LL3 LL4 : List-Location .
@@ -71,6 +70,7 @@ fmod LIST-LOCATION is
     eq remove(LL (X,Y) LL2, LL3 (X,Y) LL4) = remove(LL LL2, LL3 LL4) .
     eq remove(LL, LL2) = LL [owise] .
     eq listLength((X,Y) (X2,Y2) LL) = distance((X,Y), (X2,Y2)) + listLength((X2,Y2) LL) .
+    eq listLength((X,Y) (X2,Y2)) = distance((X,Y), (X2,Y2)) .
     eq listLength(LL) = 0 [owise] .
 endfm
 

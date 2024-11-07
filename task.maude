@@ -8,15 +8,18 @@ omod TASK is
     protecting OID-SET .
     sorts WorkerTask TransporterTask TaskType .
     sorts Tid TidSet .
+    sort TaskStatus . 
 
+    subsort Tid < TaskStatus .
     subsorts WorkerTask TransporterTask < TaskType .
     subsort Tid < TidSet .
 
     ops watering fertilize plant : -> WorkerTask [ctor] .
     ops removeAt_ repairAt_ : Location -> WorkerTask [ctor] .
     op harvest : -> TransporterTask [ctor] .
-    op [_,_,_] : Oid TaskType Nat -> Tid .
+    op [_,_,_] : Oid TaskType Nat -> Tid [ctor] .
     op none : -> TidSet [ctor] .
+    op noTask : -> TaskStatus [ctor] .
     op __ : TidSet TidSet -> TidSet [ctor assoc comm id: none] .
     op _\_ : TidSet TidSet -> TidSet [assoc] .
     op getTaskOid : Tid -> Oid .
