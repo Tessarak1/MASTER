@@ -3,7 +3,7 @@ load timedFarm .
 omod FINAL-TESTS is
   protecting TIMED-FARM .
 
-  ops rob rob2 rob3 : -> Object .
+  ops rob rob2 rob3 rob4 : -> Object .
   op farm : -> ClockedConfiguration .
   op locations : -> Configuration .
   op map : -> Object .
@@ -13,15 +13,17 @@ omod FINAL-TESTS is
   ops resupply cpoint : -> Object .
   op obstacles : -> Configuration .
 
-  eq rob = < "R1" : Worker | location : (60,0), speed : 1, direction : south, remainingPath : (120,0) (120,-60),
+  eq rob = < "R1" : Worker | location : (50,0), speed : 1, direction : east, remainingPath : (60,0),
     state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : water, 
     auctions : noAuction, curTask : noTask, workers : none, transporters : none, workState : noWork, waitingOn : none > .
-  eq rob2 = < "R2" : Worker | location : (120,0), speed : 1, direction : west, remainingPath : (60,0) (0,0) (0,-60),
+  eq rob2 = < "R2" : Worker | location : (70,0), speed : 1, direction : west, remainingPath : (60,0),
     state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
     auctions : noAuction, curTask : noTask, workers : "R1", workState : noWork, waitingOn : none > .  
-  eq rob3 = < "R3" : Worker | location : (20,0), speed : 1, direction : east, remainingPath : (60,0),
-    state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
+  eq rob3 = < "R3" : Worker | location : (20,0), speed : 0, direction : east, remainingPath : nil,
+    state : failed, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
     auctions : noAuction, curTask : noTask, workers : "R1" "R2", transporters : none, workState : noWork > . 
+
+
   eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I4" "CPoint" > .
   eq I2 = < "I2" : Intersection | location : (60,0), neighbors : "I1" "I3" "I6" > .
   eq I3 = < "I3" : Intersection | location : (120,0), neighbors : "I2" "I8" "Resupply" > .
@@ -55,7 +57,5 @@ omod FINAL-TESTS is
   eq locations = I1 I2 I3 I4 I5 I6 I7 I8 GLREP1 GLREP2 GLREP3 GLREP4 resupply cpoint .
   eq obstacles = < "O1" : Obstacle | location : (0,-60) > < "O2" : Obstacle | location : (0,-58) > < "O3" : Obstacle | location : (2,-60) > .
   eq map = < "Map" : Map | allIntersections : locations, paths : createPathSet(locations) > .
-  eq farm = map rob rob2 @ 0 .
+  eq farm = map rob rob3 @ 0 .
 endom
-
-rew [1] farm .

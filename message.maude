@@ -24,7 +24,7 @@ omod MESSAGE is including MESSAGE-WRAPPER .
   op dly : Msg Time -> DlyMsg [ctor right id: 0] .
   ops obstacleAt_ removed_ : Location -> MsgContent .
   op path : List-Location -> MsgContent .
-  op requestPath : -> MsgContent .
+  ops requestPath NoConflict : -> MsgContent .
   op broadcast : Oid MsgContent OidSet -> Configuration .
   op MSG-DELAY : -> Time .
   vars OID OID2 : Oid .

@@ -7,7 +7,6 @@ omod MAP is
     protecting PATH .
     class Map | allIntersections : Configuration, paths : PathSet .
 
-    ***return intersection with given location.
     op returnByLocation : Configuration List-Location -> Configuration .
     op returnByLocation : Configuration PathSet -> Configuration .
     op $removeConnection : PathSet Configuration -> Configuration .
@@ -38,10 +37,10 @@ omod MAP is
     var N : Nat .
 
     eq addAndRemove(< OID : Map | >, LL, LL2) = removeConnection(newIntersection(< OID : Map | >, LL), LL2) .
+    ***Checks if a location is outside of the area defined by the map.
     ceq outsideMap((X,Y), {(X2,Y2) (X3,Y3)} PS) = false if between((X,Y), (X2,Y2) (X3,Y3)) =/= nil .
     eq outsideMap((X,Y), PS) = true [owise] .
     eq returnByLocation(< OID : Intersection | location : (X, Y) > CONF, (X, Y) LL) = < OID : Intersection | > returnByLocation(CONF, LL) .
-    eq returnByLocation(< OID : Intersection | location : (X, Y) > < OID2 : Intersection | location : (X2, Y2) > CONF, {(X, Y) (X2, Y2)} PS) = < OID : Intersection | > < OID2 : Intersection | > returnByLocation(CONF, PS) .
     eq returnByLocation(CONF, LL) = none [owise] .
 
     eq $removeConnection(es, CONF) = CONF .

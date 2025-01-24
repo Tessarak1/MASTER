@@ -65,7 +65,6 @@ omod ROBOT is
     op [___] : Oid TaskType Time -> TimedWork [ctor] .
     ops empty full : -> CargoLevel [ctor] .
     op seed : -> Seed [ctor] .
-    op detectionBorder : Object -> Location .
     op replanPath : Object Object Location -> Object .
     op pathConflict : List-Location List-Location PathSet -> List-Location .
 
@@ -107,6 +106,14 @@ omod ROBOT is
     op yieldPath : Object Object List-Location -> List-Location .
 
     op __leadsTo_ : Location Direction Location -> Bool .
+
+    ***Exclusively checks if two robots are on a head on collision course
+    ***Checks the first two segments. (X,Y) (X2,Y2) and (X3,Y3) (X4,Y4)
+    ***That the segments overlap, and that they are in the opposite direction.
+    ***Overlap + setDirection.
+    op directConflict : List-Location List-Location -> Bool .
+
+    op replanCost : Object Object List-Location -> RatInf .
 
     vars CONF CONF2 : Configuration .
     vars OID OID2 OID3 OID4 : Oid .
@@ -151,6 +158,27 @@ omod ROBOT is
     eq remove(OID, < OID : Robot | > CONF) = CONF .
     eq remove(OID, CONF) = CONF [owise] .
 
+    ***Takes in robot to determine behavior? If it has task or not.
+    ***call the eq on the robot, if task we do replan
+    ***if no task we do yielding.
+    ***However, both have to check if result is nil.
+    ***A robot that has no task will try to yield for a requesting robot if a yieldpath exists.
+    eq replanCost(< OID : Robot | curTask : noTask >, < OID2 : Map | >, LL) =
+        if yieldPath(< OID : Robot | >, < OID2 : Map | >, LL) == nil
+        then
+            ratInf
+        else
+            0
+        fi .
+    eq replanCost(< OID : Robot | curTask : TID, obstructionPoints : LL >, < OID2 : Map | >, (X,Y) LL2) =
+        if planPath(< OID : Robot | obstructionPoints : LL (X,Y) >, TID, < OID2 : Map | >) == nil
+        then
+            ratInf
+        else
+            listLength(planPath(< OID : Robot | obstructionPoints : LL (X,Y) >, TID, < OID2 : Map | >)) -
+            listLength(planPath(< OID : Robot | >, TID, < OID2 : Map | >))
+        fi .
+
     eq WORK-RANGE = 1 .
     eq REMOVAL-TIME = 5 .
     eq REPAIR-TIME = 5 .
@@ -160,13 +188,14 @@ omod ROBOT is
     eq EMERGENCY-TIME = 3 .
     eq ROBOT-SIZE = 1 .
 
-    ***The robot performs crash prevention and negotiation routines based on the detection.
-    eq safetyChecks(< OID : Robot | >, {OID2 : Obstacle | I}, < OID3 : Map | >) =
-        crashPrevention(< OID : Robot | >, {OID2 : Obstacle | I }) .
-    eq safetyChecks(< OID : Robot | >, {OID2 : Robot | INC ; I}, < OID3 : Map | >) =
-        crashPrevention(< OID : Robot | >, {OID2 : Robot | INC ; I}) .
-    ***Need to refine this somehow, if we need to negotiate we stop, and dont do crashPrevention, since we need to stop.
-    ***checkNegotiation changes the robot and makes a message?
+    ***Conflict if not direct as well.
+    ***There is a path conflict if the paths share an intersection coming from not the same direction, or if they share a path going in opposite directions
+    ceq directConflict((X,Y) (X2,Y2) LL, (X3,Y3) (X2,Y2) LL2) = true if setDirection((X,Y),(X2,Y2)) =/= setDirection((X3,Y3), (X2,Y2)) . 
+    ceq directConflict((X,Y) (X2,Y2) (X3,Y3) LL, (X4,Y4) (X5,Y5) LL2) = true if overlap((X2,Y2) (X3,Y3), (X4,Y4) (X5,Y5)) and opposite(setDirection((X2,Y2), (X3,Y3)), setDirection((X4,Y4), (X5,Y5))) .
+    ceq directConflict((X,Y) (X2,Y2) LL, (X3,Y3) (X4,Y4) LL2) = true if
+        overlap((X,Y) (X2,Y2), (X3,Y3) (X4,Y4)) and opposite(setDirection((X,Y), (X2,Y2)), setDirection((X3,Y3), (X4,Y4))) .
+    eq directConflict(LL, LL2) = false [owise] .
+
     eq safetyChecks(< OID : Robot | >, {OID2 : Robot | FUNC ; I}, < OID3 : Map | >) =
         if needNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC ; I}, < OID3 : Map | >)
         then
@@ -251,7 +280,6 @@ omod ROBOT is
 
     ***Moving in same direction = false
     ***Need to start negotation if two robots move towards each other directly, without any intersection in the middle.
-
     ceq needNegotiation(< OID : Robot | location : (X,Y), direction : D, state : moving >,
         {OID2 : Robot | (X2,Y2) ; D2 ; moving ; I}, < OID3 : Map | paths : {(X3,Y3) (X4,Y4)} PS >) =
             true if opposite(D,D2) and (findPath((X,Y), {(X3,Y3) (X4,Y4)}) == findPath((X2,Y2), {(X3,Y3) (X4,Y4)})) .
@@ -299,8 +327,8 @@ omod ROBOT is
     eq performChecks(< OID : Robot | >, TID, < OID2 : ResupplyStation | location : (X,Y) > < OID3 : CollectionStation | location : (X2,Y2) > CONF) =
         resupplyLocCheck(< OID : Robot | >, TID, (X,Y)) cPointLocCheck(< OID : Robot | >, TID, (X2,Y2)) .
 
-    eq canCompleteNow(< OID : Worker | state : FUNC, curTask : noTask >, [OID2, removeAt (X,Y), N]) = true .
-    eq canCompleteNow(< OID : Worker | state : FUNC, curTask : noTask >, [OID2, repairAt (X,Y), N]) = true .
+    ceq canCompleteNow(< OID : Worker | state : FUNC, curTask : TS >, [OID2, removeAt (X,Y), N]) = true if (TS == noTask) or (TS == [OID2, removeAt (X,Y), N]) .
+    ceq canCompleteNow(< OID : Worker | state : FUNC, curTask : TS >, [OID2, repairAt (X,Y), N]) = true if (TS == noTask) or (TS == [OID2, repairAt (X,Y), N]) .
     eq canCompleteNow(< OID : Worker | state : FUNC, cargoLevel : full, curCargo : water >, [OID2, watering, N]) = true .
     eq canCompleteNow(< OID : Worker | state : FUNC, cargoLevel : full, curCargo : fertilizer >, [OID2, fertilize, N]) = true .
     eq canCompleteNow(< OID : Transporter | cargoLevel : empty >, [OID2, harvest, N]) = true .
@@ -315,10 +343,6 @@ omod ROBOT is
     eq planPath(< OID : Robot | location : (X,Y), obstructionPoints : LL >, [OID2, TT, N], < OID3 : Map | allIntersections : CONF > CONF2) =
         $planPath(< OID3 : Map | >,
             $planPathLocations(< OID : Robot | >, [OID2, TT, N], CONF CONF2), LL) .
-    eq detectionBorder(< OID : Robot | location : (X,Y), detectionRange : N, direction : north >) = (X, Y + N) .
-    eq detectionBorder(< OID : Robot | location : (X,Y), detectionRange : N, direction : east >) = (X + N, Y) .
-    eq detectionBorder(< OID : Robot | location : (X,Y), detectionRange : N, direction : south >) = (X, Y - N) .
-    eq detectionBorder(< OID : Robot | location : (X,Y), detectionRange : N, direction : north >) = (X - N, Y) .
     eq OID notIn {OID : CID | (X,Y) ; I} REP = false .
     eq OID notIn REP = true [owise] .
     ceq $breaksPath((X,Y) (X,Y2), {OID2 : CID | (X,Y3) ; north ; I}) = true if Y > Y2 .
@@ -326,6 +350,7 @@ omod ROBOT is
     ceq $breaksPath((X,Y) (X,Y2), {OID2 : CID | (X,Y3) ; south ; I}) = true if Y < Y2 .
     ceq $breaksPath((X,Y) (X2,Y), {OID2 : CID | (X3,Y) ; west ; I}) = true if X < X2 .
     eq $breaksPath(LL, REP) = false [owise] .
+    
     ceq breaksPath(LL, {OID2 : CID | (X,Y) ; I}) = false if between((X,Y), LL) == nil .
     eq breaksPath(LL, {OID2 : Obstacle | (X,Y) ; I}) =
         if between((X,Y), LL) == nil then
@@ -333,8 +358,9 @@ omod ROBOT is
         else
             true
         fi .
-    eq breaksPath(LL, {OID2 : CID | (X,Y) ; D ; I}) = $breaksPath(between((X,Y), LL), {OID2 : CID | (X,Y) ; D ; I}) [owise] .
-
+    eq breaksPath(LL, {OID2 : CID | (X,Y) ; D ; I}) = $breaksPath(between((X,Y), LL), {OID2 : CID | (X,Y) ; D ; I}) .
+    
+    *** X,Y is the location of chosen intersection, the pathset are paths not used and any one of them can therefore be a yield location.
     eq $yieldLocationHelper((X,Y), {(X,Y) (X,Y2)} PS) =
         if Y < Y2
         then
@@ -349,7 +375,9 @@ omod ROBOT is
         else
             (X - ROBOT-SIZE, Y)
         fi .
-    ***Checks if the intersection has a path that is not used by LL (X,Y) LL2
+
+    ***Checks if an intersection has a viable yield location, a location that the robot can stop on and not be in the way of LL (X,Y) LL2.
+    ***Uses findPath to get the connecting paths of the intersection and checks if it has any that are not used by LL LL2
     eq yieldLocation(< OID : Intersection | location : (X,Y) >, PS, LL (X,Y) LL2) =
         if findPath((X,Y), PS) \ findPath(last(LL) first(LL2), PS) =/= es
         then
@@ -358,22 +386,34 @@ omod ROBOT is
             nil
         fi .
 
+    ***Goes through a priority queue of intersections sorted by distance from robot's location to find the closest intersection where a robot can yield to.
     eq yieldIntersection(noQueue, < OID : Map | >, LL) = none .
-    eq yieldIntersection([< OID : Intersection | >, 0, "Start"] PQ, < OID2 : Map | >, LL) = yieldIntersection(PQ, < OID2 : Map | >, LL) .
-    ceq yieldIntersection([< OID : Intersection | location : (X,Y) >, RI, OID2] PQ, < OID3 : Map | paths : PS >, LL) =
+    eq yieldIntersection([< OID : Intersection | >, 0, "Start"] PQ, < OID2 : Map | paths : PS >, LL) = 
+        if yieldLocation(< OID : Intersection | >, PS, LL) =/= nil
+        then
+            < OID : Intersection | >
+        else
+            yieldIntersection(PQ, < OID2 : Map | >, LL)
+        fi .
+    ceq yieldIntersection([< OID : Intersection | >, RI, OID2] PQ, < OID3 : Map | paths : PS >, LL) =
         if RI == ratInf
         then
             none
         else
-            if yieldLocation(< OID : Intersection | location : (X,Y) >, PS, LL) =/= nil
+            if yieldLocation(< OID : Intersection | >, PS, LL) =/= nil
             then
-                < OID : Intersection | location : (X,Y) >
+                < OID : Intersection | >
             else
                 yieldIntersection(PQ, < OID3 : Map | >, LL)
             fi
         fi
         if OID2 =/= "Start" .
     
+    ***Checks if there is a valid yielding location and then constructs the path from the robots location (X,Y) to that location
+    ***Identify them, remove them from PQ then call.
+    ***Cant directly convert intersections since (X,Y) may not be the location of an intersection.
+    ***addAndRemove (X,Y)
+
     eq $yieldPath((X,Y), < OID : Map | allIntersections : CONF, paths : PS >, LL) =
         if yieldIntersection(updateDistances(PQConvert((X,Y), CONF)), < OID : Map | >, LL) =/= none
         then
@@ -390,27 +430,17 @@ omod ROBOT is
         else
             nil
         fi .
-    ***setDirection for å sjekke alignment?¨
-    ***enten deler man path eller ikke, hvis ikke så skal man sjekke for første overlap og så ut?
-    ***Hvis pathsene ikke deler noen intersection? Trenger ikke sjekke hele pathen om gangen. Siden ting kan endre seg ser man kun på første path segment.
-    ***Kan man sende kun location? da vil remPath være nil/idle.
-    ***sjekk om de er i samme path og hvis de har opposite direction har man en stop 
-    ***hvis de deler path er det enten reroute eller ingenting.
-    --- ceq pathConflict((X,Y) (X2,Y2) LL, (X3,Y3) (X4,Y4) LL2, PS) =
-    ---     if setDirection((X,Y), (X2,Y2)) =/= setDirection((X3,Y3), (X4,Y4))
-    ---     then
-    ---         ***reroute
-    ---     else
-    ---         ***no conflict
-    ---     fi
-    ---     if findPath((X,Y), PS) == findPath((X3,Y3), PS) .
-
 
     ***Finds the shortest path to a location that is not in the way of (X2,Y2) LL2
     ***Used to move a robot out of another's path.
     ***returns nil if no possible path exists.
     eq yieldPath(< OID : Robot | location : (X,Y), obstructionPoints : LL >, < OID2 : Map | >, (X2,Y2) LL2) =
-        $yieldPath((X,Y), addAndRemove(< OID2 : Map | >, (X,Y), (X2,Y2) LL), (X2,Y2) LL2) .
+        if between((X,Y), (X2,Y2) LL2) =/= nil
+        then
+            between((X,Y), (X2,Y2) LL2)
+        else
+            nil
+        fi .
     
     rl [fail] :
         < OID : Robot | location : (X,Y), curTask : TS >
@@ -436,69 +466,45 @@ omod ROBOT is
             < OID3 : Map | >
         fi .
 
-
-    rl [rcvPathNegotiationBusy] :
-        < OID : Robot | location : (X,Y), remainingPath : LL, curTask : TID >
-        msg requestPath § path((X2,Y2) LL2) from OID2 to OID
-        =>
-        ***First identify given the path if there actually is a conflict, or just intersection overlap.
-        
-        < OID : Robot | > .
-
-    --- rl [rcvPathNegotiationFree] :
-    ---     < OID : Robot | location : (X,Y), remainingPath : LL, obstructionPoints : LL2, curTask : noTask, waitingOn : OS >
-    ---     < OID3 : Map | paths : PS >
-    ---     msg requestPath § path(LL3) from OID2 to OID
+    --- rl [rcvPathNegotiation] :
+    ---     < OID : Robot | location : (X,Y), remainingPath : LL >
+    ---     msg requestPath § path(LL2) from OID2 to OID
     ---     =>
-    ---     ***recognize if there is an actual reroute conflict or just a stop.
-    ---     ***we only stop if it is relevant for the next intersection.
-    ---     ***reroute if there is a possible head on when checking paths.
-    ---     ***Check for first shared intersection or if they require the same path.
-    ---     ***returns stop or where the conflict takes place?
-    ---     ***Kan ikke forvente at de nødvendigvis deler en koordinat.
-    ---     ***in range gitt at en av dem er samme?
-    ---     ***Overlap i motsatt retning?
-    ---     ***checks for first instance of shared intersection, but they may have overlap without it.
-    ---     ***hva kan pathConflict returnere?
-    ---         ***Reroute negotiation nødvendig,
-    ---         ***no conflict Kan hende fordi den er i veien fordi den resupplyer eller er idle, men skal samme vei.
-    ---             ***nil
-    ---         ***stop for robot1
-    ---             ***
-    ---         ***stop for robot2
-    ---             ***
-    ---         ***Hver av de returnerer nil eller en location?
-    ---     if pathConflict((X,Y) LL, LL3, PS)
+    ---     if directConflict((X,Y) LL, LL2)
     ---     then
-    ---         ***Either reroute or temporary stop, if we stop then we send message when moving out of the intersection?
-    ---         ***we need to know what kind of conflict it is to determine behavior.
-
-    ---         ***So each robot needs a set of who is waiting for them to move?
-    ---         ***can also be waiting since it detects robots in conflict.
-    ---         ***The robot detects when another robot is out of the intersection instead?
-    ---         ***Either do movement based on sensor detection or message passing.
-    ---             ***on sensor detection.
-    ---             ***What should we look for?
-    ---             ***in one case if it starts moving away from us.
-    ---             ***the other when it has gone through an intersection
-    ---         ***Robot maintains waiting on, and when to stop it.
-    ---         ***check if robot is travelling away from an intersection to remove it from waitingOn?
-    ---         < OID : Robot | state : waiting, waitingOn : OID2 OS >
-    ---         < OID3 : Map | >
-    ---         dly(msg waiting from OID to OID2)
+    ---         ***replan and calc new path, and send difference in current path and the new one.
+    ---         ***Two problems: no task, which means replanning is difficult, or no viable path.
+    ---         ***No task: instead calc for yield intersection.
+    ---         ***For either, if no path can be found, then return inf, or a separate message.
+    ---         ***Cause what if both return inf?
+    ---         ***Ideal protocol: Add the location of OID2 to obstruction points, replan and compare length of replanned path to original
+    ---         ***new - original = how much cost it is to change.
+    ---         ***two problems: If there is no viable path, and if the robot has no task.
+    ---         ***For no task, do yield instead? And this yield can return no viable path.
+    ---         < OID : Robot | >
+    ---         handleIt
     ---     else
-    ---         ***Need to yield.
+    ---         ***moving to same intersection, compare paths in another way.
+    ---         ***What should the operation return?
     ---     fi .
-        
-        ***Yielding to yielding
-        ***for identifying yield, what if we are headed towards the same intersection?
-        ***We already know you have lower priority than the other robot.
-        ***we can be moving or unmoving
-        ***If we are moving then we have to be yielding
-        ***yield to it and send message that you are yielding.
-        ***Since we are free, we yield.
-        ***Intersection resolution function.
-        
+
+    --- rl [rcvPathNegotiation] :
+    ---     < OID : Robot | location : (X,Y), remainingPath : LL >
+    ---     < OID2 : Map | >
+    ---     msg requestPath § path((X2,Y2) LL2) from OID3 to OID
+    ---     =>
+    ---     if directConflict((X,Y) LL, (X2,Y2) LL2)
+    ---     then
+    ---         < OID : Robot | >
+    ---         dly(msg cost § path((X,Y) LL), MSG-DELAY)
+    ---         ***not necessarily, can autoyield
+    ---         ***Yielding, a cost or nopath.
+    ---         ***0, cost or ratInf?
+    ---         replanCost(< OID : Robot | >, (X2,Y2) LL2)
+    ---     else
+    ---         < OID : Robot | >
+    ---         dly(msg NoConflict from OID to OID3, MSG-DELAY)
+    ---     fi .
 
     rl [rcvObstacleRemovedMsg] : 
         < OID : Robot | obstructionPoints : LL >
@@ -556,7 +562,7 @@ omod ROBOT is
         then
             crashPrevention(< OID : Robot | state : moving,
                 remainingPath : planPath(< OID : Robot | >, [OID2, repairAt (X2,Y2), 1], < OID3 : Map | > < OID2 : Robot | >),
-                detected : REP, curTask : [OID2, repairAt (X2,Y2), 1] >, {OID2 : Robot | INC ; (X2,Y2) ; I})
+                detected : REP, curTask : [OID2, repairAt (X2,Y2), 1], obstructionPoints : (X2,Y2) LL2 >, {OID2 : Robot | INC ; (X2,Y2) ; I})
             < OID2 : Robot | >
             < OID3 : Map | >
         else
@@ -582,7 +588,7 @@ omod ROBOT is
         then
             crashPrevention(< OID : Robot | state : moving,
                 remainingPath : planPath(< OID : Robot | >, [OID2, removeAt (X2,Y2), 1], < OID3 : Map | > < OID2 : Obstacle | >),
-                detected : REP, curTask : [OID2, removeAt (X2,Y2), 1] >, {OID2 : Obstacle | (X2,Y2)})
+                detected : REP, curTask : [OID2, removeAt (X2,Y2), 1], obstructionPoints : (X2,Y2) LL2 >, {OID2 : Obstacle | (X2,Y2)})
             broadcast(OID, obstacleAt (X2,Y2), OS OS2)
             < OID2 : Obstacle | >
             < OID3 : Map | >
@@ -611,7 +617,7 @@ omod ROBOT is
         =>
         < OID : Robot | state : repairing, workState : [OID2 (repairAt (X2,Y2)) REPAIR-TIME] >
         < OID2 : Robot | >
-        if canCompleteNow(< OID : Robot | >, [OID2, removeAt (X2,Y2), N]) and distance((X,Y), (X2,Y2)) <= WORK-RANGE .
+        if canCompleteNow(< OID : Robot | >, [OID2, repairAt (X2,Y2), N]) and distance((X,Y), (X2,Y2)) <= WORK-RANGE .
     rl [finishObstacleRemoval] :
         < OID : Robot | location : (X,Y), curTask : [OID2, removeAt (X2,Y2), N], workState : [OID2 (removeAt (X2,Y2)) 0],
             workers : OS, transporters : OS2 >
