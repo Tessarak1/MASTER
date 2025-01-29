@@ -36,6 +36,9 @@ omod MAP is
     var AS : AttributeSet .
     var N : Nat .
 
+    ***Adds intersections at locations specified by LL.
+    ***Removes connections between intersections if the paths between them overlap with points specified by LL2.
+    ***Used to perform pathfinding for robots that are not at intersections and may have detected obstacles.
     eq addAndRemove(< OID : Map | >, LL, LL2) = removeConnection(newIntersection(< OID : Map | >, LL), LL2) .
     ***Checks if a location is outside of the area defined by the map.
     ceq outsideMap((X,Y), {(X2,Y2) (X3,Y3)} PS) = false if between((X,Y), (X2,Y2) (X3,Y3)) =/= nil .

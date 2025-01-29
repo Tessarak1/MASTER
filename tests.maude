@@ -11,7 +11,7 @@ omod FINAL-TESTS is
   ops GL1 GL2 GL3 GL4 : -> Object .
   ops I1 I2 I3 I4 I5 I6 I7 I8 I8 : -> Object .
   ops resupply cpoint : -> Object .
-  op obstacles : -> Configuration .
+  ops obstacles intersections : -> Configuration .
 
   eq rob = < "R1" : Worker | location : (50,0), speed : 1, direction : east, remainingPath : (60,0),
     state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : water, 
@@ -23,15 +23,17 @@ omod FINAL-TESTS is
     state : failed, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
     auctions : noAuction, curTask : noTask, workers : "R1" "R2", transporters : none, workState : noWork > . 
 
-
-  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I4" "CPoint" > .
+  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I4" > .
   eq I2 = < "I2" : Intersection | location : (60,0), neighbors : "I1" "I3" "I6" > .
-  eq I3 = < "I3" : Intersection | location : (120,0), neighbors : "I2" "I8" "Resupply" > .
+  eq I3 = < "I3" : Intersection | location : (120,0), neighbors : "I2" "I8" > .
   eq I4 = < "I4" : Intersection | location : (0,-60), neighbors : "I1" "I5" > .
-  eq I5 = < "I5" : Intersection | location : (30,-60)  , neighbors : "I4" "I6" "GL1" "GL3" > .
+  eq I5 = < "I5" : Intersection | location : (30,-60)  , neighbors : "I4" "I6" > .
   eq I6 = < "I6" : Intersection | location : (60,-60)  , neighbors : "I5" "I7" "I2" > .
-  eq I7 = < "I7" : Intersection | location : (90,-60)  , neighbors : "I6" "I8" "GL2" "GL4" > .
+  eq I7 = < "I7" : Intersection | location : (90,-60)  , neighbors : "I6" "I8" > .
   eq I8 = < "I8" : Intersection | location : (120,-60)  , neighbors : "I7" "I3" > .
+
+  eq intersections = I1 I2 I3 I4 I5 I6 I7 I8 .
+
   eq GL1 = < "GL1" : Field | location : (30, -50), neighbors : "I5", growingState : growing, waterLevel : low, fertilizerLevel : good, 
     waterTimer : [cur: 0 - base: 1000], fertilizerTimer : [cur: 10000 - base: 100], growTimer : [cur: 10000 - base: 100], taskNr : 1,
     growingArea : area((10,-10), (50,-10), (10,-50), (50,-50)), workers : "R1", transporters : none,
@@ -59,3 +61,4 @@ omod FINAL-TESTS is
   eq map = < "Map" : Map | allIntersections : locations, paths : createPathSet(locations) > .
   eq farm = map rob rob3 @ 0 .
 endom
+

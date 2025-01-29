@@ -336,6 +336,8 @@ omod ROBOT is
     ceq canCompleteNow(< OID : Robot | curTask : TID >, TID2) = false if TID =/= noTask .
     eq canCompleteNow(< OID : Robot | >, TID) = false [owise] .
 
+    ***only works on unique names, what if there are multiple obstacles?
+    ***register them as O1 O2 O3.  They can differentiate them.
     eq $planPathLocations(< OID : Robot | location : (X,Y) >, [OID2, TT, N], < OID2 : Locatable | location : (X2,Y2) > CONF) =
         (X,Y) performChecks(< OID : Robot | >, [OID2, TT, N], < OID2 : Locatable | location : (X2,Y2) > CONF) (X2,Y2) .
     eq $planPath(< OID : Map | >, LL, LL2) = dijkstraChain(getIntersections(addAndRemove(< OID : Map | >, LL, LL2)), LL) .
@@ -412,35 +414,32 @@ omod ROBOT is
     ***Checks if there is a valid yielding location and then constructs the path from the robots location (X,Y) to that location
     ***Identify them, remove them from PQ then call.
     ***Cant directly convert intersections since (X,Y) may not be the location of an intersection.
-    ***addAndRemove (X,Y)
+    ***addAndRemove(map, (X,Y), obstacles) and something else to remove.
 
-    eq $yieldPath((X,Y), < OID : Map | allIntersections : CONF, paths : PS >, LL) =
-        if yieldIntersection(updateDistances(PQConvert((X,Y), CONF)), < OID : Map | >, LL) =/= none
-        then
-            buildPath(
-                oid(returnByLocation(CONF, (X,Y))),
-                oid(yieldIntersection(updateDistances(PQConvert((X,Y), CONF)), < OID : Map | >, LL)),
-                PQConvert((X,Y), CONF)
-            )
-            yieldLocation(
-                yieldIntersection(updateDistances(PQConvert((X,Y), CONF)), < OID : Map | >, LL),
-                PS,
-                LL
-            )
-        else
-            nil
-        fi .
+    --- eq $yieldPath((X,Y), < OID : Map | allIntersections : CONF, paths : PS >, LL) =
+
+    ---     if yieldIntersection(updateDistances(PQConvert((X,Y), CONF)), < OID : Map | >, LL) =/= none
+    ---     then
+    ---         buildPath(
+    ---             oid(returnByLocation(CONF, (X,Y))),
+    ---             oid(yieldIntersection(updateDistances(PQConvert((X,Y), CONF)), < OID : Map | >, LL)),
+    ---             PQConvert((X,Y), CONF)
+    ---         )
+    ---         yieldLocation(
+    ---             yieldIntersection(updateDistances(PQConvert((X,Y), CONF)), < OID : Map | >, LL),
+    ---             PS,
+    ---             LL
+    ---         )
+    ---     else
+    ---         nil
+    ---     fi .
 
     ***Finds the shortest path to a location that is not in the way of (X2,Y2) LL2
     ***Used to move a robot out of another's path.
     ***returns nil if no possible path exists.
-    eq yieldPath(< OID : Robot | location : (X,Y), obstructionPoints : LL >, < OID2 : Map | >, (X2,Y2) LL2) =
-        if between((X,Y), (X2,Y2) LL2) =/= nil
-        then
-            between((X,Y), (X2,Y2) LL2)
-        else
-            nil
-        fi .
+    ***Ensure that we have the right map to work with.
+    --- eq yieldPath(< OID : Robot | location : (X,Y), obstructionPoints : LL >, < OID2 : Map | >, (X2,Y2) LL2) =
+    ---     add
     
     rl [fail] :
         < OID : Robot | location : (X,Y), curTask : TS >
