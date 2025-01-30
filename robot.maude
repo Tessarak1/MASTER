@@ -66,7 +66,7 @@ omod ROBOT is
     ops empty full : -> CargoLevel [ctor] .
     op seed : -> Seed [ctor] .
     op replanPath : Object Object Location -> Object .
-    op pathConflict : List-Location List-Location PathSet -> List-Location .
+    op pathConflict : List-Location List-Location RoadSet -> List-Location .
 
     op nil : -> Representation [ctor] .
     op __ : Representation Representation -> Representation [assoc comm id: nil ctor] .
@@ -99,8 +99,8 @@ omod ROBOT is
     op sameDestination : Location Configuration -> Configuration .
     op closest : Location Configuration Configuration -> Configuration .
 
-    op $yieldLocationHelper : Location PathSet -> Location .
-    op yieldLocation : Object PathSet List-Location -> List-Location .
+    op $yieldLocationHelper : Location RoadSet -> Location .
+    op yieldLocation : Object RoadSet List-Location -> List-Location .
     op yieldIntersection : PQueue Object List-Location -> Configuration .
     op $yieldPath : Location Object List-Location -> List-Location .
     op yieldPath : Object Object List-Location -> List-Location .
@@ -125,7 +125,7 @@ omod ROBOT is
     vars L L2 : Level .
     var GS : GrowingState .
     var TC : TransporterCargo .
-    var PS : PathSet .
+    var RS : RoadSet .
     var MC : MsgContent .
     var CID : Cid .
     var I : Information .
@@ -271,25 +271,25 @@ omod ROBOT is
     eq (X,Y) D leadsTo (X2,Y2) = false [owise] .
 
     ***Need to find a better way to know if two robots are headed towards one another, or they share the same path
-    ***as findPath can return the entire pathset of.
+    ***as findRoad can return the entire pathset of.
     ***check first two instead of just location?
     ***I need a better way to orient robots. regardless of if they are on intersections or not.
     ***it has location and remainingpath and direction, this is what I can use.
-    ***Have been using findpath for orientation, this is the only problem with it.
+    ***Have been using findroad for orientation, this is the only problem with it.
     ***
 
     ***Moving in same direction = false
     ***Need to start negotation if two robots move towards each other directly, without any intersection in the middle.
     ceq needNegotiation(< OID : Robot | location : (X,Y), direction : D, state : moving >,
-        {OID2 : Robot | (X2,Y2) ; D2 ; moving ; I}, < OID3 : Map | paths : {(X3,Y3) (X4,Y4)} PS >) =
-            true if opposite(D,D2) and (findPath((X,Y), {(X3,Y3) (X4,Y4)}) == findPath((X2,Y2), {(X3,Y3) (X4,Y4)})) .
+        {OID2 : Robot | (X2,Y2) ; D2 ; moving ; I}, < OID3 : Map | roads : {(X3,Y3) (X4,Y4)} RS >) =
+            true if opposite(D,D2) and (findRoad((X,Y), {(X3,Y3) (X4,Y4)}) == findRoad((X2,Y2), {(X3,Y3) (X4,Y4)})) .
     ***If a robot is moving towards a stationary robot.
     ceq needNegotiation(< OID : Robot | location : (X,Y), remainingPath : LL, state : moving >,
-        {OID2 : Robot | (X2,Y2) ; STATE ; I}, < OID3 : Map | paths : PS >) =
-            true if (STATE =/= moving) and (findPath((X,Y), PS) == findPath((X2,Y2), PS)) and (between((X,Y) LL, (X2,Y2)) =/= nil) .
+        {OID2 : Robot | (X2,Y2) ; STATE ; I}, < OID3 : Map | roads : RS >) =
+            true if (STATE =/= moving) and (findRoad((X,Y), RS) == findRoad((X2,Y2), RS)) and (between((X,Y) LL, (X2,Y2)) =/= nil) .
     ***two robots move towards the same intersection from different paths.
     ceq needNegotiation(< OID : Robot | location : (X,Y), state : moving, direction : D >,
-        {OID2 : Robot | (X2,Y2) ; D2 ; I}, < OID3 : Map | paths : {(X3,Y3) (X4,Y4)} {(X4, Y4) (X5,Y5)} PS >) =
+        {OID2 : Robot | (X2,Y2) ; D2 ; I}, < OID3 : Map | roads : {(X3,Y3) (X4,Y4)} {(X4, Y4) (X5,Y5)} RS >) =
             true if (X,Y) inRange({(X3,Y3) (X4,Y4)}) and (X2,Y2) inRange({(X4, Y4) (X5,Y5)}) and ((X,Y) D leadsTo (X4,Y4)) and ((X2,Y2) D2 leadsTo (X4,Y4)) .    
     eq needNegotiation(< OID : Robot | >, {OID2 : Robot | I}, < OID3 : Map | >) = false [owise] .
 
@@ -363,14 +363,14 @@ omod ROBOT is
     eq breaksPath(LL, {OID2 : CID | (X,Y) ; D ; I}) = $breaksPath(between((X,Y), LL), {OID2 : CID | (X,Y) ; D ; I}) .
     
     *** X,Y is the location of chosen intersection, the pathset are paths not used and any one of them can therefore be a yield location.
-    eq $yieldLocationHelper((X,Y), {(X,Y) (X,Y2)} PS) =
+    eq $yieldLocationHelper((X,Y), {(X,Y) (X,Y2)} RS) =
         if Y < Y2
         then
             (X, Y + ROBOT-SIZE)
         else
             (X, Y - ROBOT-SIZE)
         fi .
-    eq $yieldLocationHelper((X,Y), {(X,Y) (X2,Y)} PS) =
+    eq $yieldLocationHelper((X,Y), {(X,Y) (X2,Y)} RS) =
         if X < X2
         then
             (X + ROBOT-SIZE, Y)
@@ -379,30 +379,30 @@ omod ROBOT is
         fi .
 
     ***Checks if an intersection has a viable yield location, a location that the robot can stop on and not be in the way of LL (X,Y) LL2.
-    ***Uses findPath to get the connecting paths of the intersection and checks if it has any that are not used by LL LL2
-    eq yieldLocation(< OID : Intersection | location : (X,Y) >, PS, LL (X,Y) LL2) =
-        if findPath((X,Y), PS) \ findPath(last(LL) first(LL2), PS) =/= es
+    ***Uses findRoad to get the connecting paths of the intersection and checks if it has any that are not used by LL LL2
+    eq yieldLocation(< OID : Intersection | location : (X,Y) >, RS, LL (X,Y) LL2) =
+        if findRoad((X,Y), RS) \ findRoad(last(LL) first(LL2), RS) =/= es
         then
-            $yieldLocationHelper((X,Y), findPath((X,Y), PS) \ findPath(last(LL) first(LL2), PS))
+            $yieldLocationHelper((X,Y), findRoad((X,Y), RS) \ findRoad(last(LL) first(LL2), RS))
         else
             nil
         fi .
 
     ***Goes through a priority queue of intersections sorted by distance from robot's location to find the closest intersection where a robot can yield to.
     eq yieldIntersection(noQueue, < OID : Map | >, LL) = none .
-    eq yieldIntersection([< OID : Intersection | >, 0, "Start"] PQ, < OID2 : Map | paths : PS >, LL) = 
-        if yieldLocation(< OID : Intersection | >, PS, LL) =/= nil
+    eq yieldIntersection([< OID : Intersection | >, 0, "Start"] PQ, < OID2 : Map | roads : RS >, LL) = 
+        if yieldLocation(< OID : Intersection | >, RS, LL) =/= nil
         then
             < OID : Intersection | >
         else
             yieldIntersection(PQ, < OID2 : Map | >, LL)
         fi .
-    ceq yieldIntersection([< OID : Intersection | >, RI, OID2] PQ, < OID3 : Map | paths : PS >, LL) =
+    ceq yieldIntersection([< OID : Intersection | >, RI, OID2] PQ, < OID3 : Map | roads : RS >, LL) =
         if RI == ratInf
         then
             none
         else
-            if yieldLocation(< OID : Intersection | >, PS, LL) =/= nil
+            if yieldLocation(< OID : Intersection | >, RS, LL) =/= nil
             then
                 < OID : Intersection | >
             else
@@ -416,7 +416,7 @@ omod ROBOT is
     ***Cant directly convert intersections since (X,Y) may not be the location of an intersection.
     ***addAndRemove(map, (X,Y), obstacles) and something else to remove.
 
-    --- eq $yieldPath((X,Y), < OID : Map | allIntersections : CONF, paths : PS >, LL) =
+    --- eq $yieldPath((X,Y), < OID : Map | allIntersections : CONF, paths : RS >, LL) =
 
     ---     if yieldIntersection(updateDistances(PQConvert((X,Y), CONF)), < OID : Map | >, LL) =/= none
     ---     then
@@ -427,7 +427,7 @@ omod ROBOT is
     ---         )
     ---         yieldLocation(
     ---             yieldIntersection(updateDistances(PQConvert((X,Y), CONF)), < OID : Map | >, LL),
-    ---             PS,
+    ---             RS,
     ---             LL
     ---         )
     ---     else

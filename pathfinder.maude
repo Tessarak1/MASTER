@@ -111,8 +111,8 @@ omod PATHFINDER is
     eq dijkstraSearch(< OID : Intersection | location : (X,Y) > < OID2 : Intersection | location : (X2,Y2) > CONF, (X,Y), (X2,Y2)) =
         dijkstraSearch(< OID : Intersection | location : (X,Y) > < OID2 : Intersection | location : (X2,Y2) > CONF, OID, OID2) .
 
-    eq dijkstraChain(CONF, OID ; OID2) = dijkstraSearch(CONF, OID, OID2) .
-    eq dijkstraChain(CONF, OID ; OID2 ; OL) = dijkstraSearch(CONF, OID, OID2) dijkstraChain(CONF, OID2 ; OL) .
+    --- eq dijkstraChain(CONF, OID ; OID2) = dijkstraSearch(CONF, OID, OID2) .
+    --- eq dijkstraChain(CONF, OID ; OID2 ; OL) = dijkstraSearch(CONF, OID, OID2) dijkstraChain(CONF, OID2 ; OL) .
     eq dijkstraChain(CONF, (X,Y) (X2,Y2)) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) .
     eq dijkstraChain(CONF, (X,Y) (X2,Y2) LL) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) dijkstraChain(CONF, (X2,Y2) LL) .
 

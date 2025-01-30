@@ -58,7 +58,7 @@ omod FINAL-TESTS is
   eq cpoint = < "CPoint" : CollectionStation | location : (0,40), neighbors : "I1" > .
   eq locations = I1 I2 I3 I4 I5 I6 I7 I8 GLREP1 GLREP2 GLREP3 GLREP4 resupply cpoint .
   eq obstacles = < "O1" : Obstacle | location : (0,-60) > < "O2" : Obstacle | location : (0,-58) > < "O3" : Obstacle | location : (2,-60) > .
-  eq map = < "Map" : Map | allIntersections : locations, paths : createPathSet(locations) > .
+  eq map = < "Map" : Map | allIntersections : locations, roads : createRoadSet(locations) > .
   eq farm = map rob rob3 @ 0 .
 endom
 

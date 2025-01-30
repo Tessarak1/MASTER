@@ -38,7 +38,7 @@ omod TIMED-FARM is
     vars CONF CONF2 CONF3 : Configuration .
     var OBS : Configuration .
     vars TIME TIME2 : Time .
-    var PS : PathSet .
+    var RS : RoadSet .
     vars TR TR2 TR3 TR4 : Timer .
     var O : Object .
     vars OID OID2 OID3 : String .
@@ -111,9 +111,9 @@ omod TIMED-FARM is
     eq updateLocation(< OID : Robot | location : (X, Y), direction : west >) = < OID : Robot | location : (X + ROBOT-SIZE, Y) > .
 
     eq collision(< OID : Robot | location : (X, Y) > < OID2 : Obstacle | >, < OID3 : Map | >) =  updateLocation(< OID : Robot | speed : 0, state : crashed >) < OID2 : Obstacle | > .
-    ceq collision(< OID : Robot | speed : SP > < OID2 : Robot | speed : SP2 >, < OID3 : Map | paths : PS >) = 
+    ceq collision(< OID : Robot | speed : SP > < OID2 : Robot | speed : SP2 >, < OID3 : Map | roads : RS >) = 
         updateLocation(< OID : Robot | state : crashed, speed : 0 >) < OID2 : Robot | speed : 0, state : crashed >
-        if outsideMap(getLocation(updateLocation(< OID : Robot | >)), PS) == false .
+        if outsideMap(getLocation(updateLocation(< OID : Robot | >)), RS) == false .
 
     eq handleCollisions(< OID : Robot | location : (X, Y) > < OID2 : PhysicalObj | location : (X, Y) >  < OID3 : Map | > CONF) = collision(< OID : Robot | > < OID2 : PhysicalObj | >, < OID3 : Map | >) handleCollisions(CONF) .
     eq handleCollisions(CONF) = CONF [owise] .
