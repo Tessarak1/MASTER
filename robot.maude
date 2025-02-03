@@ -340,7 +340,7 @@ omod ROBOT is
     ***register them as O1 O2 O3.  They can differentiate them.
     eq $planPathLocations(< OID : Robot | location : (X,Y) >, [OID2, TT, N], < OID2 : Locatable | location : (X2,Y2) > CONF) =
         (X,Y) performChecks(< OID : Robot | >, [OID2, TT, N], < OID2 : Locatable | location : (X2,Y2) > CONF) (X2,Y2) .
-    eq $planPath(< OID : Map | >, LL, LL2) = dijkstraChain(getIntersections(addAndRemove(< OID : Map | >, LL, LL2)), LL) .
+    eq $planPath(< OID : Map | >, LL, LL2) = dijkstraChain(getIntersections(modifyMap(< OID : Map | >, LL, LL2)), LL) .
     eq calculatePathLength(< OID : Robot | >, TID, < OID2 : Map | >) = listLength(planPath(< OID : Robot | >, TID, < OID2 : Map | >)) .
     eq planPath(< OID : Robot | location : (X,Y), obstructionPoints : LL >, [OID2, TT, N], < OID3 : Map | allIntersections : CONF > CONF2) =
         $planPath(< OID3 : Map | >,
@@ -414,14 +414,14 @@ omod ROBOT is
     ***Checks if there is a valid yielding location and then constructs the path from the robots location (X,Y) to that location
     ***Identify them, remove them from PQ then call.
     ***Cant directly convert intersections since (X,Y) may not be the location of an intersection.
-    ***addAndRemove(map, (X,Y), obstacles) and something else to remove.
+    ***modifyMap(map, (X,Y), obstacles) and something else to remove.
 
     --- eq $yieldPath((X,Y), < OID : Map | allIntersections : CONF, paths : RS >, LL) =
 
     ---     if yieldIntersection(updateDistances(PQConvert((X,Y), CONF)), < OID : Map | >, LL) =/= none
     ---     then
     ---         buildPath(
-    ---             oid(returnByLocation(CONF, (X,Y))),
+    ---             oid(intersectionWithLocation(CONF, (X,Y))),
     ---             oid(yieldIntersection(updateDistances(PQConvert((X,Y), CONF)), < OID : Map | >, LL)),
     ---             PQConvert((X,Y), CONF)
     ---         )

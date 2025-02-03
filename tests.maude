@@ -5,11 +5,12 @@ omod FINAL-TESTS is
 
   ops rob rob2 rob3 rob4 : -> Object .
   op farm : -> ClockedConfiguration .
-  op locations : -> Configuration .
-  op map : -> Object .
+  ops locations locations2 : -> Configuration .
+  ops map map2 : -> Object .
   ops GLREP1 GLREP2 GLREP3 GLREP4 : -> Object .
   ops GL1 GL2 GL3 GL4 : -> Object .
   ops I1 I2 I3 I4 I5 I6 I7 I8 I8 : -> Object .
+  ops J1 J2 J3 J4 : -> Object .
   ops resupply cpoint : -> Object .
   ops obstacles intersections : -> Configuration .
 
@@ -23,14 +24,19 @@ omod FINAL-TESTS is
     state : failed, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
     auctions : noAuction, curTask : noTask, workers : "R1" "R2", transporters : none, workState : noWork > . 
 
-  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I4" > .
+  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I4" "CPoint" > .
   eq I2 = < "I2" : Intersection | location : (60,0), neighbors : "I1" "I3" "I6" > .
-  eq I3 = < "I3" : Intersection | location : (120,0), neighbors : "I2" "I8" > .
+  eq I3 = < "I3" : Intersection | location : (120,0), neighbors : "I2" "I8" "Resupply" > .
   eq I4 = < "I4" : Intersection | location : (0,-60), neighbors : "I1" "I5" > .
-  eq I5 = < "I5" : Intersection | location : (30,-60)  , neighbors : "I4" "I6" > .
+  eq I5 = < "I5" : Intersection | location : (30,-60)  , neighbors : "I4" "I6" "GL1" "GL3" > .
   eq I6 = < "I6" : Intersection | location : (60,-60)  , neighbors : "I5" "I7" "I2" > .
-  eq I7 = < "I7" : Intersection | location : (90,-60)  , neighbors : "I6" "I8" > .
+  eq I7 = < "I7" : Intersection | location : (90,-60)  , neighbors : "I6" "I8" "GL2" "GL4" > .
   eq I8 = < "I8" : Intersection | location : (120,-60)  , neighbors : "I7" "I3" > .
+
+  eq J1 = < "J1" : Intersection | location : (0,0), neighbors : "J2" "J3" > .
+  eq J2 = < "J2" : Intersection | location : (100,0), neighbors : "J1" "J4" > .
+  eq J3 = < "J3" : Intersection | location : (0, -100), neighbors : "J1" "J4" > .
+  eq J4 = < "J4" : Intersection | location : (100, -100), neighbors : "J2" "J3" > .
 
   eq intersections = I1 I2 I3 I4 I5 I6 I7 I8 .
 
@@ -46,7 +52,7 @@ omod FINAL-TESTS is
     waterTimer : [cur: 0 - base: 1000], fertilizerTimer : [cur: 10000 - base: 100], growTimer : [cur: 10000 - base: 100], taskNr : 1,
     growingArea : area((10,-70), (50,-70), (10,-110), (50,-110)), workers : "R1" "R2" "R3", transporters : none,
     auctions : noAuction > .
-  eq GL4 = < "GL4" : Field | location : (90, -70), neighbors : "I5", growingState : harvest, waterLevel : low, fertilizerLevel : good, 
+  eq GL4 = < "GL4" : Field | location : (90, -70), neighbors : "I7", growingState : harvest, waterLevel : low, fertilizerLevel : good, 
     waterTimer : [cur: 0 - base: 1000], fertilizerTimer : [cur: 10000 - base: 100], growTimer : [cur: 10000 - base: 100], taskNr : 1,
     growingArea : area((70,-70), (110,-70), (70,-110), (110,-110)), workers : "R1" "R2" "R3", transporters : none,
     auctions : noAuction > .
@@ -59,6 +65,10 @@ omod FINAL-TESTS is
   eq locations = I1 I2 I3 I4 I5 I6 I7 I8 GLREP1 GLREP2 GLREP3 GLREP4 resupply cpoint .
   eq obstacles = < "O1" : Obstacle | location : (0,-60) > < "O2" : Obstacle | location : (0,-58) > < "O3" : Obstacle | location : (2,-60) > .
   eq map = < "Map" : Map | allIntersections : locations, roads : createRoadSet(locations) > .
+  eq map2 = < "Map 2" : Map | allIntersections : J1 J2 J3 J4, roads : createRoadSet(J1 J2 J3 J4) > .
   eq farm = map rob rob3 @ 0 .
 endom
 
+red newObsIntersection(map2, (50,0)) .
+red PQConvert(getIntersections(newObsIntersection(map2, (50,0))), (0,0)) .
+red updateDistances(PQConvert(getIntersections(newObsIntersection(map2, (50,0))), (0,0))) .

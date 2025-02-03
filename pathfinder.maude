@@ -4,26 +4,26 @@ omod DIJKSTRA-NODE is
     protecting MAP .
     protecting RAT-INF .
     
-    sort dijkstraNode .
+    sort DijkstraNode .
     ***Intersection, current calculated distance to it
     ***and Oid of previous intersection of shortest path to it.
-    op [_,_,_] : Object RatInf Oid -> dijkstraNode [ctor] .
+    op [_,_,_] : Object RatInf Oid -> DijkstraNode [ctor] .
 endom
 
 omod PRIORITY-QUEUE is
     protecting DIJKSTRA-NODE .
 
     sort PQueue .
-    subsort dijkstraNode < PQueue .
+    subsort DijkstraNode < PQueue .
 
     ***basic list constructors
     op noQueue : -> PQueue [ctor] .
     op __ : PQueue PQueue -> PQueue [assoc id: noQueue ctor] .
 
     ***adds node to list, sorted by current shortest distance to node.
-    op put : dijkstraNode PQueue -> PQueue .
+    op put : DijkstraNode PQueue -> PQueue .
 
-    var DN : dijkstraNode .
+    var DN : DijkstraNode .
     var PQ : PQueue .
     vars O O2 : Object .
     var OID OID2 : Oid .
@@ -45,10 +45,8 @@ omod PATHFINDER is
     ***Converts a set of intersections into a priority queue starting with the intersection with the given location.
     op PQConvert : Configuration Location -> PQueue .
 
-    ***Updates the distances to an edge's neighbors 
-    op updateNeighbors : dijkstraNode PQueue -> PQueue .
-    
-    ***recursively calls updateNeighbors to update all distances
+    ***Updates the distances for a priority queue.
+    op $updateDistances : PQueue DijkstraNode -> PQueue .
     op updateDistances : PQueue -> PQueue .
 
     ***construct path from goal node to starting node.
@@ -57,21 +55,16 @@ omod PATHFINDER is
     op buildPath : Oid PQueue -> List-Location .
 
     ***Constructs shortest path from intersection with first oid to intersection with second oid.
-    op dijkstraSearch : Configuration Oid Oid -> List-Location .
-
     ***can also do dijkstra search from location to location
+    op dijkstraSearch : Configuration Oid Oid -> List-Location .
     op dijkstraSearch : Configuration Location Location -> List-Location .
 
     ***Performs consecutive dijkstra searches when a sequence of locations need to be visited in order
     op dijkstraChain : Configuration List-Location -> List-Location .
 
-    ***Creates alternating respectively vertical or horizontal lines, used when a robot needs to perform a task on a field.
+    ***Creates a path that covers a square area and returns to a given beginning point
     ops coverVertical coverHorizontal : List-Location List-Location -> List-Location .
-    
-    ***creates a two step path from the first to the second location, assumes a square area.
     op backToStart : Location Location -> List-Location .
-
-    ***Uses the previous cover operations and backToStart to create a path for the robot to cover the given area.
     ops coverArea $coverArea : Location Area -> List-Location .
 
     vars I I2 : Object .
@@ -83,23 +76,31 @@ omod PATHFINDER is
     vars PQ PQ2 : PQueue .
     var R : Rat .
     vars RI RI2 : RatInf .
-    var DN : dijkstraNode .
+    var DN : DijkstraNode .
     var A : Area .
     var LL : List-Location .
+    var CID : Cid .
 
     eq PQConvert(none, (X,Y)) = noQueue .
     eq PQConvert(< OID : Intersection | location : (X,Y) > CONF, (X,Y)) = [< OID : Intersection | >, 0, "Start"] PQConvert(CONF, (X,Y)) .   
     eq PQConvert(I2 CONF, (X,Y)) = [I2, ratInf, "Placeholder"] PQConvert(CONF, (X,Y)) [owise] .
+        
+    eq $updateDistances(PQ [< OID : Intersection | location : (X,Y), neighbors : OID3 OS >, RI, OID2] PQ2,
+        [< OID3 : Intersection | location : (X2,Y2) >, RI2, OID4]) =
+            if (distance((X,Y), (X2,Y2)) + RI2) < RI
+            then
+                put([< OID : Intersection | neighbors : OS >, distance((X,Y), (X2,Y2)) + RI2, OID3], PQ PQ2)
+            else
+                PQ [< OID : Intersection | neighbors : OS >, RI, OID2] PQ2
+            fi .
 
-    eq updateNeighbors([< OID : Intersection | neighbors : none >, RI, OID2], PQ) = PQ .
-    eq updateNeighbors([< OID : Intersection | location : (X,Y), neighbors : OID2 OS >, RI, OID3], PQ [< OID2 : Intersection | location : (X2,Y2), neighbors : OID OS2 >, RI2, OID4] PQ2) =
-        if (distance((X,Y), (X2,Y2)) + RI) < RI2 then
-            updateNeighbors([< OID : Intersection | neighbors : OS >, RI, OID3], put([< OID2 : Intersection | neighbors : OS2 >, distance((X,Y), (X2,Y2)) + RI, OID], PQ PQ2))
-        else
-            updateNeighbors([< OID : Intersection | neighbors : OS >, RI, OID3], PQ [< OID2 : Intersection | neighbors : OS2 >, RI2, OID4] PQ2)
-        fi .
-    eq updateDistances(noQueue) = noQueue .
-    eq updateDistances(DN PQ) = DN updateDistances(updateNeighbors(DN, PQ)) .
+    ***need OID, location which oid to update.
+    ***We are not allowed to update distances from ObsIntersections, how do we do this? if CID not obsIntersection?
+    ***What about the update itself?
+    ceq updateDistances(PQ [< OID : CID | location : (X,Y), neighbors : OID2 OS >, R, OID3] PQ2) = 
+        updateDistances($updateDistances(PQ [< OID : CID | neighbors : OS >, R, OID3] PQ2, [< OID : CID | location : (X,Y), neighbors : OID2 OS >, R, OID3]))
+        if CID =/= ObsIntersection .
+    eq updateDistances(PQ) = PQ [owise] .
     
     eq buildPath(OID, PQ [< OID : Intersection | >, ratInf, OID2] PQ2) = nil .
     eq buildPath(OID, PQ [< OID : Intersection | location : (X,Y) >, R, "Start"] PQ2) = (X,Y) .
@@ -111,8 +112,6 @@ omod PATHFINDER is
     eq dijkstraSearch(< OID : Intersection | location : (X,Y) > < OID2 : Intersection | location : (X2,Y2) > CONF, (X,Y), (X2,Y2)) =
         dijkstraSearch(< OID : Intersection | location : (X,Y) > < OID2 : Intersection | location : (X2,Y2) > CONF, OID, OID2) .
 
-    --- eq dijkstraChain(CONF, OID ; OID2) = dijkstraSearch(CONF, OID, OID2) .
-    --- eq dijkstraChain(CONF, OID ; OID2 ; OL) = dijkstraSearch(CONF, OID, OID2) dijkstraChain(CONF, OID2 ; OL) .
     eq dijkstraChain(CONF, (X,Y) (X2,Y2)) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) .
     eq dijkstraChain(CONF, (X,Y) (X2,Y2) LL) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) dijkstraChain(CONF, (X2,Y2) LL) .
 

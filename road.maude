@@ -6,21 +6,32 @@ fmod ROAD is
     sorts Road RoadSet .
     subsort Road < RoadSet .
 
-    op es : -> RoadSet [ctor] .
-    op error : -> Road [ctor] .
+    ***RoadSet constructors. A road is defined by two coordinates on the same axis.
     op {__} : Location Location -> Road [ctor comm] .
+    op es : -> RoadSet [ctor] .
     op __ : RoadSet RoadSet -> RoadSet [assoc comm id: es] .
 
+    op findRoad : List-Location RoadSet -> RoadSet .
+    op $addRoad : Location Road RoadSet -> RoadSet .
+    op addRoad : Location Road RoadSet -> RoadSet .
     ***Checks if the first int is in the interval between the two other ints.
     op _inRange(_,_) : Rat Rat Rat -> Bool .
     op _inRange(_) : Location Road -> Bool .
     op _\_ : RoadSet RoadSet -> RoadSet .
     op commonIntersection : Road Road -> Bool [comm] .
+    eq findRoad((X,Y) LL, es) = es .
+    eq findRoad(nil, PS) = es .
+    
+    ceq findRoad((X,Y) LL, {(X2,Y2) (X3,Y3)} PS) = {(X2,Y2) (X3,Y3)} findRoad((X,Y) LL, PS) if (X,Y) inRange({(X2,Y2) (X3,Y3)}) .
+    eq findRoad((X,Y) LL, {(X2,Y2) (X3,Y3)} PS) = findRoad(LL, {(X2,Y2) (X3,Y3)} PS) [owise] .
+    eq addRoad((X,Y), {(X2,Y2) (X3,Y3)}, {(X2,Y2) (X3,Y3)} PS) = {(X,Y) (X2,Y2)} {(X,Y) (X3,Y3)} PS .
+    eq addRoad((X,Y), {(X2,Y2) (X3,Y3)}, PS) = {(X,Y) (X2,Y2)} {(X,Y) (X3,Y3)} PS [owise] .
 
     vars I I2 I3 : Rat .
     vars X X2 X3 Y Y2 Y3 : Rat .
     vars PS PS2 : RoadSet .
     vars P P2 : Road .
+    var LL : List-Location .
 
     eq {(X,Y) (X2,Y2)} {(X,Y) (X2,Y2)} = {(X,Y) (X2,Y2)} .
 
