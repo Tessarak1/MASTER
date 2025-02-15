@@ -42,9 +42,13 @@ fmod LIST-LOCATION is
     op __ : List-Location List-Location -> List-Location [assoc id: nil ctor] .
     op first : List-Location -> Location .
     op last : List-Location -> Location  .
-    op between : Location List-Location -> List-Location .
     op remove : List-Location List-Location -> List-Location .
+
+    op between : Location List-Location -> List-Location .
+    ***The total distance required to traverse the entire list.
     op listLength : List-Location -> Rat .
+
+    ***Checks for overlap between two paralell lines
     op overlap : List-Location List-Location -> Bool [comm] .
         
     vars LL LL2 LL3 LL4 : List-Location .
@@ -75,7 +79,6 @@ fmod LIST-LOCATION is
     eq listLength((X,Y) (X2,Y2)) = distance((X,Y), (X2,Y2)) .
     eq listLength(LL) = 0 [owise] .
 
-    ***Checks for overlap between two paralell lines
     eq overlap((X,Y) (X,Y2), (X,Y3) (X,Y4)) = max(min(Y,Y2), min(Y3,Y4)) <= min(max(Y,Y2), max(Y3,Y4)) .
     eq overlap((X,Y) (X2,Y), (X3,Y) (X4,Y)) = max(min(X,X2), min(X3,X4)) <= min(max(X,X2), max(X3,X4)) .
     eq overlap(LL, LL2) = false [owise] .

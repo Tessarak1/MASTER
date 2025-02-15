@@ -4,12 +4,12 @@ omod INTERSECTION is
     protecting LIST-LOCATION .
     protecting STRING .
 
+    ***Intersections are connected to one another. ObsIntersections cannot be traveled through
     class Intersection | neighbors : OidSet .
-
-    ***An intersection that can be traveled to, but not from. Used to represent obstacles when performing pathfinding.
     class ObsIntersection .
+    class PassIntersection .
 
-    subclass ObsIntersection < Intersection < Locatable .
+    subclass ObsIntersection PassIntersection < Intersection < Locatable .
 
     op oid : Object -> Oid .
 

@@ -97,9 +97,8 @@ omod PATHFINDER is
     ***need OID, location which oid to update.
     ***We are not allowed to update distances from ObsIntersections, how do we do this? if CID not obsIntersection?
     ***What about the update itself?
-    ceq updateDistances(PQ [< OID : CID | location : (X,Y), neighbors : OID2 OS >, R, OID3] PQ2) = 
-        updateDistances($updateDistances(PQ [< OID : CID | neighbors : OS >, R, OID3] PQ2, [< OID : CID | location : (X,Y), neighbors : OID2 OS >, R, OID3]))
-        if CID =/= ObsIntersection .
+    eq updateDistances(PQ [< OID : PassIntersection | location : (X,Y), neighbors : OID2 OS >, R, OID3] PQ2) = 
+        updateDistances($updateDistances(PQ [< OID : PassIntersection | neighbors : OS >, R, OID3] PQ2, [< OID : PassIntersection | location : (X,Y), neighbors : OID2 OS >, R, OID3])) .
     eq updateDistances(PQ) = PQ [owise] .
     
     eq buildPath(OID, PQ [< OID : Intersection | >, ratInf, OID2] PQ2) = nil .

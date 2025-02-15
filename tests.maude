@@ -7,15 +7,22 @@ omod FINAL-TESTS is
   op farm : -> ClockedConfiguration .
   ops locations locations2 : -> Configuration .
   ops map map2 : -> Object .
+  ops modMap2 : -> Object .
+  op changedMap2 : -> Object . 
   ops GLREP1 GLREP2 GLREP3 GLREP4 : -> Object .
   ops GL1 GL2 GL3 GL4 : -> Object .
   ops I1 I2 I3 I4 I5 I6 I7 I8 I8 : -> Object .
-  ops J1 J2 J3 J4 : -> Object .
+
+  ops J1 J2 J3 J4 J5 J6 : -> Object .
+  
+  op pq : -> PQueue .
+  op testInter : -> Object .
+
   ops resupply cpoint : -> Object .
   ops obstacles intersections : -> Configuration .
 
-  eq rob = < "R1" : Worker | location : (50,0), speed : 1, direction : east, remainingPath : (60,0),
-    state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : water, 
+  eq rob = < "R1" : Worker | location : (60,0), speed : 1, direction : east, remainingPath : nil,
+    state : idle, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : water, 
     auctions : noAuction, curTask : noTask, workers : none, transporters : none, workState : noWork, waitingOn : none > .
   eq rob2 = < "R2" : Worker | location : (70,0), speed : 1, direction : west, remainingPath : (60,0),
     state : moving, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
@@ -24,19 +31,21 @@ omod FINAL-TESTS is
     state : failed, detected : nil, detectionRange : 5, handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : fertilizer, 
     auctions : noAuction, curTask : noTask, workers : "R1" "R2", transporters : none, workState : noWork > . 
 
-  eq I1 = < "I1" : Intersection | location : (0,0), neighbors : "I2" "I4" "CPoint" > .
-  eq I2 = < "I2" : Intersection | location : (60,0), neighbors : "I1" "I3" "I6" > .
-  eq I3 = < "I3" : Intersection | location : (120,0), neighbors : "I2" "I8" "Resupply" > .
-  eq I4 = < "I4" : Intersection | location : (0,-60), neighbors : "I1" "I5" > .
-  eq I5 = < "I5" : Intersection | location : (30,-60)  , neighbors : "I4" "I6" "GL1" "GL3" > .
-  eq I6 = < "I6" : Intersection | location : (60,-60)  , neighbors : "I5" "I7" "I2" > .
-  eq I7 = < "I7" : Intersection | location : (90,-60)  , neighbors : "I6" "I8" "GL2" "GL4" > .
-  eq I8 = < "I8" : Intersection | location : (120,-60)  , neighbors : "I7" "I3" > .
+  eq I1 = < "I1" : PassIntersection | location : (0,0), neighbors : "I2" "I4" "CPoint" > .
+  eq I2 = < "I2" : PassIntersection | location : (60,0), neighbors : "I1" "I3" "I6" > .
+  eq I3 = < "I3" : PassIntersection | location : (120,0), neighbors : "I2" "I8" "Resupply" > .
+  eq I4 = < "I4" : PassIntersection | location : (0,-60), neighbors : "I1" "I5" > .
+  eq I5 = < "I5" : PassIntersection | location : (30,-60)  , neighbors : "I4" "I6" "GL1" "GL3" > .
+  eq I6 = < "I6" : PassIntersection | location : (60,-60)  , neighbors : "I5" "I7" "I2" > .
+  eq I7 = < "I7" : PassIntersection | location : (90,-60)  , neighbors : "I6" "I8" "GL2" "GL4" > .
+  eq I8 = < "I8" : PassIntersection | location : (120,-60)  , neighbors : "I7" "I3" > .
 
-  eq J1 = < "J1" : Intersection | location : (0,0), neighbors : "J2" "J3" > .
-  eq J2 = < "J2" : Intersection | location : (100,0), neighbors : "J1" "J4" > .
-  eq J3 = < "J3" : Intersection | location : (0, -100), neighbors : "J1" "J4" > .
-  eq J4 = < "J4" : Intersection | location : (100, -100), neighbors : "J2" "J3" > .
+  eq J1 = < "J1" : PassIntersection | location : (0,0), neighbors : "J2" "J3" "J5" > .
+  eq J2 = < "J2" : PassIntersection | location : (100,0), neighbors : "J1" "J4" "J6" > .
+  eq J3 = < "J3" : PassIntersection | location : (0, -100), neighbors : "J1" "J4" > .
+  eq J4 = < "J4" : PassIntersection | location : (100, -100), neighbors : "J2" "J3" > .
+  eq J5 = < "J5" : PassIntersection | location : (0,100), neighbors : "J1" "J6" > .
+  eq J6 = < "J6" : PassIntersection | location : (100, 100), neighbors : "J5" "J2" > .
 
   eq intersections = I1 I2 I3 I4 I5 I6 I7 I8 .
 
@@ -65,10 +74,23 @@ omod FINAL-TESTS is
   eq locations = I1 I2 I3 I4 I5 I6 I7 I8 GLREP1 GLREP2 GLREP3 GLREP4 resupply cpoint .
   eq obstacles = < "O1" : Obstacle | location : (0,-60) > < "O2" : Obstacle | location : (0,-58) > < "O3" : Obstacle | location : (2,-60) > .
   eq map = < "Map" : Map | allIntersections : locations, roads : createRoadSet(locations) > .
-  eq map2 = < "Map 2" : Map | allIntersections : J1 J2 J3 J4, roads : createRoadSet(J1 J2 J3 J4) > .
+  eq map2 = < "Map 2" : Map | allIntersections : J1 J2 J3 J4 J5 J6, roads : createRoadSet(J1 J2 J3 J4 J5 J6) > .
   eq farm = map rob rob3 @ 0 .
+
+  eq modMap2 = modifyMap(map2, (60,0), nil) .
 endom
 
-red newObsIntersection(map2, (50,0)) .
-red PQConvert(getIntersections(newObsIntersection(map2, (50,0))), (0,0)) .
-red updateDistances(PQConvert(getIntersections(newObsIntersection(map2, (50,0))), (0,0))) .
+omod YIELD-TESTS is
+    protecting ROBOT .
+
+    op commonSet : -> AttributeSet .
+    ops rob rob2 : -> Object .
+
+    eq commonSet = speed : 1, state : idle, remainingPath : nil, direction : west, detected : nil, detectionRange : 5,
+      handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : water, 
+      auctions : noAuction, curTask : noTask, workers : none, transporters : none, workState : noWork, waitingOn : none .
+
+    eq rob = < "W1" : Worker | location : (0,0), commonSet > .
+    eq rob2 = < "W2" : Worker | location : (100,0), commonSet > .
+    
+endom

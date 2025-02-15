@@ -14,11 +14,12 @@ fmod ROAD is
     op findRoad : List-Location RoadSet -> RoadSet .
     op $addRoad : Location Road RoadSet -> RoadSet .
     op addRoad : Location Road RoadSet -> RoadSet .
-    ***Checks if the first int is in the interval between the two other ints.
+    ***Checks if the first rat is in the interval between the two others.
     op _inRange(_,_) : Rat Rat Rat -> Bool .
     op _inRange(_) : Location Road -> Bool .
     op _\_ : RoadSet RoadSet -> RoadSet .
     op commonIntersection : Road Road -> Bool [comm] .
+
     eq findRoad((X,Y) LL, es) = es .
     eq findRoad(nil, PS) = es .
     
