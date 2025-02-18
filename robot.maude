@@ -104,9 +104,10 @@ omod ROBOT is
 
     op $yieldLocationHelper : Location RoadSet -> Location .
     op yieldLocation : Object RoadSet List-Location -> List-Location .
-    op yieldIntersection : PQueue Object List-Location -> Object .
+
+    ***rename this, it should do the entire yielding check.
+    op yieldIntersection : PQueue Object List-Location Location List-Location -> List-Location .
     
-    op $yieldPath : Configuration Object List-Location Location -> List-Location .
     op yieldPath : Object Object List-Location -> List-Location .
 
     op yieldProtocol : Object Oid List-Location -> Object .
@@ -400,32 +401,49 @@ omod ROBOT is
             nil
         fi .
 
-    ***Goes through a priority queue of intersections sorted by distance from robot's location to find the closest intersection where a robot can yield to
-    ***shouldnt this call yieldLocation as final. We need total path to yieldLocation.
-    ****operation to construct the entire yieldPath.
-    eq yieldIntersection(noQueue, < OID : Map | >, LL) = none .
-    eq yieldIntersection([< OID : Intersection | location : (X,Y) >, 0, "Start"] PQ, < OID2 : Map | roads : RS >, LL) = 
+    ***Send in modifymap and modify path and UpdateDistances(PQ) for this.
+    eq yieldIntersection(noQueue, < OID : Map | >, LL, (X,Y), LL2) = LL2 .
+    eq yieldIntersection([< OID : Intersection | location : (X,Y) >, 0, "Start"] PQ, < OID2 : Map | allIntersections : CONF, roads : RS >, LL, (X,Y), nil) = 
         if yieldLocation(< OID : Intersection | >, RS, LL) =/= nil
         then
-            ***we need params for path construction and checking.
-            ***The conf, start location and end location
-            ***
-            < OID : Intersection | >
+            yieldLocation(< OID : Intersection | >, RS, LL)
         else
-            yieldIntersection(PQ, < OID2 : Map | >, LL)
+            yieldIntersection(PQ, < OID2 : Map | >, LL, (X,Y), nil)
         fi .
-    ceq yieldIntersection([< OID : Intersection | location : (X,Y) >, RI, OID2] PQ, < OID3 : Map | roads : RS >, LL) =
+    ceq yieldIntersection([< OID : Intersection | location : (X,Y) >, RI, OID2] PQ, < OID3 : Map | allIntersections : CONF, roads : RS >, LL, (X2,Y2), nil) =
         if RI == ratInf
         then
             none
         else
             if yieldLocation(< OID : Intersection | >, RS, LL) =/= nil
             then
-                ***Implement nonConflict check here?
-                ***calculate path as well?
-                < OID : Intersection | >
+                if not directConflict(dijkstraSearch(CONF, (X2,Y2), (X,Y)), LL)
+                then
+                    dijkstraSearch(CONF, (X2,Y2), (X,Y)) yieldLocation(< OID : Intersection | >, RS, LL)
+                else
+                    yieldIntersection(PQ, < OID3 : Map | >, LL, (X2,Y2), dijkstraSearch(CONF, (X2,Y2), (X,Y)))
+                fi
             else
-                yieldIntersection(PQ, < OID3 : Map | >, LL)
+                yieldIntersection(PQ, < OID3 : Map | >, LL, (X2,Y2), LL)
+            fi
+        fi
+        if OID2 =/= "Start" .
+
+    ceq yieldIntersection([< OID : Intersection | location : (X,Y) >, RI, OID2] PQ, < OID3 : Map | allIntersections : CONF, roads : RS >, LL, (X2,Y2), LL2) =
+        if RI == ratInf
+        then
+            none
+        else
+            if yieldLocation(< OID : Intersection | >, RS, LL) =/= nil
+            then
+                if not directConflict(dijkstraSearch(CONF, (X2,Y2), (X,Y)), LL)
+                then
+                    dijkstraSearch(CONF, (X2,Y2), (X,Y)) yieldLocation(< OID : Intersection | >, RS, LL)
+                else
+                    yieldIntersection(PQ, < OID3 : Map | >, LL, (X2,Y2), LL2)
+                fi
+            else
+                yieldIntersection(PQ, < OID3 : Map | >, LL, (X2,Y2), LL2)
             fi
         fi
         if OID2 =/= "Start" .
@@ -433,27 +451,15 @@ omod ROBOT is
     ***Returns the path the robot must take to avoid conflict with another path, LL2.
     ***returns nil if there is none.
     eq yieldPath(< OID : Robot | location : (X,Y), obstructionPoints : LL >, < OID2 : Map | >, LL2) =
-        $yieldPath(
-            yieldIntersection(
-                updateDistances(PQConvert(getIntersections(modifyMap(< OID2 : Map | >, (X,Y), LL)),  (X,Y))),
-                modifyMap(< OID2 : Map | >, (X,Y), LL),
-                modifyPath(LL2, (X,Y))
-            ),
+        yieldIntersection(
+            updateDistances(PQConvert(getIntersections(modifyMap(< OID2 : Map | >, (X,Y), LL)), (X,Y))),
             modifyMap(< OID2 : Map | >, (X,Y), LL),
             modifyPath(LL2, (X,Y)),
-            (X,Y)
+            (X,Y),
+            nil
         ) .
-        
-    ***Constructs the total path from robot to yieldlocation.
-    eq $yieldPath(none, < OID : Map | >, LL, (X,Y)) = nil .
-    eq $yieldPath(< OID : Intersection | location : (X,Y) >, < OID2 : Map | allIntersections : CONF, roads : RS >, LL, (X2,Y2)) =
-        dijkstraSearch(CONF, (X2,Y2), (X,Y))
-        yieldLocation(< OID : Intersection | >, RS, LL) .
 
-    ***yielding not possible.
-    ***eq yieldProtocol(< OID : Robot | >, OID2, nil) =
     ceq yieldProtocol(< OID : Robot | remainingPath : LL >, OID2, LL2) =
-            ***Validate yieldpath compared to R2 path to determine behavior and message sent.
             < OID : Robot | remainingPath : LL2 >
             dly(msg yielding from OID to OID2, MSG-DELAY)
         if LL2 =/= nil .

@@ -85,12 +85,25 @@ omod YIELD-TESTS is
 
     op commonSet : -> AttributeSet .
     ops rob rob2 : -> Object .
+    op test : RatInf -> Bool .
+    ops I1 I2 I3 I4 : -> Object .
+    ops intersections1 : -> Configuration .
+    op map1 : -> Object .
 
     eq commonSet = speed : 1, state : idle, remainingPath : nil, direction : west, detected : nil, detectionRange : 5,
       handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : water, 
       auctions : noAuction, curTask : noTask, workers : none, transporters : none, workState : noWork, waitingOn : none .
 
-    eq rob = < "W1" : Worker | location : (0,0), commonSet > .
-    eq rob2 = < "W2" : Worker | location : (100,0), commonSet > .
+    eq rob = < "W1" : Worker | location : (4,0), commonSet > .
+    eq rob2 = < "W2" : Worker | location : (60,0), commonSet > .
     
+    eq I1 = < "I1" : PassIntersection | location : (0,0), neighbors : "I2" "I3" > .
+    eq I2 = < "I2" : PassIntersection | location : (100,0), neighbors : "I1" "I4" > .
+    eq I3 = < "I3" : PassIntersection | location : (0,-100), neighbors : "I4" "I1" > .
+    eq I4 = < "I4" : PassIntersection | location : (100,-100), neighbors : "I2" "I3" > .
+
+    eq intersections1 = I1 I2 I3 I4 .
+    eq map1 = < "Map" : Map | allIntersections : intersections1, roads : createRoadSet(intersections1) > .
 endom
+
+red yieldPath(rob, map1, (0,0) (100,0)) .
