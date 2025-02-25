@@ -12,28 +12,29 @@ omod LOCATABLE is
     ***Returns the Locatable object in the Configuration that has the least distance from the location
     op minDistance : Object Location Configuration -> Object .
     op distance : Object Object -> Nat [comm] .
+    op getOid : Object -> Oid .
 
     vars X X2 X3 Y Y2 Y3 : Rat .
-    vars S S2 : String .
+    vars OID OID2 : Oid .
     var CONF : Configuration .
     var OBJ : Object .
     vars L L2 : Location .
 
     eq (X,Y) in none = false .
-    eq (X,Y) in < S : Locatable | location : (X,Y) > CONF = true .
-    eq (X,Y) in < S : Locatable | location : (X2,Y2) > CONF = (X,Y) in CONF .
+    eq (X,Y) in < OID : Locatable | location : (X,Y) > CONF = true .
+    eq (X,Y) in < OID : Locatable | location : (X2,Y2) > CONF = (X,Y) in CONF .
 
     eq oidSet(none) = none .
-    eq oidSet(< S : Locatable | > CONF) = S oidSet(CONF) .
-
+    eq oidSet(< OID : Locatable | > CONF) = OID oidSet(CONF) .
+    eq getOid(< OID : Locatable | >) = OID .
     eq minDistance(OBJ, (X,Y), none) = OBJ .
-    eq minDistance(none, (X,Y), < S : Locatable | > CONF) = minDistance(< S : Locatable | >, (X,Y), CONF) .
-    eq minDistance(< S : Locatable | location : (X,Y) >, (X2,Y2), < S2 : Locatable | location : (X3, Y3) > CONF) =
+    eq minDistance(none, (X,Y), < OID : Locatable | > CONF) = minDistance(< OID : Locatable | >, (X,Y), CONF) .
+    eq minDistance(< OID : Locatable | location : (X,Y) >, (X2,Y2), < OID2 : Locatable | location : (X3, Y3) > CONF) =
         if distance((X3,Y3), (X,Y)) < distance((X2,Y2), (X,Y)) then
-            minDistance(< S2 : Locatable | >, (X2,Y2), CONF)
+            minDistance(< OID2 : Locatable | >, (X2,Y2), CONF)
         else
-            minDistance(< S : Locatable | >, (X2,Y2), CONF)
+            minDistance(< OID : Locatable | >, (X2,Y2), CONF)
         fi .
 
-    eq distance(< S : Locatable | location : L >, < S2 : Locatable | location : L2 >) = distance(L, L2) .
+    eq distance(< OID : Locatable | location : L >, < OID2 : Locatable | location : L2 >) = distance(L, L2) .
 endom

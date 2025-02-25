@@ -82,28 +82,57 @@ endom
 
 omod YIELD-TESTS is
     protecting ROBOT .
+    protecting TIMED-FARM .
 
     op commonSet : -> AttributeSet .
     ops rob rob2 : -> Object .
-    op test : RatInf -> Bool .
-    ops I1 I2 I3 I4 : -> Object .
+    ops timeRob timeRob2 : -> Object .
+    ops busyRob busyRob2 : -> Object .
+    ops I1 I2 I3 I4 I5 I6 : -> Object .
+    ops GL1 : -> Object .
     ops intersections1 : -> Configuration .
     op map1 : -> Object .
 
-    eq commonSet = speed : 1, state : idle, remainingPath : nil, direction : west, detected : nil, detectionRange : 5,
-      handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : water, 
-      auctions : noAuction, curTask : noTask, workers : none, transporters : none, workState : noWork, waitingOn : none .
+    ops 1on1IdleYield detectionTime : -> ClockedConfiguration .
 
-    eq rob = < "W1" : Worker | location : (4,0), commonSet > .
-    eq rob2 = < "W2" : Worker | location : (60,0), commonSet > .
+    eq commonSet = speed : 1, maxSpeed : 1, detected : nil, detectionRange : 5,
+      handledTime : false, obstructionPoints : nil, cargoLevel : full, curCargo : water, 
+      auctions : noAuction, curTask : noTask, workState : noWork, waitingOn : none .
+
+    eq rob = < "W1" : Worker | location : (40,0), state : idle, direction : west, workers : "W2", remainingPath : nil, commonSet > .
+    eq rob2 = < "W2" : Worker | location : (0,0), state : moving, direction : east, workers : "W1", remainingPath : (100,0), commonSet > .
     
+    eq timeRob = < "TW1" : Worker | location : (0,0), state : moving, direction : east, workers : "TW2", remainingPath : (100,0), commonSet > .
+    eq timeRob2 = < "TW2" : Worker | location : (100,100), state : moving, direction : south, workers : "TW1", remainingPath : (100,50), commonSet > .
+
     eq I1 = < "I1" : PassIntersection | location : (0,0), neighbors : "I2" "I3" > .
-    eq I2 = < "I2" : PassIntersection | location : (100,0), neighbors : "I1" "I4" > .
+    eq I2 = < "I2" : PassIntersection | location : (100,0), neighbors : "I1" "I4" "I5" "I6" > .
     eq I3 = < "I3" : PassIntersection | location : (0,-100), neighbors : "I4" "I1" > .
     eq I4 = < "I4" : PassIntersection | location : (100,-100), neighbors : "I2" "I3" > .
+    eq I5 = < "I5" : PassIntersection | location : (200, 0), neighbors : "I2" > .
+    eq I6 = < "I6" : PassIntersection | location : (100,100), neighbors : "I2" > .
 
-    eq intersections1 = I1 I2 I3 I4 .
+    eq GL1 = < "GL1" : Growing
+
+    eq intersections1 = I1 I2 I3 I4 I5 I6 .
     eq map1 = < "Map" : Map | allIntersections : intersections1, roads : createRoadSet(intersections1) > .
+    
+    ***Testing if an idle robot yields properly.
+    eq 1on1IdleYield = rob rob2 map1 @ 0 .
+    ***RESULT
+    ***1 R2 moves into range of R1, detection happens for both.
+    ***2 R1 dismisses detection since it is idle
+    ***3 R2 parses detection, identifies that R1 is blocking path, stops and requests path adds id to waiting on.
+    ***4 time passes for message to become active, causes both robots to detect each other again.
+    ***5 R1 receives path request message, and sets remainingPath to yieldPath and returns yielding message
+    ***6 R1 and R2 dismisses detections.
+    ***Does some stuff (difficult to see differences, ask if it is possible to check rule application labels in cont.)
+
+    eq detectionTime = timeRob timeRob2 map1 @ 0 .
 endom
 
-red yieldPath(rob, map1, (0,0) (100,0)) .
+
+red $maxTimeAdvanceRobot("W2", < "W1" : Worker | auctions : noAuction, workers : "W2", location : (100, 0), handledTime : false, direction : north, speed : 1, maxSpeed : 1, remainingPath : (100, 1), state : moving, detectionRange : 5,
+    cargoLevel : full, curCargo : water, detected : nil, obstructionPoints : nil, waitingOn : none, curTask : noTask, workState : noWork >
+    < "W2" : Worker | auctions : noAuction, workers : "W1", location : (94, 0), handledTime : false, direction : east, speed : 1, maxSpeed : 1, 
+    remainingPath : (100, 0), state : moving, detectionRange : 5, cargoLevel : full, curCargo : water, detected : nil, obstructionPoints : nil, waitingOn : none, curTask : noTask, workState : noWork >) .

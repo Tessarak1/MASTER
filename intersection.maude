@@ -11,7 +11,7 @@ omod INTERSECTION is
 
     subclass ObsIntersection PassIntersection < Intersection < Locatable .
 
-    op oid : Object -> Oid .
+
 
     ***Returns the intersections with the given locations from a configuration of them.
     op intersectionWithLocation : Configuration List-Location -> Configuration .
@@ -21,7 +21,7 @@ omod INTERSECTION is
     var CONF : Configuration .
     var LL : List-Location .
 
-    eq oid(< OID : Intersection | >) = OID .
+
 
     eq intersectionWithLocation(< OID : Intersection | location : (X, Y) > CONF, (X, Y) LL) = < OID : Intersection | > intersectionWithLocation(CONF, LL) .
     eq intersectionWithLocation(CONF, LL) = none [owise] .

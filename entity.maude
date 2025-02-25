@@ -20,8 +20,9 @@ omod ENTITY is
     ops north east south west : -> Direction [ctor] .
     op opposite : Direction Direction -> Bool [comm] .
     op differentAxes : Direction Direction -> Bool [comm] .
+    op headedTowards : Object Location -> Bool . 
 
-    vars S S2 : String .
+    vars OID OID2 : Oid .
     vars X X2 Y Y2 : Rat .
     var SP : Rat .
     var LL : List-Location .
@@ -32,34 +33,42 @@ omod ENTITY is
     eq opposite(north, south) = true .
     eq opposite(east, west) = true .
     eq opposite(D, D2) = false [owise] .
+
     eq differentAxes(north, west) = true .
     eq differentAxes(north, east) = true .
     eq differentAxes(south, west) = true .
     eq differentAxes(south, east) = true .
     eq differentAxes(D, D2) = false [owise] .
+
+    eq headedTowards(< OID : Entity | state : moving, location : (X,Y), direction : north >, (X,Y2)) = Y2 > Y .
+    eq headedTowards(< OID : Entity | state : moving, location : (X,Y), direction : east >, (X2,Y)) = X2 > X .
+    eq headedTowards(< OID : Entity | state : moving, location : (X,Y), direction : south >, (X,Y2)) = Y > Y2 .
+    eq headedTowards(< OID : Entity | state : moving, location : (X,Y), direction : west >, (X2,Y)) = X > X2 .
+    eq headedTowards(< OID : Entity | >, (X,Y)) = false [owise] .
+ 
     ceq setDirection((X,Y), (X,Y2)) = north if Y2 > Y .
     ceq setDirection((X,Y), (X2,Y)) = east if X2 > X .
     ceq setDirection((X,Y), (X,Y2)) = south if Y2 < Y .
     ceq setDirection((X,Y), (X2,Y)) = west if X2 < X .
 
-    ceq < S : Entity | location : (X,Y), direction : north > isBehind < S2 : Entity | location : (X2,Y2), direction : north > = true if Y < Y2 .
-    ceq < S : Entity | location : (X,Y), direction : east > isBehind < S2 : Entity | location : (X2,Y2), direction : east > = true if X < X2 .
-    ceq < S : Entity | location : (X,Y), direction : south > isBehind < S2 : Entity | location : (X2,Y2), direction : south > = true if Y > Y2 .
-    ceq < S : Entity | location : (X,Y), direction : west > isBehind < S2 : Entity | location : (X2,Y2), direction : west > = true if X > X2 .
+    ceq < OID : Entity | location : (X,Y), direction : north > isBehind < OID2 : Entity | location : (X2,Y2), direction : north > = true if Y < Y2 .
+    ceq < OID : Entity | location : (X,Y), direction : east > isBehind < OID2 : Entity | location : (X2,Y2), direction : east > = true if X < X2 .
+    ceq < OID : Entity | location : (X,Y), direction : south > isBehind < OID2 : Entity | location : (X2,Y2), direction : south > = true if Y > Y2 .
+    ceq < OID : Entity | location : (X,Y), direction : west > isBehind < OID2 : Entity | location : (X2,Y2), direction : west > = true if X > X2 .
 
-    eq < S : Entity | > isBehind < S2 : Entity | > = false [owise] .
-    eq stoppingDistance(< S : Entity | speed : SP >) =  ((SP / 5) ^ 2) / 2 .
+    eq < OID : Entity | > isBehind < OID2 : Entity | > = false [owise] .
+    eq stoppingDistance(< OID : Entity | speed : SP >) =  ((SP / 5) ^ 2) / 2 .
 
     rl [finish] :
-        < S : Entity | location : (X, Y), remainingPath : (X,Y), state : moving >
+        < OID : Entity | location : (X, Y), remainingPath : (X,Y), state : moving >
         =>
-        < S : Entity | speed : 0, remainingPath : nil, state : idle > .
+        < OID : Entity | speed : 0, remainingPath : nil, state : idle > .
     rl [nextIntersection] :
-        < S : Entity | location : (X , Y), remainingPath : (X , Y) (X2, Y2) LL > 
+        < OID : Entity | location : (X , Y), remainingPath : (X , Y) (X2, Y2) LL > 
         =>
-        < S : Entity | direction : setDirection((X , Y), (X2, Y2)), remainingPath : (X2,Y2) LL > .
+        < OID : Entity | direction : setDirection((X , Y), (X2, Y2)), remainingPath : (X2,Y2) LL > .
     rl [startTravel] :
-        < S : Entity | location : (X,Y), remainingPath : (X2,Y2) LL, state : idle, maxSpeed : SP >
+        < OID : Entity | location : (X,Y), remainingPath : (X2,Y2) LL, state : idle, maxSpeed : SP >
         =>
-        < S : Entity | state : moving, direction : setDirection((X,Y), (X2,Y2)), remainingPath : (X2,Y2) LL, speed : SP > .
+        < OID : Entity | state : moving, direction : setDirection((X,Y), (X2,Y2)), remainingPath : (X2,Y2) LL, speed : SP > .
 endom

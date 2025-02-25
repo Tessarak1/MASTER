@@ -162,6 +162,7 @@ omod ROBOT is
     var AU : Auction .
     var B : Bid .
 
+    eq FINAL-RANGE = 1 .
     eq remove(OID, < OID : Robot | > CONF) = CONF .
     eq remove(OID, CONF) = CONF [owise] .
 
@@ -202,6 +203,7 @@ omod ROBOT is
         overlap((X,Y) (X2,Y2), (X3,Y3) (X4,Y4)) and opposite(setDirection((X,Y), (X2,Y2)), setDirection((X3,Y3), (X4,Y4))) .
     eq directConflict(LL, LL2) = false [owise] .
 
+    ceq safetyChecks(< OID : Robot | state : STATE >, {OID2 : Robot | I}, < OID3 : Map | >) = < OID : Robot | > if STATE == idle or STATE == waiting .
     eq safetyChecks(< OID : Robot | >, {OID2 : Robot | FUNC ; I}, < OID3 : Map | >) =
         if needNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC ; I}, < OID3 : Map | >)
         then
@@ -209,7 +211,6 @@ omod ROBOT is
         else
             crashPrevention(< OID : Robot | >, {OID2 : Robot | FUNC ; I})
         fi .
-
     ***Crash prevention consists of changing speed and/or the remaining path if relevant.
     eq crashPrevention(< OID : Robot | location : (X,Y), remainingPath : LL >, {OID2 : CID | (X2,Y2) ; I}) = 
         if between((X2, Y2), (X,Y) LL) =/= nil
@@ -312,6 +313,7 @@ omod ROBOT is
             closest((X,Y), < OID2 : Robot | > CONF, CONF2)
         fi .
     eq closest((X,Y), CONF, < OID : Robot | > CONF2) = closest((X,Y), < OID : Robot | > CONF, CONF2) .
+    
     eq sameDestination((X,Y), < OID : Robot | remainingPath : (X,Y) LL > CONF) = < OID : Robot | > sameDestination((X,Y), CONF) .
     eq sameDestination((X,Y), CONF) = none [owise] .
 
@@ -448,6 +450,7 @@ omod ROBOT is
         fi
         if OID2 =/= "Start" .
 
+
     ***Returns the path the robot must take to avoid conflict with another path, LL2.
     ***returns nil if there is none.
     eq yieldPath(< OID : Robot | location : (X,Y), obstructionPoints : LL >, < OID2 : Map | >, LL2) =
@@ -463,7 +466,6 @@ omod ROBOT is
             < OID : Robot | remainingPath : LL2 >
             dly(msg yielding from OID to OID2, MSG-DELAY)
         if LL2 =/= nil .
-
 
     rl [fail] :
         < OID : Robot | location : (X,Y), curTask : TS >
@@ -489,31 +491,6 @@ omod ROBOT is
             < OID3 : Map | >
         fi .
 
-    --- rl [rcvPathNegotiation] :
-    ---     < OID : Robot | location : (X,Y), remainingPath : LL >
-    ---     msg requestPath § path(LL2) from OID2 to OID
-    ---     =>
-    ---     if directConflict((X,Y) LL, LL2)
-    ---     then
-    ---         ***replan and calc new path, and send difference in current path and the new one.
-    ---         ***Two problems: no task, which means replanning is difficult, or no viable path.
-    ---         ***No task: instead calc for yield intersection.
-    ---         ***For either, if no path can be found, then return inf, or a separate message.
-    ---         ***Cause what if both return inf?
-    ---         ***Ideal protocol: Add the location of OID2 to obstruction points, replan and compare length of replanned path to original
-    ---         ***new - original = how much cost it is to change.
-    ---         ***two problems: If there is no viable path, and if the robot has no task.
-    ---         ***For no task, do yield instead? And this yield can return no viable path.
-    ---         < OID : Robot | >
-    ---         handleIt
-    ---     else
-    ---         ***moving to same intersection, compare paths in another way.
-    ---         ***What should the operation return?
-    ---     fi .
-
-    ***If the robot is in the way, but incapacitated it just says it's incapacitated.
-    ***Do we even request path of incapacitated robots? Might realistically happen
-
     ***If the robot is in the way of another when it is idle it yields.
     rl [rcvPathNegotiationIdle] :
         < OID : Robot | location : (X,Y), remainingPath : nil, state : idle >
@@ -522,12 +499,32 @@ omod ROBOT is
         =>
         if between((X,Y), LL) =/= nil
         then
-            yieldProtocol(< OID : Robot | >, OID3, yieldPath(< OID : Robot | >, < OID2 : Map | >, LL))
+            yieldProtocol(
+                < OID : Robot | >,
+                OID3,
+                yieldPath(< OID : Robot | >, < OID2 : Map | >, LL)
+            )
+            < OID2 :  Map | >
         else
             < OID : Robot | >
             < OID2 : Map | >
             msg noConflict from OID to OID3 
         fi .
+
+    ***rcv yieldingON msg.
+    ***remove from waitingOn, then if waitingOn is empty, begin moving again, ofc only if functional.
+    ***remove from waitingOn, waitingOn can be empty? if it fails we clear waitingOn?
+    ***if we are inc
+    rl [rcvYieldingMsgValid] :
+        < OID : Robot | state : waiting, waitingOn : OS >
+        msg yielding from OID2 to OID
+        =>
+        < OID : Robot | waitingOn : OS \ OID2 > .
+
+    rl [stopWaiting] :
+        < OID : Robot | state : waiting, waitingOn : none >
+        =>
+        < OID : Robot | state : idle > .
 
     rl [rcvObstacleRemovedMsg] : 
         < OID : Robot | obstructionPoints : LL >
