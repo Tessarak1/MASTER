@@ -15,6 +15,7 @@ omod AUCTIONEER is
     op taskId : AuctionMsgContent -> Tid .
     op bmcToBid : Msg -> Bid .
     op startAuction : Object TidSet -> Configuration .
+    op needToStartAuction : Object -> Bool .
 
     vars S S2 : String .
     var R : Rat .

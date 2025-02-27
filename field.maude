@@ -19,7 +19,7 @@ omod FIELD is
     op taskComplete : Object Tid -> Object .
     ops waterTime fertilizerTime growTime : Object -> Time .
 
-    var S : String .
+    var OID : Oid .
     var L L2 : Level .
     vars T T2 : Time .
     vars TR TR2 TR3 TR4 : Timer .
@@ -29,60 +29,66 @@ omod FIELD is
     var AU : Auction .
     var B : Bid .
 
-    eq taskComplete(< S : Field | waterTimer : TR, waterLevel : low, taskNr : N, reserved : true >, [S, watering, N]) = < S : Field | waterLevel : good, waterTimer : reset(TR), taskNr : N + 1, reserved : false > .
-    eq taskComplete(< S : Field | fertilizerTimer : TR, fertilizerLevel : low, taskNr : N, reserved : true >, [S, fertilize, N]) = < S : Field | fertilizerLevel : good, fertilizerTimer : reset(TR), taskNr : N + 1, reserved : false > .
-    eq taskComplete(< S : Field | growingState : empty, taskNr : N, reserved : true >, [S, plant, N]) = < S : Field | growingState : growing, taskNr : N + 1, reserved : false > .
-    eq taskComplete(< S : Field | growingState : harvest, growTimer : TR, taskNr : N, reserved : true >, [S, harvest, N]) = < S : Field | growingState : empty, growTimer : reset(TR), taskNr : N + 1, reserved : false > .
-    eq decreaseTimers(< S : Field | waterLevel : good, fertilizerLevel : good, waterTimer : TR, fertilizerTimer : TR2, growingState : growing, growTimer : TR3 >, T) =
-        < S : Field | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T), growTimer : decrease(TR3, T) > .
-    eq decreaseTimers(< S : Field | waterTimer : TR, fertilizerTimer : TR2 >, T) =
-        < S : Field | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T) > [owise] .
+    eq taskComplete(< OID : Field | waterTimer : TR, waterLevel : low, taskNr : N, reserved : true >, [OID, watering, N]) = < OID : Field | waterLevel : good, waterTimer : reset(TR), taskNr : N + 1, reserved : false > .
+    eq taskComplete(< OID : Field | fertilizerTimer : TR, fertilizerLevel : low, taskNr : N, reserved : true >, [OID, fertilize, N]) = < OID : Field | fertilizerLevel : good, fertilizerTimer : reset(TR), taskNr : N + 1, reserved : false > .
+    eq taskComplete(< OID : Field | growingState : empty, taskNr : N, reserved : true >, [OID, plant, N]) = < OID : Field | growingState : growing, taskNr : N + 1, reserved : false > .
+    eq taskComplete(< OID : Field | growingState : harvest, growTimer : TR, taskNr : N, reserved : true >, [OID, harvest, N]) = < OID : Field | growingState : empty, growTimer : reset(TR), taskNr : N + 1, reserved : false > .
+    eq decreaseTimers(< OID : Field | waterLevel : good, fertilizerLevel : good, waterTimer : TR, fertilizerTimer : TR2, growingState : growing, growTimer : TR3 >, T) =
+        < OID : Field | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T), growTimer : decrease(TR3, T) > .
+    eq decreaseTimers(< OID : Field | waterTimer : TR, fertilizerTimer : TR2 >, T) =
+        < OID : Field | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T) > [owise] .
 
-    eq waterTime(< S : Field | auctions : [Task: [S, watering, N] TR | B] AU >) = ratInf .
-    eq waterTime(< S : Field | waterTimer : [cur: 0 - base: T2], reserved : true >) = ratInf .
-    eq waterTime(< S : Field | waterTimer : [cur: T - base: T2] >) = T [owise] .
-    eq fertilizerTime(< S : Field | auctions : [Task: [S, fertilize, N] TR | B] AU >) = ratInf .
-    eq fertilizerTime(< S : Field | fertilizerTimer : [cur: 0 - base: T2], reserved : true >) = ratInf .
-    eq fertilizerTime(< S : Field | fertilizerTimer : [cur: T - base: T2] >) = T [owise] .
+    eq waterTime(< OID : Field | auctions : [Task: [OID, watering, N] TR | B] AU >) = ratInf .
+    eq waterTime(< OID : Field | waterTimer : [cur: 0 - base: T2], reserved : true >) = ratInf .
+    eq waterTime(< OID : Field | waterTimer : [cur: T - base: T2] >) = T [owise] .
+    eq fertilizerTime(< OID : Field | auctions : [Task: [OID, fertilize, N] TR | B] AU >) = ratInf .
+    eq fertilizerTime(< OID : Field | fertilizerTimer : [cur: 0 - base: T2], reserved : true >) = ratInf .
+    eq fertilizerTime(< OID : Field | fertilizerTimer : [cur: T - base: T2] >) = T [owise] .
 
-    eq growTime(< S : Field | auctions : [Task: [S, harvest, N] TR | B] AU >) = ratInf .
-    eq growTime(< S : Field | growTimer : [cur: 0 - base: T2], reserved : true >) = ratInf .
-    ceq growTime(< S : Field | waterLevel : L, fertilizerLevel : L2 >) = ratInf if (L == low) or (L2 == low) .
-    eq growTime(< S : Field | growTimer : [cur: T - base: T2] >) = T [owise] .
+    eq growTime(< OID : Field | auctions : [Task: [OID, harvest, N] TR | B] AU >) = ratInf .
+    eq growTime(< OID : Field | growTimer : [cur: 0 - base: T2], reserved : true >) = ratInf .
+    ceq growTime(< OID : Field | waterLevel : L, fertilizerLevel : L2 >) = ratInf if (L == low) or (L2 == low) .
+    eq growTime(< OID : Field | growingState : harvest >) = ratInf .
+    eq growTime(< OID : Field | growTimer : [cur: T - base: T2] >) = T [owise] .
 
-    eq untilTimerExpire(< S : Field | >) = min(growTime(< S : Field | >), min(waterTime(< S : Field | >), fertilizerTime(< S : Field | >))) .
+    eq untilTimerExpire(< OID : Field | >) = min(growTime(< OID : Field | >), min(waterTime(< OID : Field | >), fertilizerTime(< OID : Field | >))) .
+
+    ceq needToStartAuction(< OID : Field | growingState : harvest, auctions : AU, taskNr : N >) = true if closed([OID, harvest, N], AU) .
+    ceq needToStartAuction(< OID : Field | waterLevel : low, auctions : AU, taskNr : N >) = true if closed([OID, watering, N], AU) .
+    ceq needToStartAuction(< OID : Field | fertilizerLevel : low, auctions : AU, taskNr : N >) = true if closed([OID, fertilize, N], AU) .
+    eq needToStartAuction(< OID : Field | >) = false [owise] .
 
     ***can only have one robot on the field at a time, so this ensures that 
     ***when we start an auction we add the auctioned tasks, dont need N anymore? This was in place to ensure that a taskID is unique, however if we only allow one task to happen at a time it might not be needed.
     ***Do we need auction timer? Since we dont have message failure.
     crl [depletedWater] :
-        < S : Field | waterLevel : good, waterTimer : TR >
+        < OID : Field | waterLevel : good, waterTimer : TR >
         =>
-        < S : Field | waterLevel : low >
+        < OID : Field | waterLevel : low >
         if expired(TR) .
     crl [depletedFertilizer] :
-        < S : Field | fertilizerLevel : good, fertilizerTimer : TR >
+        < OID : Field | fertilizerLevel : good, fertilizerTimer : TR >
         =>
-        < S : Field | fertilizerLevel : low >
+        < OID : Field | fertilizerLevel : low >
         if expired(TR) .
     crl [finishedGrowth] :
-        < S : Field | growingState : growing, growTimer : TR >
+        < OID : Field | growingState : growing, growTimer : TR >
         =>
-        < S : Field | growingState : harvest >
+        < OID : Field | growingState : harvest >
         if expired(TR) .
     crl [startWaterAuction] :
-        < S : Field | waterLevel : low, growingState : growing, taskNr : N, auctions : AU, reserved : false >
+        < OID : Field | waterLevel : low, growingState : growing, taskNr : N, auctions : AU, reserved : false >
         =>
-        startAuction(< S : Field | reserved : true >, [S, watering, N])
-        if closed([S, watering, N], AU) .
+        startAuction(< OID : Field | reserved : true >, [OID, watering, N])
+        if closed([OID, watering, N], AU) .
     crl [startFertilizerAuction] :
-        < S : Field | fertilizerLevel : low, growingState : growing, taskNr : N, auctions : AU, reserved : false >
+        < OID : Field | fertilizerLevel : low, growingState : growing, taskNr : N, auctions : AU, reserved : false >
         =>
-        startAuction(< S : Field | reserved : true >, [S, fertilize, N])
-        if closed([S, fertilize, N], AU) .
+        startAuction(< OID : Field | reserved : true >, [OID, fertilize, N])
+        if closed([OID, fertilize, N], AU) .
     crl [startHarvestAuction] :
-        < S : Field | growingState : harvest, taskNr : N, auctions : AU, reserved : false >
+        < OID : Field | growingState : harvest, taskNr : N, auctions : AU, reserved : false >
         =>
-        startAuction(< S : Field | reserved : true >, [S, harvest, N])
-        if closed([S, harvest, N], AU) .
+        startAuction(< OID : Field | reserved : true >, [OID, harvest, N])
+        if closed([OID, harvest, N], AU) .
 endom

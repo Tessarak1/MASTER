@@ -5,5 +5,5 @@ omod BUILDINGS is
     protecting NAT .
     class CollectionStation | collections : Nat .
     class ResupplyStation .
-    subclass CollectionStation ResupplyStation < Intersection .
+    subclass CollectionStation ResupplyStation < PassIntersection .
 endom

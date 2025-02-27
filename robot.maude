@@ -64,8 +64,6 @@ omod ROBOT is
     op [__] : Oid TaskType -> ActiveWork [ctor] .
     op [___] : Oid TaskType Time -> TimedWork [ctor] .
     ops empty full : -> CargoLevel [ctor] .
-    op seed : -> Seed [ctor] .
-    op replanPath : Object Object Location -> Object .
     op pathConflict : List-Location List-Location RoadSet -> List-Location .
 
     op nil : -> Representation [ctor] .
@@ -94,6 +92,9 @@ omod ROBOT is
     op performChecks : Object Tid Configuration -> List-Location .
     op $planPathLocations : Object Tid Configuration -> List-Location .
     op $planPath : Object List-Location List-Location -> List-Location .
+
+    ***Path that robot must traverse to be able to complete task.
+    ***Travels to resupply and/or collection station if needed
     op planPath : Object Tid Configuration -> List-Location .
 
     ***Adds the locations in the second list that are between locations in the first to the first list.
@@ -114,13 +115,10 @@ omod ROBOT is
 
     op __leadsTo_ : Location Direction Location -> Bool .
 
-    ***Exclusively checks if two robots are on a head on collision course
-    ***Checks the first two segments. (X,Y) (X2,Y2) and (X3,Y3) (X4,Y4)
-    ***That the segments overlap, and that they are in the opposite direction.
-    ***Overlap + setDirection.
     op directConflict : List-Location List-Location -> Bool .
 
-    op replanCost : Object Object List-Location -> RatInf .
+    ***Treats the location as an obstacle, and calculates the additional distance required to complete the robot's task.
+    op replanCost : Object Object Location -> RatInf .
 
     vars CONF CONF2 : Configuration .
     vars OID OID2 OID3 OID4 : Oid .
@@ -166,25 +164,14 @@ omod ROBOT is
     eq remove(OID, < OID : Robot | > CONF) = CONF .
     eq remove(OID, CONF) = CONF [owise] .
 
-    ***Takes in robot to determine behavior? If it has task or not.
-    ***call the eq on the robot, if task we do replan
-    ***if no task we do yielding.
-    ***However, both have to check if result is nil.
-    ***A robot that has no task will try to yield for a requesting robot if a yieldpath exists.
-    eq replanCost(< OID : Robot | curTask : noTask >, < OID2 : Map | >, LL) =
-        if yieldPath(< OID : Robot | >, < OID2 : Map | >, LL) == nil
-        then
-            ratInf
-        else
-            0
-        fi .
-    eq replanCost(< OID : Robot | curTask : TID, obstructionPoints : LL >, < OID2 : Map | >, (X,Y) LL2) =
+    eq replanCost(< OID : Robot | curTask : TID, obstructionPoints : LL >, < OID2 : Map | >, (X,Y)) =
         if planPath(< OID : Robot | obstructionPoints : LL (X,Y) >, TID, < OID2 : Map | >) == nil
         then
             ratInf
         else
+            ***this may not work if a robot has parsed detection of the other, ensure that it performs without and with added to obstructionpoints.
             listLength(planPath(< OID : Robot | obstructionPoints : LL (X,Y) >, TID, < OID2 : Map | >)) -
-            listLength(planPath(< OID : Robot | >, TID, < OID2 : Map | >))
+            listLength(planPath(< OID : Robot | obstructionPoints : remove(LL, (X,Y)) >, TID, < OID2 : Map | >))
         fi .
 
     eq WORK-RANGE = 1 .
@@ -196,7 +183,7 @@ omod ROBOT is
     eq EMERGENCY-TIME = 3 .
     eq ROBOT-SIZE = 1 .
 
-    ***There is a path conflict if the paths share an intersection e same direction, or if they share a path going in opposite directions
+    ***There is a path conflict if the paths share an intersection in the same direction, or if they share a path going in opposite directions
     ceq directConflict((X,Y) (X2,Y2) LL, (X3,Y3) (X2,Y2) LL2) = true if setDirection((X,Y),(X2,Y2)) =/= setDirection((X3,Y3), (X2,Y2)) . 
     ceq directConflict((X,Y) (X2,Y2) (X3,Y3) LL, (X4,Y4) (X5,Y5) LL2) = true if overlap((X2,Y2) (X3,Y3), (X4,Y4) (X5,Y5)) and opposite(setDirection((X2,Y2), (X3,Y3)), setDirection((X4,Y4), (X5,Y5))) .
     ceq directConflict((X,Y) (X2,Y2) LL, (X3,Y3) (X4,Y4) LL2) = true if
@@ -352,6 +339,7 @@ omod ROBOT is
 
     eq $planPath(< OID : Map | >, LL, LL2) = dijkstraChain(getIntersections(modifyMap(< OID : Map | >, LL, LL2)), LL) .
 
+    ***planPathLocations is used to 
     eq planPath(< OID : Robot | location : (X,Y), obstructionPoints : LL >, [OID2, TT, N], < OID3 : Map | allIntersections : CONF > CONF2) =
         $planPath(< OID3 : Map | >,
             $planPathLocations(< OID : Robot | >, [OID2, TT, N], CONF CONF2), LL) .
@@ -511,12 +499,36 @@ omod ROBOT is
             msg noConflict from OID to OID3 
         fi .
 
+    --- rl [rcvPathNegotiationSharedIntersection] :
+    ---     < OID : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, curTask : TID, state : FUNC >
+    ---     < OID2 : Map | >
+    ---     msg requestPath § path((X3, Y3) (X2,Y2) LL2) from OID3 to OID 
+    ---     =>
+    ---     intersectionCoordination.
+    ***Dont want direct conflict to override intersection coordination.
+
+    ***If the robot has a task to complete it negotiates with the other to find most cost effective reroute.
+    crl [rcvPathNegotiationDirectConflict] :
+        < OID : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, curTask : TID, state : FUNC, obstructionPoints : LL2 >
+        < OID2 : Map | >
+        msg requestPath § path((X3, Y3) (X4,Y4) LL3) from OID3 to OID 
+        =>
+        ***we need to keep track of negotiations? or can we just make a decision when we retrieve cost?
+        ***send cost of replanning, if possible.
+        < OID : Robot | >
+        < OID2 : Map | >
+        dly(msg cost(replanCost(< OID : Robot | >, < OID2 : Map | >, (X3, Y3))) from OID to OID3, MSG-DELAY)
+        ***The rule only applies if the robots are headed directly towards one another on the same road.
+        ***Modifypath is used so that the rule is not applied if there is an obstacle between them.
+        if directConflict((X,Y) (X2,Y2) LL, modifyPath((X3,Y3) (X4,Y4) LL3, LL2)) and ((X2,Y2) =/= (X4, Y4)) .
+
     ***rcv yieldingON msg.
     ***remove from waitingOn, then if waitingOn is empty, begin moving again, ofc only if functional.
     ***remove from waitingOn, waitingOn can be empty? if it fails we clear waitingOn?
     ***if we are inc
+    ***what if receive a yield message if not waiting?
     rl [rcvYieldingMsgValid] :
-        < OID : Robot | state : waiting, waitingOn : OS >
+        < OID : Robot | waitingOn : OS >
         msg yielding from OID2 to OID
         =>
         < OID : Robot | waitingOn : OS \ OID2 > .
@@ -552,7 +564,7 @@ omod ROBOT is
         < OID : Robot | >
         msg won TID from OID2 to OID
         =>
-        if rejectMsg(< OID : Robot | >)
+        if rejectMsg(< OID : Reobot | >)
         then
             < OID : Robot | >
             dly(msg reject TID from OID to OID2, MSG-DELAY)

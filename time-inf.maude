@@ -1,13 +1,14 @@
-fmod TIME-INF is 
-    protecting RAT .
-    sorts Time TimeInf .
-    subsorts Rat < Time < TimeInf .
+load rat-inf .
 
-    sort timeInterval .
+fmod TIME-INF is 
+    protecting RAT-INF .
+
+    sorts Time TimeInf .
+
+    subsort Rat < Time .
+    subsorts RatInf Time < TimeInf .
 
     op inf : -> TimeInf [ctor] .
-    op interval : TimeInf TimeInf -> timeInterval [ctor] .
-    op intervalOverlap : timeInterval timeInterval -> Bool [comm] .
 
     op _<_ : TimeInf TimeInf -> Bool [ditto] .
     op _<=_ : TimeInf TimeInf -> Bool [ditto] .
@@ -29,8 +30,6 @@ fmod TIME-INF is
     eq max(INF, inf) = inf .
     eq min(INF, inf) = INF .
 
-    ceq intervalOverlap(interval(T, T'), interval(T2, T2')) = true if T <= T2 and T2 <= T' .
-    eq intervalOverlap(interval(T, T'), interval(T2, T2')) = false [owise] .
 endfm 
 
 omod TIMER is

@@ -250,7 +250,8 @@ omod TIMED-FARM is
     calculateAdvance(< OID : Robot | >, objectInWay((X, Y), (X2,Y2), CONF)) [owise] .
 
     eq maxTimeAdvance(< OID : Map | > CONF) = maxTimeAdvance(CONF) .
-    eq maxTimeAdvance(< OID : Field | > CONF) = min(untilTimerExpire(< OID : Field | >), maxTimeAdvance(CONF)) .
+    ceq maxTimeAdvance(< OID : Field | > CONF) = 0 if needToStartAuction(< OID : Field | >) .
+    ceq maxTimeAdvance(< OID : Field | > CONF) = min(untilTimerExpire(< OID : Field | >), maxTimeAdvance(CONF)) if not needToStartAuction(< OID : Field | >) .
     eq maxTimeAdvance(< OID : Robot | handledTime : false > CONF) = min($maxTimeAdvanceRobot(OID, < OID : Robot | > CONF), maxTimeAdvance(< OID : Robot | handledTime : true > CONF)) .
     eq maxTimeAdvance(dly(MSG, TIME) CONF) = min(TIME, maxTimeAdvance(CONF)).
     eq maxTimeAdvance(CONF) = inf [owise] .
