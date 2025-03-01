@@ -99,7 +99,7 @@ omod YIELD-TESTS is
 
     ops 1on1IdleYield detectionTime busyYield : -> ClockedConfiguration .
 
-    eq robotAttrs = speed : 1, maxSpeed : 1, detected : nil, detectionRange : 5,
+    eq robotAttrs = speed : 1, maxSpeed : 1, detected : nil, 
       handledTime : false,  
       auctions : noAuction, waitingOn : none .
     eq workerAttrs = cargoLevel : full, curCargo : water, curTask : noTask, workState : noWork .
@@ -110,18 +110,19 @@ omod YIELD-TESTS is
     eq rob = < "W1" : Worker | location : (40,0), state : idle, direction : west, workers : "W2", remainingPath : (0,0), workerAttrs > .
     eq rob2 = < "W2" : Worker | location : (0,0), state : moving, direction : east, workers : "W1", remainingPath : (100,0), workerAttrs > .
     
-    eq timeRob = < "TW1" : Worker | location : (0,0), state : moving, direction : east, workers : "TW2", remainingPath : (100,0), workerAttrs > .
-    eq timeRob2 = < "TW2" : Worker | location : (100,0), state : moving, direction : west, workers : "TW1", remainingPath : (0,0), workerAttrs > .
+    eq timeRob = < "TW1" : Worker | detectionRange : 7, location : (0,0), state : moving, direction : east, workers : "TW2", remainingPath : (100,0), workerAttrs, robotAttrs > .
+    eq timeRob2 = < "TW2" : Worker | detectionRange : 5, location : (100,0), state : idle, direction : west, workers : "TW1", remainingPath : nil, workerAttrs, robotAttrs > .
 
-    eq busyRob  = < "BW1" : Worker | state : moving, obstructionPoints : nil, direction : west, location : (100,0), remainingPath : (0,0) (0,100), robotAttrs, cargoLevel : full, curCargo : water, curTask : ["GL1", watering, 1], workState : noWork > .
-    eq busyRob2 = < "BW2" : Worker | state : moving, obstructionPoints : nil, direction : east, location : (0,0), remainingPath : (100,0) (100,-100) (150, -100), robotAttrs, cargoLevel : full, curCargo : fertilizer, curTask : ["GL2", fertilize, 1], workState : noWork > .
+    eq busyRob  = < "BW1" : Worker | negotiations : noNegotiation, state : moving, obstructionPoints : nil, direction : west, location : (100,0), remainingPath : (0,0) (0,100), robotAttrs, cargoLevel : full, curCargo : water, curTask : ["GL1", watering, 1], workState : noWork > .
+    eq busyRob2 = < "BW2" : Worker | negotiations : noNegotiation, state : moving, obstructionPoints : nil, direction : east, location : (0,0), remainingPath : (100,0) (100,-100) (150, -100), robotAttrs, cargoLevel : full, curCargo : fertilizer, curTask : ["GL2", fertilize, 1], workState : noWork > .
 
-    eq I1 = < "I1" : PassIntersection | location : (0,0), neighbors : "I2" "I3" "GL1" > .
+    eq I1 = < "I1" : PassIntersection | location : (0,0), neighbors : "I2" "I3"  > .
     eq I2 = < "I2" : PassIntersection | location : (100,0), neighbors : "I1" "I4" "I5" "I6" > .
-    eq I3 = < "I3" : PassIntersection | location : (0,-100), neighbors : "I4" "I1" "Resupply" > .
-    eq I4 = < "I4" : PassIntersection | location : (100,-100), neighbors : "I2" "I3" "GL2" "Collection" > .
+    eq I3 = < "I3" : PassIntersection | location : (0,-100), neighbors : "I4" "I1" > .
+    eq I4 = < "I4" : PassIntersection | location : (100,-100), neighbors : "I2" "I3" > .
     eq I5 = < "I5" : PassIntersection | location : (200, 0), neighbors : "I2" > .
     eq I6 = < "I6" : PassIntersection | location : (100,100), neighbors : "I2" > .
+
 
     eq resupply = < "Resupply" : ResupplyStation | location : (-50, -100), neighbors : "I3" > .
     eq collection = < "Collection" : CollectionStation | location : (100,-150), neighbors : "I4" > .
@@ -155,6 +156,3 @@ endom
 ***planpath doesnt work, which means replanCost doesnt work
 ***bugs at perform checks, because resupply isnt included on map?¨
 ***every test map that includes tasks needs a resupply station and a collection point.
-red planPath(busyRob, ["GL1", watering, 1], farmMap1) .
-red replanCost(busyRob, farmMap1, (50,0)) .
-rew busyYield .

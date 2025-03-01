@@ -26,6 +26,7 @@ omod ROBOT is
     sort Representation .
     sorts WorkState ActiveWork TimedWork .
     sort Information .
+    sort Negotiation .
 
     subsorts Location Direction State < Information .
     subsorts ActiveWork TimedWork < WorkState .
@@ -35,11 +36,15 @@ omod ROBOT is
 
     class Robot | detectionRange : Rat, cargoLevel : CargoLevel, curCargo : Cargo,
         detected : Representation, obstructionPoints : List-Location, waitingOn : OidSet,
-        curTask : TaskStatus, workState : WorkState .
+        curTask : TaskStatus, workState : WorkState, negotiations : Negotiation .
     class Worker .
     class Transporter .
     
     subclass Worker Transporter < Robot < Entity Auctioneer .
+
+    op noNegotiation : -> Negotiation [ctor] .
+    op [_| cost_] : Oid RatInf -> Negotiation [ctor] .
+    op __ : Negotiation Negotiation -> Negotiation [assoc comm id: noNegotiation] .
 
     op water : -> Water [ctor] .
     op fertilizer : -> Fertilizer [ctor] .
@@ -149,6 +154,7 @@ omod ROBOT is
     var INC : IncapacitatedState .
     var PQ : PQueue .
     var O : Object . 
+    var NS : Negotiation .
 
     vars TT TT2 : TaskType .
     var TS : TaskStatus .
@@ -192,6 +198,8 @@ omod ROBOT is
 
     ceq safetyChecks(< OID : Robot | state : STATE >, {OID2 : Robot | I}, < OID3 : Map | >) = < OID : Robot | > if STATE == idle or STATE == waiting .
     eq safetyChecks(< OID : Robot | >, {OID2 : Robot | FUNC ; I}, < OID3 : Map | >) =
+        ***this correct, what if we detect someone that are not in the way?
+        ***unchanged since it is not in the way.
         if needNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC ; I}, < OID3 : Map | >)
         then
             startNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC ; I}, < OID3 : Map | >)
@@ -277,17 +285,17 @@ omod ROBOT is
     ceq needNegotiation(< OID : Robot | location : (X,Y), direction : D, state : moving >,
         {OID2 : Robot | (X2,Y2) ; D2 ; moving ; I}, < OID3 : Map | roads : {(X3,Y3) (X4,Y4)} RS >) =
             true if opposite(D,D2) and (findRoad((X,Y), {(X3,Y3) (X4,Y4)}) == findRoad((X2,Y2), {(X3,Y3) (X4,Y4)})) .
-    ***If a robot is moving towards a stationary robot.
+    ***If a robot is moving towards a stationary robot that is in the way.
     ceq needNegotiation(< OID : Robot | location : (X,Y), remainingPath : LL, state : moving >,
         {OID2 : Robot | (X2,Y2) ; STATE ; I}, < OID3 : Map | roads : RS >) =
-            true if (STATE =/= moving) and (findRoad((X,Y), RS) == findRoad((X2,Y2), RS)) and (between((X,Y) LL, (X2,Y2)) =/= nil) .
+            true if (STATE =/= moving) and (between((X,Y) LL, (X2,Y2)) =/= nil) .
     ***two robots move towards the same intersection from different paths.
     ceq needNegotiation(< OID : Robot | location : (X,Y), state : moving, direction : D >,
         {OID2 : Robot | (X2,Y2) ; D2 ; I}, < OID3 : Map | roads : {(X3,Y3) (X4,Y4)} {(X4, Y4) (X5,Y5)} RS >) =
             true if (X,Y) inRange({(X3,Y3) (X4,Y4)}) and (X2,Y2) inRange({(X4, Y4) (X5,Y5)}) and ((X,Y) D leadsTo (X4,Y4)) and ((X2,Y2) D2 leadsTo (X4,Y4)) .    
     eq needNegotiation(< OID : Robot | >, {OID2 : Robot | I}, < OID3 : Map | >) = false [owise] .
 
-    eq startNegotiation(< OID : Robot | location : (X,Y), remainingPath : LL, waitingOn : OS >, {OID2 : Robot | I}, < OID3 : Map | >) =
+    eq startNegotiation(< OID : Robot | location : (X,Y), remainingPath : LL, waitingOn : OS, negotiations : >, {OID2 : Robot | (X2,Y2) ; I}, < OID3 : Map | >) =
         < OID : Robot | state : waiting, speed : 0, waitingOn : OID2 OS >
         dly(msg requestPath § path((X,Y) LL) from OID to OID2, MSG-DELAY) .
 
@@ -451,9 +459,16 @@ omod ROBOT is
         ) .
 
     ceq yieldProtocol(< OID : Robot | remainingPath : LL >, OID2, LL2) =
-            < OID : Robot | remainingPath : LL2 >
-            dly(msg yielding from OID to OID2, MSG-DELAY)
+        < OID : Robot | remainingPath : LL2 >
+        dly(msg yielding from OID to OID2, MSG-DELAY)
         if LL2 =/= nil .
+
+    rl [rcvCostMsg] :
+        < OID : Robot | negotiations : [OID2 | cost RI] >
+        msg cost(RI2) from OID2 to OID
+        =>
+        
+        
 
     rl [fail] :
         < OID : Robot | location : (X,Y), curTask : TS >
@@ -509,13 +524,13 @@ omod ROBOT is
 
     ***If the robot has a task to complete it negotiates with the other to find most cost effective reroute.
     crl [rcvPathNegotiationDirectConflict] :
-        < OID : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, curTask : TID, state : FUNC, obstructionPoints : LL2 >
+        < OID : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, curTask : TID, state : FUNC, obstructionPoints : LL2, negotiations : NS >
         < OID2 : Map | >
         msg requestPath § path((X3, Y3) (X4,Y4) LL3) from OID3 to OID 
         =>
         ***we need to keep track of negotiations? or can we just make a decision when we retrieve cost?
         ***send cost of replanning, if possible.
-        < OID : Robot | >
+        < OID : Robot | negotiations : [OID3 | cost replanCost(< OID : Robot | >, < OID2 : Map | >, (X3, Y3))] NS > 
         < OID2 : Map | >
         dly(msg cost(replanCost(< OID : Robot | >, < OID2 : Map | >, (X3, Y3))) from OID to OID3, MSG-DELAY)
         ***The rule only applies if the robots are headed directly towards one another on the same road.
@@ -564,7 +579,7 @@ omod ROBOT is
         < OID : Robot | >
         msg won TID from OID2 to OID
         =>
-        if rejectMsg(< OID : Reobot | >)
+        if rejectMsg(< OID : Robot | >)
         then
             < OID : Robot | >
             dly(msg reject TID from OID to OID2, MSG-DELAY)
