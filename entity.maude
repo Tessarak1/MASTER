@@ -12,7 +12,7 @@ omod ENTITY is
     subclass Entity < PhysicalObj .    
 
     ops crashed failed : -> IncapacitatedState [ctor] .
-    ops moving idle waiting resupplying repairing removing unloading planningPath : -> FunctioningState [ctor] .
+    ops moving idle negotiating resupplying repairing removing unloading planningPath : -> FunctioningState [ctor] .
     op setDirection : Location Location -> Direction .
     ops inFront : Object Object -> Object [comm] .
     op _isBehind_ : Object Object -> Bool .

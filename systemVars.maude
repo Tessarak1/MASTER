@@ -1,0 +1,18 @@
+load time-inf .
+fmod SYSTEM-VARS is
+    protecting TIME-INF .
+
+    ops SAFE-SPEED MAX-SPEED : -> Rat .
+    ops SAFE-TIME EMERGENCY-TIME REMOVAL-TIME REPAIR-TIME : -> Time .
+    ops WORK-RANGE FINAL-RANGE : -> Rat .
+    op ROBOT-SIZE : -> Rat .
+
+    eq WORK-RANGE = 1 .
+    eq REMOVAL-TIME = 5 .
+    eq REPAIR-TIME = 5 .
+    eq SAFE-SPEED = 1 .
+    eq MAX-SPEED = 5 .
+    eq SAFE-TIME = 5 .
+    eq EMERGENCY-TIME = 3 .
+    eq ROBOT-SIZE = 1 .
+endfm    

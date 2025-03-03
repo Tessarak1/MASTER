@@ -212,8 +212,8 @@ omod TIMED-FARM is
     ***Needs to potentially change directions
     eq $maxTimeAdvanceRobot(OID, < OID : Robot | location : (X,Y), remainingPath : (X,Y) LL > CONF) = 0 .
 
-    ***Needs to stop waiting
-    eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : waiting, waitingOn : none > CONF) = 0 .
+    ***Needs to stop negotiating
+    eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : negotiating, negotiations : none > CONF) = 0 .
 
     ***Allow robot to start resupplying if needed
     ceq $maxTimeAdvanceRobot(OID, < OID : Robot | location : (X,Y), state : FUNC, curTask : TID > < OID2 : ResupplyStation | location : (X,Y) > CONF) = 0 if needsResupply(< OID : Robot | >, TID) and (FUNC =/= resupplying) .
@@ -227,9 +227,9 @@ omod TIMED-FARM is
     ***Needs to start movement
     ceq $maxTimeAdvanceRobot(OID, < OID : Robot | state : idle, remainingPath : LL, detected : nil > CONF) = 0 if LL =/= nil .
 
-    ***Not relevant if incapacitated, waiting or idle
+    ***Not relevant if incapacitated, negotiating or idle
     eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : INC, detected : nil > CONF) = inf .
-    eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : waiting, detected : nil > CONF) = inf .
+    eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : negotiating, detected : nil > CONF) = inf .
     eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : idle, remainingPath : nil, detected : nil > CONF) = inf .
 
     ***Time until it is finished with task

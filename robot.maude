@@ -7,7 +7,9 @@ load obstacle .
 load buildings .
 load auctioneer .
 load fail .
-load entity
+load entity .
+load systemVars .
+
 omod ROBOT is 
     protecting AUCTIONEER .
     protecting FAIL .
@@ -19,6 +21,7 @@ omod ROBOT is
     protecting PATHFINDER .
     protecting BUILDINGS .
     protecting ENTITY .
+    protecting SYSTEM-VARS .
 
     sort CargoLevel .
     sorts WorkerCargo TransporterCargo Cargo .
@@ -26,7 +29,7 @@ omod ROBOT is
     sort Representation .
     sorts WorkState ActiveWork TimedWork .
     sort Information .
-    sort Negotiation .
+
 
     subsorts Location Direction State < Information .
     subsorts ActiveWork TimedWork < WorkState .
@@ -35,16 +38,12 @@ omod ROBOT is
     subsort TransporterCargo WorkerCargo < Cargo .
 
     class Robot | detectionRange : Rat, cargoLevel : CargoLevel, curCargo : Cargo,
-        detected : Representation, obstructionPoints : List-Location, waitingOn : OidSet,
+        detected : Representation, obstructionPoints : List-Location,
         curTask : TaskStatus, workState : WorkState, negotiations : Negotiation .
     class Worker .
     class Transporter .
     
     subclass Worker Transporter < Robot < Entity Auctioneer .
-
-    op noNegotiation : -> Negotiation [ctor] .
-    op [_| cost_] : Oid RatInf -> Negotiation [ctor] .
-    op __ : Negotiation Negotiation -> Negotiation [assoc comm id: noNegotiation] .
 
     op water : -> Water [ctor] .
     op fertilizer : -> Fertilizer [ctor] .
@@ -87,11 +86,6 @@ omod ROBOT is
     ops rejectTask rejectMsg : Object -> Bool .
     op startWorkGL : Object -> Object .
 
-    ops SAFE-SPEED MAX-SPEED : -> Rat .
-    ops SAFE-TIME EMERGENCY-TIME REMOVAL-TIME REPAIR-TIME : -> Time .
-    ops WORK-RANGE FINAL-RANGE : -> Rat .
-    op ROBOT-SIZE : -> Rat .
-
     ops needsResupply needsCPoint : Object Tid -> Bool .
     ops resupplyLocCheck cPointLocCheck : Object Tid Location -> List-Location .
     op performChecks : Object Tid Configuration -> List-Location .
@@ -123,7 +117,7 @@ omod ROBOT is
     op directConflict : List-Location List-Location -> Bool .
 
     ***Treats the location as an obstacle, and calculates the additional distance required to complete the robot's task.
-    op replanCost : Object Object Location -> RatInf .
+    op replanCost : Object Object Location -> Cost .
 
     vars CONF CONF2 : Configuration .
     vars OID OID2 OID3 OID4 : Oid .
@@ -155,6 +149,7 @@ omod ROBOT is
     var PQ : PQueue .
     var O : Object . 
     var NS : Negotiation .
+    vars C C2 : Cost .
 
     vars TT TT2 : TaskType .
     var TS : TaskStatus .
@@ -175,19 +170,9 @@ omod ROBOT is
         then
             ratInf
         else
-            ***this may not work if a robot has parsed detection of the other, ensure that it performs without and with added to obstructionpoints.
             listLength(planPath(< OID : Robot | obstructionPoints : LL (X,Y) >, TID, < OID2 : Map | >)) -
             listLength(planPath(< OID : Robot | obstructionPoints : remove(LL, (X,Y)) >, TID, < OID2 : Map | >))
         fi .
-
-    eq WORK-RANGE = 1 .
-    eq REMOVAL-TIME = 5 .
-    eq REPAIR-TIME = 5 .
-    eq SAFE-SPEED = 1 .
-    eq MAX-SPEED = 5 .
-    eq SAFE-TIME = 5 .
-    eq EMERGENCY-TIME = 3 .
-    eq ROBOT-SIZE = 1 .
 
     ***There is a path conflict if the paths share an intersection in the same direction, or if they share a path going in opposite directions
     ceq directConflict((X,Y) (X2,Y2) LL, (X3,Y3) (X2,Y2) LL2) = true if setDirection((X,Y),(X2,Y2)) =/= setDirection((X3,Y3), (X2,Y2)) . 
@@ -196,10 +181,9 @@ omod ROBOT is
         overlap((X,Y) (X2,Y2), (X3,Y3) (X4,Y4)) and opposite(setDirection((X,Y), (X2,Y2)), setDirection((X3,Y3), (X4,Y4))) .
     eq directConflict(LL, LL2) = false [owise] .
 
-    ceq safetyChecks(< OID : Robot | state : STATE >, {OID2 : Robot | I}, < OID3 : Map | >) = < OID : Robot | > if STATE == idle or STATE == waiting .
+    ***Don't apply safety checks if the robot is moving.
+    ceq safetyChecks(< OID : Robot | state : STATE >, {OID2 : Robot | I}, < OID3 : Map | >) = < OID : Robot | > if STATE =/= moving .
     eq safetyChecks(< OID : Robot | >, {OID2 : Robot | FUNC ; I}, < OID3 : Map | >) =
-        ***this correct, what if we detect someone that are not in the way?
-        ***unchanged since it is not in the way.
         if needNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC ; I}, < OID3 : Map | >)
         then
             startNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC ; I}, < OID3 : Map | >)
@@ -240,7 +224,7 @@ omod ROBOT is
     ***Only location change is needed here to prevent the Robot's path from overlapping with the obstacle.
     ***Speed change is dependent on the time it would take until the robot would crash with the detected object.
     eq $speedPrevention(< OID : Robot | >, {OID2 : Obstacle | I}) = < OID : Robot | > .
-    eq $speedPrevention(< OID : Robot | location : (X,Y), direction : D, speed : SP, waitingOn : OS >, {OID2 : Robot | (X2,Y2) ; D ; detectedSpeed(SP2) ; moving ; I}) =
+    eq $speedPrevention(< OID : Robot | location : (X,Y), direction : D, speed : SP >, {OID2 : Robot | (X2,Y2) ; D ; detectedSpeed(SP2) ; moving ; I}) =
         if SP2 >= SP
         then
             < OID : Robot | >
@@ -253,7 +237,7 @@ omod ROBOT is
     eq $speedPrevention(< OID : Robot | >, {OID2 : Robot | I}) = < OID : Robot | > [owise] .
 
     ***Modifies the robot's speed based on the calculated time until crash.
-    eq $timeCheck(< OID : Robot | waitingOn : OS >, OID2, TIME) =
+    eq $timeCheck(< OID : Robot | >, OID2, TIME) =
         if TIME < EMERGENCY-TIME
         then
             < OID : Robot | state : idle, speed : 0 >
@@ -295,8 +279,8 @@ omod ROBOT is
             true if (X,Y) inRange({(X3,Y3) (X4,Y4)}) and (X2,Y2) inRange({(X4, Y4) (X5,Y5)}) and ((X,Y) D leadsTo (X4,Y4)) and ((X2,Y2) D2 leadsTo (X4,Y4)) .    
     eq needNegotiation(< OID : Robot | >, {OID2 : Robot | I}, < OID3 : Map | >) = false [owise] .
 
-    eq startNegotiation(< OID : Robot | location : (X,Y), remainingPath : LL, waitingOn : OS, negotiations : >, {OID2 : Robot | (X2,Y2) ; I}, < OID3 : Map | >) =
-        < OID : Robot | state : waiting, speed : 0, waitingOn : OID2 OS >
+    eq startNegotiation(< OID : Robot | location : (X,Y), remainingPath : LL, negotiations : NS >, {OID2 : Robot | (X2,Y2) ; I}, < OID3 : Map | >) =
+        < OID : Robot | state : negotiating, speed : 0, negotiations : addNegotiation(NS, OID2, (X2,Y2)) > 
         dly(msg requestPath § path((X,Y) LL) from OID to OID2, MSG-DELAY) .
 
     eq closest((X,Y), CONF, none) = CONF .
@@ -463,20 +447,29 @@ omod ROBOT is
         dly(msg yielding from OID to OID2, MSG-DELAY)
         if LL2 =/= nil .
 
-    rl [rcvCostMsg] :
-        < OID : Robot | negotiations : [OID2 | cost RI] >
-        msg cost(RI2) from OID2 to OID
+    --- rl [rcvCostMsg] :
+    ---     < OID : Robot | negotiations : [OID2 | (X,Y) | C] NS >
+    ---     msg cost(C2) from OID2 to OID
+    ---     =>
+        
+    ---     < OID : Robot | negotiations :
+    
+    ***If a robot receives a yielding or noConflict message it ends negotiation with message sender.
+    crl [rcvEndingNegotiationMsg] :
+        < OID : Robot | negotiations : NS >
+        msg MC from OID2 to OID
         =>
+        < OID : Robot | negotiations : endNegotiation(NS, OID2) >
+        if MC == yielding or MC == noConflict .   
         
-        
-
+    ***If a robot fails it starts task assignment for repairing it, as well as for the task it had.
     rl [fail] :
         < OID : Robot | location : (X,Y), curTask : TS >
         < "FAIL" : Fail | >
         =>
         if TS == noTask
         then
-            < OID : Robot | speed : 0, state : failed >
+            startAuction(< OID : Robot | speed : 0, state : failed >, [OID, repairAt (X,Y), 1])
         else
             startAuction(< OID : Robot | speed : 0, state : failed >, TS [OID, repairAt (X,Y), 1])
         fi .
@@ -528,9 +521,7 @@ omod ROBOT is
         < OID2 : Map | >
         msg requestPath § path((X3, Y3) (X4,Y4) LL3) from OID3 to OID 
         =>
-        ***we need to keep track of negotiations? or can we just make a decision when we retrieve cost?
-        ***send cost of replanning, if possible.
-        < OID : Robot | negotiations : [OID3 | cost replanCost(< OID : Robot | >, < OID2 : Map | >, (X3, Y3))] NS > 
+        < OID : Robot | negotiations : updateNegotiation(NS, [OID3 | (X3,Y3) | replanCost(< OID : Robot | >, < OID2 : Map | >, (X3, Y3))]) NS > 
         < OID2 : Map | >
         dly(msg cost(replanCost(< OID : Robot | >, < OID2 : Map | >, (X3, Y3))) from OID to OID3, MSG-DELAY)
         ***The rule only applies if the robots are headed directly towards one another on the same road.
@@ -543,13 +534,13 @@ omod ROBOT is
     ***if we are inc
     ***what if receive a yield message if not waiting?
     rl [rcvYieldingMsgValid] :
-        < OID : Robot | waitingOn : OS >
+        < OID : Robot | negotiations : NS >
         msg yielding from OID2 to OID
         =>
-        < OID : Robot | waitingOn : OS \ OID2 > .
+        < OID : Robot | negotiations : NS > .
 
-    rl [stopWaiting] :
-        < OID : Robot | state : waiting, waitingOn : none >
+    rl [finishNegotiating] :
+        < OID : Robot | state : negotiating, negotiations : none >
         =>
         < OID : Robot | state : idle > .
 

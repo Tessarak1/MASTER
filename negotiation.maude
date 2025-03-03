@@ -1,0 +1,45 @@
+omod NEGOTIATION is
+    protecting LOCATION .
+    protecting RAT-INF .
+    
+    sorts Negotiation NegotiationSet .
+    subsort Negotiation < NegotiationSet .
+    sort Cost .
+    
+    subsort String < Oid .
+    subsort RatInf < Cost .
+
+    ***A negotiation consists of 
+    op none : -> Negotiation [ctor] .
+    op [_|_|_] : Oid Location Cost -> Negotiation [ctor] .
+    op __ : Negotiation Negotiation -> Negotiation [assoc comm id: none] .
+    
+    ***Placeholder value for negotiations where the robot has not calculated the cost of replanning yet.
+    op noCost : -> Cost [ctor] .
+
+    ***Creates a new negotiation with another robot if one doesn't already exist.
+    op addNegotiation : NegotiationSet Oid Location -> NegotiationSet .
+
+    ***Removes a negotiation with the given Oid from the 
+    op endNegotiation : Negotiation Oid -> Negotiation .
+
+    ***Updates an existing negotiation, or creates one if it doesn't exist
+    op updateNegotiation : NegotiationSet Negotiation -> NegotiationSet .
+
+    var OID : Oid .
+    vars X X2 Y Y2 : Rat .
+    vars COST COST2 : Rat .
+    var NN : Negotiation .
+    var NS : NegotiationSet .
+    
+    eq NN NN = NN .
+
+    eq addNegotiation([OID | (X,Y) | COST] NS, OID, (X2,Y2)) = [OID | (X,Y) | COST] NS .
+    eq addNegotiation(NS, OID, (X,Y)) = [OID | (X,Y) | noCost] NS [owise] .
+
+    eq endNegotiation([OID | (X,Y) | COST] NS, OID) = NS .
+    eq endNegotiation(NS, OID) = NS [owise] .
+
+    eq updateNegotiation([OID | (X,Y) | COST] NS, [OID | (X2,Y2) | COST2]) = [OID | (X2,Y2) | COST2] NS .
+    eq updateNegotiation(NS, [OID | (X,Y) | COST]) = [OID | (X,Y) | COST] NS [owise] .
+endom
