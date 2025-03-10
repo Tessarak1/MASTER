@@ -18,7 +18,7 @@ omod ENTITY is
     op _isBehind_ : Object Object -> Bool .
     op stoppingDistance : Object -> Rat .
     ops north east south west : -> Direction [ctor] .
-    op opposite : Direction Direction -> Bool [comm] .
+    op oppositeDirections : Direction Direction -> Bool [comm] .
     op differentAxes : Direction Direction -> Bool [comm] .
     op headedTowards : Object Location -> Bool . 
 
@@ -30,9 +30,9 @@ omod ENTITY is
     var STATE : State .
     vars D D2 : Direction .
 
-    eq opposite(north, south) = true .
-    eq opposite(east, west) = true .
-    eq opposite(D, D2) = false [owise] .
+    eq oppositeDirections(north, south) = true .
+    eq oppositeDirections(east, west) = true .
+    eq oppositeDirections(D, D2) = false [owise] .
 
     eq differentAxes(north, west) = true .
     eq differentAxes(north, east) = true .

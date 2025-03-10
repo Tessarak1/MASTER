@@ -70,7 +70,6 @@ omod PATHFINDER is
     vars I I2 : Object .
     var CONF : Configuration .
     vars OS OS2 : OidSet .
-    var OL : OidList .
     vars X X2 X3 X4 Y Y2 Y3 Y4 : Rat .
     vars OID OID2 OID3 OID4 : Oid .
     vars PQ PQ2 : PQueue .

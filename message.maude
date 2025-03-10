@@ -1,41 +1,87 @@
-load location .
+load locatable .
 load task .
 load time-inf .
 load negotiation .
+load systemVars .
 ***Code for message-wrapper is taken from assignment 3 regarding sliding window in maude.
 omod MESSAGE-WRAPPER is
   protecting OID-SET .
 
-  sort MsgContent .
+  sorts MsgContent MsgContentSet .
 
-  op noContent : -> MsgContent [ctor] .
-  op _§_ : MsgContent MsgContent -> MsgContent [assoc comm ctor id: noContent] .
+  subsort MsgContent < MsgContentSet .
+
+  op noContent : -> MsgContentSet [ctor] .
+  op _§_ : MsgContentSet MsgContentSet -> MsgContentSet [assoc comm ctor id: noContent] .
   op msg_from_to_ : MsgContent Oid Oid -> Msg [ctor] .
 endom
  
-omod MESSAGE is including MESSAGE-WRAPPER .
+omod MESSAGE is
+  protecting MESSAGE-WRAPPER .
   protecting LIST-LOCATION .
   protecting TASK .
   protecting TIME-INF .
   protecting NEGOTIATION .
   
   sort DlyMsg .
+
   subsort Msg < DlyMsg < Configuration .
-  subsort TidSet < MsgContent .
+  subsort Tid < MsgContent .
 
   op dly : Msg Time -> DlyMsg [ctor right id: 0] .
   ops obstacleAt_ removed_ : Location -> MsgContent .
   op path : List-Location -> MsgContent .
   op cost : Cost -> MsgContent .
   ops yielding requestPath noConflict : -> MsgContent .
+
+  ***Converts a set of tasks into msg content.
+  op tidToMsgContent : TidSet -> MsgContentSet .
+
+  var TID : Tid .
+  var TIDS : TidSet .
+
+  eq tidToMsgContent(none) = noContent .
+  eq tidToMsgContent(TID TIDS) = TID § tidToMsgContent(TIDS) .
+endom
+
+omod MESSENGER is
+  protecting MESSAGE .
+  protecting LOCATABLE .
+  protecting SYSTEM-VARS .
+
+  ***Objects of this class can communicate with one another.
+  class Messenger | broadcastRange : Rat .
+  
+  subclass Messenger < Locatable .
+
+  ***Creates a message from Oid to everyone in the OidSet.
   op broadcast : Oid MsgContent OidSet -> Configuration .
-  op MSG-DELAY : -> Time .
+
+  ***Broadcasts messages from Object to each object in the configuration that is in range.
+  op broadcastInRange : Object MsgContent Configuration -> Configuration .
+  op $broadcastInRange : Oid MsgContent OidSet -> Configuration .
+
+  ***returns the oids of messengers.
+  op messengerOids : Configuration -> OidSet .
 
   vars OID OID2 : Oid .
-  var MC : MsgContent .
   var OIDS : OidSet .
+  var R : Rat .
+  var MC : MsgContent .
+  var MCS : MsgContentSet .
+  var CONF : Configuration .
+  var TIDS : TidSet .
 
-  eq MSG-DELAY = 1 .
+  eq messengerOids(< OID : Messenger | > CONF) = OID messengerOids(CONF) .
+  eq messengerOids(CONF) = none [owise] .
+
   eq broadcast(OID, MC, none) = none .
   eq broadcast(OID, MC, OID2 OIDS) = dly((msg MC from OID to OID2), MSG-DELAY) broadcast(OID, MC, OIDS) .
+
+  eq broadcastInRange(< OID : Messenger | >, noContent, CONF) = none .
+  eq broadcastInRange(< OID : Messenger | broadcastRange : R >, MCS, CONF) =
+    $broadcastInRange(OID, MCS, messengerOids(withinDistance(< OID : Messenger | >, R, CONF))) .
+  
+  eq $broadcastInRange(OID, noContent, OIDS) = none .
+  eq $broadcastInRange(OID, MC § MCS, OIDS) = broadcast(OID, MC, OIDS) $broadcastInRange(OID, MCS, OIDS) .
 endom

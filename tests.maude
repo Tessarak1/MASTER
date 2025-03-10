@@ -1,39 +1,25 @@
 load timedFarm .
-omod YIELD-TESTS is
-    protecting ROBOT .
+
+omod BASE is
     protecting TIMED-FARM .
 
-    ops robotAttrs workerAttrs : -> AttributeSet .
-    op fieldSet : -> AttributeSet .
+    ops robotAttrs workerAttrs transporterAttrs : -> AttributeSet .
+    op fieldAttrs : -> AttributeSet .
     ops rob rob2 : -> Object .
-    ops timeRob timeRob2 : -> Object .
-    ops busyRob busyRob2 : -> Object .
     ops I1 I2 I3 I4 I5 I6 : -> Object .
-    ops GL1 GL2 : -> Object .
     op resupply : -> Object .
     op collection : -> Object .
+    ops GL1 GL2 : -> Object .
     ops intersections1 : -> Configuration .
     op farm1 : -> Configuration .
-    ops map1 farmMap1 : -> Object .
+    op map1 : -> Object .
 
-    ops 1on1IdleYield detectionTime busyYield : -> ClockedConfiguration .
-
-    eq robotAttrs = speed : 1, maxSpeed : 1, detected : nil, 
-      handledTime : false,  
-      auctions : noAuction, negotiations : none .
-    eq workerAttrs = cargoLevel : full, curCargo : water, curTask : noTask, workState : noWork .
-
-    eq fieldSet = growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 1000 - base: 1000],
-      fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 100 - base: 100], reserved : false, taskNr : 0, auctions : noAuction .
-
-    eq rob = < "W1" : Worker | location : (40,0), state : idle, direction : west, workers : "W2", remainingPath : (0,0), workerAttrs > .
-    eq rob2 = < "W2" : Worker | location : (0,0), state : moving, direction : east, workers : "W1", remainingPath : (100,0), workerAttrs > .
-    
-    eq timeRob = < "TW1" : Worker | detectionRange : 7, location : (0,0), state : moving, direction : east, workers : "TW2", remainingPath : (100,0), workerAttrs, robotAttrs > .
-    eq timeRob2 = < "TW2" : Worker | detectionRange : 5, location : (100,0), state : idle, direction : west, workers : "TW1", remainingPath : nil, workerAttrs, robotAttrs > .
-
-    eq busyRob  = < "BW1" : Worker | negotiations : none, state : moving, obstructionPoints : nil, direction : west, location : (100,0), remainingPath : (0,0) (0,100), robotAttrs, cargoLevel : full, curCargo : water, curTask : ["GL1", watering, 1], workState : noWork > .
-    eq busyRob2 = < "BW2" : Worker | negotiations : none, state : moving, obstructionPoints : nil, direction : east, location : (0,0), remainingPath : (100,0) (100,-100) (150, -100), robotAttrs, cargoLevel : full, curCargo : fertilizer, curTask : ["GL2", fertilize, 1], workState : noWork > .
+    eq robotAttrs = broadcastRange : 100, maxSpeed : 1, detected : none, auctions : noAuction, curTask : noTask,
+      handledTime : false, negotiations : none, workState : noWork .
+    eq workerAttrs = cargoLevel : full .
+    eq transporterAttrs = cargoLevel : empty .
+    eq fieldAttrs = broadcastRange : 100, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 1000 - base: 1000],
+      fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 100 - base: 100], reserved : false, auctions : noAuction .
 
     eq I1 = < "I1" : PassIntersection | location : (0,0), neighbors : "I2" "I3"  > .
     eq I2 = < "I2" : PassIntersection | location : (100,0), neighbors : "I1" "I4" "I5" "I6" > .
@@ -42,36 +28,29 @@ omod YIELD-TESTS is
     eq I5 = < "I5" : PassIntersection | location : (200, 0), neighbors : "I2" > .
     eq I6 = < "I6" : PassIntersection | location : (100,100), neighbors : "I2" > .
 
-
     eq resupply = < "Resupply" : ResupplyStation | location : (-50, -100), neighbors : "I3" > .
     eq collection = < "Collection" : CollectionStation | location : (100,-150), neighbors : "I4" > .
+    eq intersections1 = I1 I2 I3 I4 I5 I6 resupply collection GL1 .
 
-    eq GL1 = < "GL1" : Field | location : (0, 100), neighbors : "I1", growingArea : area((-50, 100), (50,100), (-50, 150), (50, 150)),
-        workers : "BW1" "BW2", transporters : "BT1", fieldSet > .
-    eq GL2 = < "GL2" : Field | location : (150, -100), neighbors : "I4", growingArea : area((150,-50), (200, -50), (150,-100), (200, -100)),
-        workers : "BW1" "BW2", transporters : none, fieldSet > .
+    eq GL1 = < "GL1" : Field | location : (0, 100), neighbors : "I1", growingArea : area((-50, 100), (50,100), (-50, 150), (50, 150)), fieldAttrs > .
+    eq GL2 = < "GL2" : Field | location : (150, -100), neighbors : "I4", growingArea : area((150,-50), (200, -50), (150,-100), (200, -100)), fieldAttrs > .
+    
+    eq rob = < "W1" : Worker | location : (40,0), state : idle, direction : west, remainingPath : nil, workerAttrs > .
+    eq rob2 = < "T1" : Transporter | location : (0,0), state : idle, direction : east, remainingPath : nil, workerAttrs > .
 
-    eq intersections1 = I1 I2 I3 I4 I5 I6 .
     eq map1 = < "Map" : Map | allIntersections : intersections1, roads : createRoadSet(intersections1) > .
     
-    eq farm1 = intersections1 GL1 GL2 resupply collection .
-    eq farmMap1 = < "FarmMap" : Map | allIntersections : farm1, roads : createRoadSet(farm1) > .
-
-    ***Testing if an idle robot yields properly.
-    eq 1on1IdleYield = rob rob2 map1 @ 0 .
-    ***RESULT
-    ***1 R2 moves into range of R1, detection happens for both.
-    ***2 R1 dismisses detection since it is idle
-    ***3 R2 parses detection, identifies that R1 is blocking path, stops and requests path adds id to waiting on.
-    ***4 time passes for message to become active, causes both robots to detect each other again.
-    ***5 R1 receives path request message, and sets remainingPath to yieldPath and returns yielding message
-    ***6 R1 and R2 dismisses detections.
-    ***Does some stuff (difficult to see differences, ask if it is possible to check rule application labels in cont.)
-
-    eq detectionTime = timeRob timeRob2 map1 @ 0 .
-    eq busyYield = busyRob busyRob2 GL1 GL2 farmMap1 @ 0 .
+    eq farm1 = map1 rob rob2 GL1 .
 endom
 
-***planpath doesnt work, which means replanCost doesnt work
-***bugs at perform checks, because resupply isnt included on map?¨
-***every test map that includes tasks needs a resupply station and a collection point.
+***General rule for mta for fields?
+***Timers
+***0 if auction needs to be started
+***Auction timers
+***When can it be ignored?
+***Separate auctions from the rest?
+***mta to check auctions one for the rest and then combine.
+red maxTimeAdvance(
+< "GL1" : Field | location : (0, 100), broadcastRange : 100, auctions : [Task: ["GL1", harvest] [cur: 10 - base: 10] | noBid], neighbors : "I1", growingState : harvest, waterLevel : good, fertilizerLevel :
+    good, waterTimer : [cur: 900 - base: 1000], fertilizerTimer : [cur: 900 - base: 1000], growTimer : [cur: 0 - base: 100], growingArea : area((50, 100), (50, 150), (-50, 100), (-50, 150)), reserved : true >
+) .

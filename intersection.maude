@@ -21,10 +21,6 @@ omod INTERSECTION is
     var CONF : Configuration .
     var LL : List-Location .
 
-
-
     eq intersectionWithLocation(< OID : Intersection | location : (X, Y) > CONF, (X, Y) LL) = < OID : Intersection | > intersectionWithLocation(CONF, LL) .
     eq intersectionWithLocation(CONF, LL) = none [owise] .
-
-    eq distance(< OID : Intersection | location : (X,Y) >, < OID2 : Intersection | location : (X2,Y2) >) = distance((X,Y), (X2,Y2)) .
 endom

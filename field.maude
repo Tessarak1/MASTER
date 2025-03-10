@@ -6,7 +6,9 @@ omod FIELD is
     protecting TIMER .
     protecting AUCTIONEER .
 
+    ***states if a field is empty, is ready for harvest or is growing crops.
     sort GrowingState .
+    ***states if a field needs water or fertilizer.
     sort Level .
 
     class Field | growingState : GrowingState, waterLevel : Level, fertilizerLevel : Level, 
@@ -15,37 +17,45 @@ omod FIELD is
     subclass Field < Intersection Auctioneer .
 
     ops low good : -> Level [ctor] .
+
     ops empty growing harvest : -> GrowingState [ctor] .
+    ***Changes the field based on the task that has been completed on it.
     op taskComplete : Object Tid -> Object .
+    ***Returns the time until the corresponding timer expires. If the field has an active auction for the corresponding task
+    ***or a robot is working on it ratInf is returned instead to prevent stalling time infinitely.
     ops waterTime fertilizerTime growTime : Object -> Time .
 
-    var OID : Oid .
+    vars OID OID2 : Oid .
     var L L2 : Level .
     vars T T2 : Time .
     vars TR TR2 TR3 TR4 : Timer .
     var GS : GrowingState .
     var N : Nat .
     var TT : TaskType .
-    var AU : Auction .
-    var B : Bid .
+    var AUS : AuctionSet .
+    var CONF : Configuration .
+    var BS : BidSet .
+    var MC : MsgContent .
 
-    eq taskComplete(< OID : Field | waterTimer : TR, waterLevel : low, taskNr : N, reserved : true >, [OID, watering, N]) = < OID : Field | waterLevel : good, waterTimer : reset(TR), taskNr : N + 1, reserved : false > .
-    eq taskComplete(< OID : Field | fertilizerTimer : TR, fertilizerLevel : low, taskNr : N, reserved : true >, [OID, fertilize, N]) = < OID : Field | fertilizerLevel : good, fertilizerTimer : reset(TR), taskNr : N + 1, reserved : false > .
-    eq taskComplete(< OID : Field | growingState : empty, taskNr : N, reserved : true >, [OID, plant, N]) = < OID : Field | growingState : growing, taskNr : N + 1, reserved : false > .
-    eq taskComplete(< OID : Field | growingState : harvest, growTimer : TR, taskNr : N, reserved : true >, [OID, harvest, N]) = < OID : Field | growingState : empty, growTimer : reset(TR), taskNr : N + 1, reserved : false > .
+    eq taskComplete(< OID : Field | waterTimer : TR, waterLevel : low, reserved : true >, [OID, watering]) = < OID : Field | waterLevel : good, waterTimer : reset(TR), reserved : false > .
+    eq taskComplete(< OID : Field | fertilizerTimer : TR, fertilizerLevel : low,  reserved : true >, [OID, fertilize]) = < OID : Field | fertilizerLevel : good, fertilizerTimer : reset(TR), reserved : false > .
+    eq taskComplete(< OID : Field | growingState : empty,  reserved : true >, [OID, plant]) = < OID : Field | growingState : growing, reserved : false > .
+    eq taskComplete(< OID : Field | growingState : harvest, growTimer : TR,  reserved : true >, [OID, harvest]) = < OID : Field | growingState : empty, growTimer : reset(TR),  reserved : false > .
+
     eq decreaseTimers(< OID : Field | waterLevel : good, fertilizerLevel : good, waterTimer : TR, fertilizerTimer : TR2, growingState : growing, growTimer : TR3 >, T) =
         < OID : Field | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T), growTimer : decrease(TR3, T) > .
     eq decreaseTimers(< OID : Field | waterTimer : TR, fertilizerTimer : TR2 >, T) =
         < OID : Field | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T) > [owise] .
 
-    eq waterTime(< OID : Field | auctions : [Task: [OID, watering, N] TR | B] AU >) = ratInf .
+    eq waterTime(< OID : Field | auctions : [Task: [OID, watering] TR | BS] AUS >) = ratInf .
     eq waterTime(< OID : Field | waterTimer : [cur: 0 - base: T2], reserved : true >) = ratInf .
     eq waterTime(< OID : Field | waterTimer : [cur: T - base: T2] >) = T [owise] .
-    eq fertilizerTime(< OID : Field | auctions : [Task: [OID, fertilize, N] TR | B] AU >) = ratInf .
+
+    eq fertilizerTime(< OID : Field | auctions : [Task: [OID, fertilize] TR | BS] AUS >) = ratInf .
     eq fertilizerTime(< OID : Field | fertilizerTimer : [cur: 0 - base: T2], reserved : true >) = ratInf .
     eq fertilizerTime(< OID : Field | fertilizerTimer : [cur: T - base: T2] >) = T [owise] .
 
-    eq growTime(< OID : Field | auctions : [Task: [OID, harvest, N] TR | B] AU >) = ratInf .
+    eq growTime(< OID : Field | auctions : [Task: [OID, harvest] TR | BS] AUS >) = ratInf .
     eq growTime(< OID : Field | growTimer : [cur: 0 - base: T2], reserved : true >) = ratInf .
     ceq growTime(< OID : Field | waterLevel : L, fertilizerLevel : L2 >) = ratInf if (L == low) or (L2 == low) .
     eq growTime(< OID : Field | growingState : harvest >) = ratInf .
@@ -53,42 +63,58 @@ omod FIELD is
 
     eq untilTimerExpire(< OID : Field | >) = min(growTime(< OID : Field | >), min(waterTime(< OID : Field | >), fertilizerTime(< OID : Field | >))) .
 
-    ceq needToStartAuction(< OID : Field | growingState : harvest, auctions : AU, taskNr : N >) = true if closed([OID, harvest, N], AU) .
-    ceq needToStartAuction(< OID : Field | waterLevel : low, auctions : AU, taskNr : N >) = true if closed([OID, watering, N], AU) .
-    ceq needToStartAuction(< OID : Field | fertilizerLevel : low, auctions : AU, taskNr : N >) = true if closed([OID, fertilize, N], AU) .
+    ceq needToStartAuction(< OID : Field | growingState : harvest, auctions : AUS >) = true if closed([OID, harvest], AUS) .
+    ceq needToStartAuction(< OID : Field | waterLevel : low, auctions : AUS >) = true if closed([OID, watering], AUS) .
+    ceq needToStartAuction(< OID : Field | fertilizerLevel : low, auctions : AUS >) = true if closed([OID, fertilize], AUS) .
     eq needToStartAuction(< OID : Field | >) = false [owise] .
 
-    ***can only have one robot on the field at a time, so this ensures that 
-    ***when we start an auction we add the auctioned tasks, dont need N anymore? This was in place to ensure that a taskID is unique, however if we only allow one task to happen at a time it might not be needed.
-    ***Do we need auction timer? Since we dont have message failure.
     crl [depletedWater] :
         < OID : Field | waterLevel : good, waterTimer : TR >
         =>
         < OID : Field | waterLevel : low >
         if expired(TR) .
+
     crl [depletedFertilizer] :
         < OID : Field | fertilizerLevel : good, fertilizerTimer : TR >
         =>
         < OID : Field | fertilizerLevel : low >
         if expired(TR) .
+
     crl [finishedGrowth] :
         < OID : Field | growingState : growing, growTimer : TR >
         =>
         < OID : Field | growingState : harvest >
         if expired(TR) .
+
+    ***Creates the relevant auction if one does not already exist.
     crl [startWaterAuction] :
-        < OID : Field | waterLevel : low, growingState : growing, taskNr : N, auctions : AU, reserved : false >
+        < OID : Field | waterLevel : low, growingState : growing,  auctions : AUS, reserved : false >
+        CONF
         =>
-        startAuction(< OID : Field | reserved : true >, [OID, watering, N])
-        if closed([OID, watering, N], AU) .
+        initiateAuction(< OID : Field | reserved : true >, [OID, watering], CONF)
+        CONF
+        if closed([OID, watering], AUS) .
+
     crl [startFertilizerAuction] :
-        < OID : Field | fertilizerLevel : low, growingState : growing, taskNr : N, auctions : AU, reserved : false >
+        < OID : Field | fertilizerLevel : low, growingState : growing,  auctions : AUS, reserved : false >
+        CONF
         =>
-        startAuction(< OID : Field | reserved : true >, [OID, fertilize, N])
-        if closed([OID, fertilize, N], AU) .
+        initiateAuction(< OID : Field | reserved : true >, [OID, fertilize], CONF)
+        CONF
+        if closed([OID, fertilize], AUS) .
+
     crl [startHarvestAuction] :
-        < OID : Field | growingState : harvest, taskNr : N, auctions : AU, reserved : false >
+        < OID : Field | growingState : harvest,  auctions : AUS, reserved : false >
+        CONF
         =>
-        startAuction(< OID : Field | reserved : true >, [OID, harvest, N])
-        if closed([OID, harvest, N], AU) .
+        initiateAuction(< OID : Field | reserved : true >, [OID, harvest], CONF)
+        CONF
+        if closed([OID, harvest], AUS) .
+
+    ***Fields do not handle messages sent by broadcasts.
+    rl [rcvMsg] : 
+        < OID : Field | >
+        msg MC from OID2 to OID 
+        =>
+        < OID : Field | > .
 endom

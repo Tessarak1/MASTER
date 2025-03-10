@@ -10,9 +10,8 @@ fmod LOCATION is
 
     op _inInterval(_,_) : Rat Rat Rat -> Bool .
 
-    ***Gives the distance between two points, only works on points that are aligned at at least one of the axes.
+
     op distance : Location Location -> Rat [comm] .
-    op difference : Rat Rat -> Rat .
     op sqrt : Rat -> Rat .
     
     ***Checks if a point is inside an area.

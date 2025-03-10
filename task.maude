@@ -1,84 +1,116 @@
 load oidSet .
 load time-inf .
-load rat-inf .
 load location .
+load cost .
+load systemVars .
 
 omod TASK is
     protecting LOCATION .
     protecting OID-SET .
+
+    ***Workers and transporters can complete different types of tasks.
     sorts WorkerTask TransporterTask TaskType .
     sorts Tid TidSet .
+    ***A robot either is either working on completing a task, or it has none.
     sort TaskStatus . 
 
     subsort Tid < TaskStatus .
     subsorts WorkerTask TransporterTask < TaskType .
     subsort Tid < TidSet .
 
+    ***A worker can work on growing crops, fixing broken robots or removing obstacles.
     ops watering fertilize plant : -> WorkerTask [ctor] .
     ops removeAt_ repairAt_ : Location -> WorkerTask [ctor] .
+    ***A transporters only task is harvesting crops and delivering it to the collection point.
     op harvest : -> TransporterTask [ctor] .
-    op [_,_,_] : Oid TaskType Nat -> Tid [ctor] .
+
+    ***An identificator for a given task consists of the Oid for the tasks subject (name of field or robot), what operation the task involves.
+    op [_,_] : Oid TaskType -> Tid [ctor] .
     op none : -> TidSet [ctor] .
-    op noTask : -> TaskStatus [ctor] .
     op __ : TidSet TidSet -> TidSet [ctor assoc comm id: none] .
     op _\_ : TidSet TidSet -> TidSet [assoc] .
-    op getTaskOid : Tid -> Oid .
+
+    op noTask : -> TaskStatus [ctor] .
 
     var TID : Tid .
     var TIDS TIDS2 : TidSet .
-    var O : Oid .
-    var TT : TaskType .
-    var N : Nat .
 
     eq TIDS \ none = TIDS .
     eq none \ TIDS = none .
     eq (TID TIDS) \ (TID TIDS2) = TIDS \ TIDS2 .
     eq TIDS \ TIDS2 = TIDS [owise] .
-    eq getTaskOid([O, TT, N]) = O .
 endom 
 
 omod AUCTION is
-    protecting TIMER .
-    protecting RAT-INF .
+    protecting COST .
     protecting TASK .
+    protecting SYSTEM-VARS .
 
-    sort Bid .
-    sort Auction .
-    op noBid : -> Bid [ctor] .
-    op noAuction : -> Auction [ctor] .
-    op __ : Bid Bid -> Bid [assoc comm ctor id: noBid] .
-    op __ : Auction Auction -> Auction [assoc comm ctor id: noAuction] .
-    op [_bids_] : Oid Rat -> Bid [ctor] .
+    ***Tasks are assigned based on auctions. Each participant bids on a task based on traveling distance to complete the task.
+    ***Cost function is required distance to travel to complete the task, so a lower bid is better.
+    sorts Bid BidSet .
+    sorts Auction AuctionSet .
+
+    subsort Bid < BidSet .
+    subsort Auction < AuctionSet .
+
+    ***A robot can either bid on or refuse to participate in the auction.
+    ***A refusal happens if the participant is busy or does not find a viable path to complete the task.
+    op [_bids_] : Oid Cost -> Bid [ctor] .
     op [_rejects] : Oid -> Bid [ctor] .
-    op [Task:__|_] : Tid Timer Bid -> Auction [ctor] .
+    op noBid : -> BidSet [ctor] .
+    op __ : BidSet BidSet -> BidSet [assoc comm ctor id: noBid] .
 
-    op determineWinner : Bid Oid RatInf -> Oid .
-    op allBidsReceived : Bid OidSet -> Bool .
-    op closed : Tid Auction -> Bool .
-    op bidders : Bid -> OidSet .
-    op auctionTimer : -> Timer .
+    ***An auction consists of the task that is bidded on, a timer for when the auction closes and the received bids.
+    op [Task:__|_] : Tid Timer BidSet -> Auction [ctor] .
+    op noAuction : -> AuctionSet [ctor] .
+    op __ : AuctionSet AuctionSet -> AuctionSet [assoc comm ctor id: noAuction] .
+
+    ***Returns the Oid of the lowest bid.
+    op auctionWinner : Bid Oid Cost -> Oid .
+
+    ***Creates an auction for every task in the TidSet.
+    op createAuction : TidSet -> AuctionSet .
+
+    ***Checks if a task is up for auction in an auction set.
+    ***Used to prevent duplication of auctions when a robot discovers a task.
+    op closed : Tid AuctionSet -> Bool .
+    ***returns the Oids of received bids.
+    op bidders : BidSet -> OidSet .
+
+    ***returns minimum time until a timer in the auction set expires, ratInf if there are none.
+    op minTimeToClose : AuctionSet -> TimeInf .
 
     var TID : Tid .
-    var T : Timer .
+    var TIDS : TidSet .
+    var TR : Timer .
     var B : Bid .
-    var AU : Auction .
+    var BS : BidSet .
+    var AUS : AuctionSet .
     var OS : OidSet .
     vars OID OID2 : Oid .
-    vars RI RI2 : RatInf .
+    vars COST COST2 : Cost .
+    var TIME-INF : TimeInf .
+    vars T T2 : Time .
 
-    eq auctionTimer = [cur: 10 - base: 10] .
-    eq closed(TID, [Task: TID T | B] AU) = false .
-    eq closed(TID, AU) = true [owise] .
-    eq bidders(noBid) = none .
-    eq bidders([OID bids RI] B) = OID bidders(B) .
-    eq allBidsReceived(B, OS) = (OS \ bidders(B)) == none .
-    eq determineWinner(noBid, OID, RI) = OID .
-    eq determineWinner([OID bids RI] B, OID2, RI2) =
-        if RI < RI2
+    eq auctionWinner(noBid, OID, COST) = OID .
+    eq auctionWinner([OID bids COST] BS, OID2, COST2) =
+        if COST < COST2
         then
-            determineWinner(B, OID, RI)
+            auctionWinner(BS, OID, COST)
         else
-            determineWinner(B, OID2, RI2)
+            auctionWinner(BS, OID2, COST2)
         fi .
-endom
 
+    eq createAuction(none) = noAuction .
+    eq createAuction(TID TIDS) = [Task: TID AUCTION-TIMER | noBid] createAuction(TIDS) .
+
+    eq closed(TID, [Task: TID TR | BS] AUS) = false .
+    eq closed(TID, AUS) = true [owise] .
+
+    eq bidders(noBid) = none .
+    eq bidders([OID bids COST] BS) = OID bidders(BS) .
+
+    eq minTimeToClose(noAuction) = ratInf .
+    eq minTimeToClose([Task: TID [cur: T - base: T2] | BS] AUS) = min(T, minTimeToClose(AUS)) .
+endom

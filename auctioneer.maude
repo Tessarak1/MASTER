@@ -2,82 +2,76 @@ load message .
 
 omod AUCTIONEER is
     protecting AUCTION .
-    protecting MESSAGE .
+    protecting MESSENGER .
 
+    ***BidMsg sort to differentiate from other messages when pattern matching.
     sorts BidMsgContent AuctionMsgContent .
-    subsort BidMsgContent < AuctionMsgContent < MsgContent .
-    class Auctioneer | auctions : Auction, workers : OidSet, transporters : OidSet, taskNr : Nat .
+    subsort BidMsgContent AuctionMsgContent < MsgContent .
 
-    op handleBidMsg : Object Msg -> Object .
-    op bid_on_ : Rat Tid -> BidMsgContent [ctor] .
+    class Auctioneer | auctions : AuctionSet .
+    
+    subclass Auctioneer < Messenger .
+
+    ***Message content to facilitate auctions
+    op bid_on_ : Cost Tid -> BidMsgContent [ctor] .
     op busy_ : Tid -> BidMsgContent [ctor] .
     ops won_ reject_ accept_ : Tid -> AuctionMsgContent [ctor] .
-    op taskId : AuctionMsgContent -> Tid .
-    op bmcToBid : Msg -> Bid .
-    op startAuction : Object TidSet -> Configuration .
+
+    ***Creates an auction for every task in the TidSet and broadcasts it within range.
+    op initiateAuction : Object TidSet Configuration -> Configuration .
+
+    ***Overloaded in subclasses to determine if theo bject needs to start auctioning a task.
     op needToStartAuction : Object -> Bool .
 
-    vars S S2 : String .
+    ***winAuction is overloaded in robot. Determines if it accepts the task or not.
+    op winAuction : Object Tid -> Configuration .
+
+    vars OID OID2 : Oid .
     var R : Rat .
     var TID : Tid .
     var TIDS : TidSet .
-    var AU : Auction .
+    var AUS : AuctionSet .
     var MSG : Msg .
-    var AMC : AuctionMsgContent .
     var BMC : BidMsgContent .
     var T : Timer .
-    var B : Bid .
+    var BS : BidSet .
     var TPT : TransporterTask .
     var WT : WorkerTask .
     var OS : OidSet .
+    var CONF : Configuration .
+    vars COST : Cost .
 
-    eq taskId(bid R on TID) = TID .
-    eq taskId(busy TID) = TID .
-    eq taskId(won TID) = TID .
-    eq taskId(reject TID) = TID .
-    eq taskId(accept TID) = TID .
-    eq bmcToBid(msg bid R on TID from S to S2) = [S bids R] .
-    eq bmcToBid(msg reject TID from S to S2) = [S rejects] .
-    eq startAuction(< S : Auctioneer | >, none) = < S : Auctioneer | > .
-    eq startAuction(< S : Auctioneer | auctions : AU, workers : OS >, [S2, WT, R] TIDS) = broadcast(S, [S2, WT, R], OS) startAuction(< S : Auctioneer | auctions : [Task: [S2, WT, R] auctionTimer | noBid] AU >, TIDS) .
-    eq startAuction(< S : Auctioneer | auctions : AU, transporters : OS >, [S2, TPT, R] TIDS) =  broadcast(S, [S2, TPT, R], OS) startAuction(< S : Auctioneer | auctions : [Task: [S2, TPT, R] auctionTimer | noBid] AU >, TIDS) .
-    eq handleBidMsg(< S : Auctioneer | auctions : [Task: [S, TPT, R] T | B] AU, transporters : OS >, msg BMC from S2 to S) =
-        if allBidsReceived(bmcToBid(msg BMC from S2 to S) B, OS)
-        then
-            < S : Auctioneer | auctions : [Task: [S, TPT, R] T | bmcToBid(msg BMC from S2 to S) B] AU >
-            msg won [S, TPT, R] from S to determineWinner(bmcToBid(msg BMC from S2 to S) B, S, ratInf)
-        else
-            < S : Auctioneer | auctions : [Task: [S, TPT, R] T | bmcToBid(msg BMC from S2 to S) B] AU >
-        fi .
-    eq handleBidMsg(< S : Auctioneer | auctions : [Task: [S, WT, R] T | B] AU, workers : OS >, msg BMC from S2 to S) =
-        if allBidsReceived(bmcToBid(msg BMC from S2 to S) B, OS)
-        then
-            < S : Auctioneer | auctions : [Task: [S, WT, R] T | bmcToBid(msg BMC from S2 to S) B] AU >
-            dly(msg won [S, WT, R] from S to determineWinner(bmcToBid(msg BMC from S2 to S) B, S, ratInf), 1)
-        else
-            < S : Auctioneer | auctions : [Task: [S, WT, R] T | bmcToBid(msg BMC from S2 to S) B] >
-        fi .
+    eq initiateAuction(< OID : Auctioneer | >, none, CONF) = < OID : Auctioneer | > CONF .
+    eq initiateAuction(< OID : Auctioneer | auctions : AUS >, TIDS, CONF) =
+        broadcastInRange(< OID : Auctioneer | >, tidToMsgContent(TIDS), CONF) < OID : Auctioneer | auctions  : AUS createAuction(TIDS) > .
 
-    crl [rcvBidMsg] :
-        < S : Auctioneer | auctions : [Task: TID T | B] >
-        msg BMC from S2 to S
+    ***Adds bid to the auction
+    rl [rcvBidMsg] :
+        < OID : Auctioneer | auctions : [Task: TID T | BS] AUS >
+        msg bid COST on TID from OID2 to OID
         =>
-        handleBidMsg(< S : Auctioneer | >, msg BMC from S2 to S)
-        if taskId(BMC) == TID .
+        < OID : Auctioneer | auctions : [Task: TID T | [OID2 bids COST] BS] AUS > .
+
+    ***Close the auction when a winner has accepted the task.
     rl [rcvAcceptMsg] :
-        < S : Auctioneer | auctions : [Task: TID T | B] AU >
-        msg accept TID from S2 to S
+        < OID : Auctioneer | auctions : [Task: TID T | BS] AUS >
+        msg accept TID from OID2 to OID
         =>
-        < S : Auctioneer | auctions : AU > .
+        < OID : Auctioneer | auctions : AUS > .
+
+
+    ***If the winner of the auction has become unable to complete the task, determine another winner or retry the auction.
     rl [rcvRejectMsg] :
-        < S : Auctioneer | auctions : [Task: TID T | [S2 bids R] B] AU >
-        msg reject TID from S2 to S
+        < OID : Auctioneer | auctions : [Task: TID T | [OID2 bids R] BS] AUS >
+        CONF
+        msg reject TID from OID2 to OID
         =>
-        if bidders(B) == none
+        if bidders(BS) == none
         then
-            startAuction(< S : Auctioneer | auctions : AU >, TID)
+            initiateAuction(< OID : Auctioneer | auctions : AUS >, TID, CONF)
         else
-            < S : Auctioneer | >
-            dly(msg won TID from S to determineWinner(B, S, ratInf), MSG-DELAY)
+            ***another auction winner is guaranteed as BS is not empty.
+            < OID : Auctioneer | >
+            dly(msg won TID from OID to auctionWinner(BS, "Placeholder", ratInf), MSG-DELAY)
         fi .
-endom 
+endom
