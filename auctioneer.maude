@@ -33,7 +33,8 @@ omod AUCTIONEER is
     var AUS : AuctionSet .
     var MSG : Msg .
     var BMC : BidMsgContent .
-    var T : Timer .
+    var TR : Timer .
+    var T : Time .
     var BS : BidSet .
     var TPT : TransporterTask .
     var WT : WorkerTask .
@@ -45,16 +46,23 @@ omod AUCTIONEER is
     eq initiateAuction(< OID : Auctioneer | auctions : AUS >, TIDS, CONF) =
         broadcastInRange(< OID : Auctioneer | >, tidToMsgContent(TIDS), CONF) < OID : Auctioneer | auctions  : AUS createAuction(TIDS) > .
 
+    ***Determines the winner of an auction when its timer runs out.
+    rl [auctionTimerExpire] :
+        < OID : Auctioneer | auctions : [Task: TID [cur: 0 - base: T] | BS] AUS >
+        =>
+        ***TODO: Fix behavior here
+        < OID : Auctioneer | > .
+
     ***Adds bid to the auction
     rl [rcvBidMsg] :
-        < OID : Auctioneer | auctions : [Task: TID T | BS] AUS >
+        < OID : Auctioneer | auctions : [Task: TID TR | BS] AUS >
         msg bid COST on TID from OID2 to OID
         =>
-        < OID : Auctioneer | auctions : [Task: TID T | [OID2 bids COST] BS] AUS > .
+        < OID : Auctioneer | auctions : [Task: TID TR | [OID2 bids COST] BS] AUS > .
 
     ***Close the auction when a winner has accepted the task.
     rl [rcvAcceptMsg] :
-        < OID : Auctioneer | auctions : [Task: TID T | BS] AUS >
+        < OID : Auctioneer | auctions : [Task: TID TR | BS] AUS >
         msg accept TID from OID2 to OID
         =>
         < OID : Auctioneer | auctions : AUS > .
@@ -62,7 +70,7 @@ omod AUCTIONEER is
 
     ***If the winner of the auction has become unable to complete the task, determine another winner or retry the auction.
     rl [rcvRejectMsg] :
-        < OID : Auctioneer | auctions : [Task: TID T | [OID2 bids R] BS] AUS >
+        < OID : Auctioneer | auctions : [Task: TID TR | [OID2 bids R] BS] AUS >
         CONF
         msg reject TID from OID2 to OID
         =>

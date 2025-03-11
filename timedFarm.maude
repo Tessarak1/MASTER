@@ -12,11 +12,12 @@ omod TIMED-FARM is
     protecting BUILDINGS .
     protecting LIST-RAT .
 
+    ***filter based on workers/transporters/fields here? Makes most sense to facilitate multicast instead of broadcast.
     sort ClockedConfiguration .
 
     op  _@_ : Configuration Time -> ClockedConfiguration [ctor] .
     op $maxTimeAdvanceRobot : Oid Configuration -> TimeInf .
-    op $maxTimeAdvanceField : Oid Configuration -> TimeInf .
+    op $maxTimeAdvanceField : Object -> TimeInf .
     op maxTimeAdvance : Configuration -> TimeInf .
 
     op $destinationTimeAdvance : Object Configuration -> Time .
@@ -175,7 +176,7 @@ omod TIMED-FARM is
     ***If a robot is behind another in the same direction check time until detection happens.
     eq calculateAdvance(< OID : Robot | speed : SP, direction : D >, < OID2 : Robot | state : moving, speed : SP2, direction : D >) = 
         if SP2 >= SP then
-            inf
+            ratInf
         else
             $calculateAdvance(< OID : Robot | >, < OID2 : Robot | >, SP - SP2)
         fi .
@@ -223,9 +224,9 @@ omod TIMED-FARM is
     ***Needs to start movement
     ceq $maxTimeAdvanceRobot(OID, < OID : Robot | state : idle, remainingPath : LL, detected : none > CONF) = 0 if LL =/= nil .
     ***Not relevant if incapacitated, negotiating or idle
-    eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : INC, detected : none > CONF) = inf .
-    eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : negotiating, detected : none > CONF) = inf .
-    eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : idle, remainingPath : nil, detected : none > CONF) = inf .
+    eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : INC, detected : none > CONF) = ratInf .
+    eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : negotiating, detected : none > CONF) = ratInf .
+    eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : idle, remainingPath : nil, detected : none > CONF) = ratInf .
     ***time until work is completed.
     ceq $maxTimeAdvanceRobot(OID, < OID : Robot | state : STATE, workState : [OID2 TT TIME], detected : none > CONF) = TIME if (STATE == repairing) or (STATE == removing) .
     ***If it is moving uninterrupted towards an intersection then check until it may detect other robots that are moving towards that intersection.
@@ -237,25 +238,18 @@ omod TIMED-FARM is
     ceq $maxTimeAdvanceRobot(OID, < OID : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, direction : D > < OID2 : Robot | state : moving, location : (X2,Y2), direction : D2 > CONF) =
         $destinationTimeAdvance(< OID : Robot | >, remove(OID, closest((X2,Y2), none, sameDestination((X2,Y2), CONF))))
         if (getOid(objectInWay((X,Y), (X2,Y2), < OID2 : Robot | state : moving, location : (X2,Y2), direction : D2 > CONF)) == OID2) and oppositeDirections(D, D2) .
-
     ***If there is an obstacle or robot in the way, return time until detection happens.
     eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : moving, location : (X, Y), speed : SP, remainingPath : (X2, Y2) LL, detected : none > CONF)
     =
     calculateAdvance(< OID : Robot | >, objectInWay((X, Y), (X2,Y2), CONF)) [owise] .
 
-    ***For robots and fields its min of auctions, normal, wont work since it repeats.
+    eq $maxTimeAdvanceField(< OID : Field | >)
 
-    ***can a field only run one auction or no?
-
-    eq maxTimeAdvance(< OID : Field | auctions : AUS > CONF) = min(minTimeToClose(AUS), $maxTimeAdvanceField(OID, ))
-    ceq maxTimeAdvance(< OID : Field | > CONF) = 0 if needToStartAuction(< OID : Field | >) .
-    ceq maxTimeAdvance(< OID : Field | > CONF) = min(untilTimerExpire(< OID : Field | >), maxTimeAdvance(CONF)) if not needToStartAuction(< OID : Field | >) .
-
-    eq maxTimeAdvance(< OID : Robot | handledTime : false > CONF) = min(minTimeToClose(AUS), min($maxTimeAdvanceRobot(OID, < OID : Robot | > CONF), maxTimeAdvance(< OID : Robot | handledTime : true > CONF))) .
+    eq maxTimeAdvance(< OID : Robot | handledTime : false, auctions : AUS > CONF) = min(minTimeToClose(AUS), min($maxTimeAdvanceRobot(OID, < OID : Robot | > CONF), maxTimeAdvance(< OID : Robot | handledTime : true > CONF))) .
 
     ***time until the message becomes active.
     eq maxTimeAdvance(dly(MSG, TIME) CONF) = min(TIME, maxTimeAdvance(CONF)).
-    eq maxTimeAdvance(CONF) = inf [owise] .
+    eq maxTimeAdvance(CONF) = ratInf [owise] .
 
     eq timeEffect(dly(MSG, TIME) CONF, TIME2) = dly(MSG, TIME monus TIME2) timeEffect(CONF, TIME) .
 
@@ -280,5 +274,5 @@ omod TIMED-FARM is
         CONF @ TIME
         =>
         detect(handleCollisions(timeEffect(CONF, maxTimeAdvance(CONF)))) @ (TIME + maxTimeAdvance(CONF))
-        if maxTimeAdvance(CONF) > 0 and maxTimeAdvance(CONF) < inf .
+        if maxTimeAdvance(CONF) > 0 and maxTimeAdvance(CONF) < ratInf .
 endom

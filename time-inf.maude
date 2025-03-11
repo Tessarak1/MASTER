@@ -8,8 +8,6 @@ fmod TIME-INF is
     subsort Rat < Time .
     subsorts RatInf Time < TimeInf .
 
-    op inf : -> TimeInf [ctor] .
-
     op _<_ : TimeInf TimeInf -> Bool [ditto] .
     op _<=_ : TimeInf TimeInf -> Bool [ditto] .
     op _>_ : TimeInf TimeInf -> Bool [ditto] .
@@ -17,18 +15,18 @@ fmod TIME-INF is
     vars T T' T2 T2' : Time .
     vars INF INF' : TimeInf .
 
-    eq T < inf = true .
-    eq inf < INF = false .
-    eq INF <= inf = true .
-    eq inf <= T = false .
-    eq inf > T = true . 
-    eq INF > inf = false .
-    eq inf >= INF = true .
-    eq T >= inf = false .
+    eq T < ratInf = true .
+    eq ratInf < INF = false .
+    eq INF <= ratInf = true .
+    eq ratInf <= T = false .
+    eq ratInf > T = true . 
+    eq INF > ratInf = false .
+    eq ratInf >= INF = true .
+    eq T >= ratInf = false .
 
     ops min max : TimeInf TimeInf -> TimeInf [ditto] .
-    eq max(INF, inf) = inf .
-    eq min(INF, inf) = INF .
+    eq max(INF, ratInf) = ratInf .
+    eq min(INF, ratInf) = INF .
 
 endfm 
 
@@ -46,7 +44,6 @@ omod TIMER is
     op decrease : Timer Time -> Timer .
     op expired : Timer -> Bool .
     op decreaseTimers : Object Time -> Object .
-    op untilTimerExpire : Object -> Time .
     op minCur : TimerSet -> Time .
 
     vars T T2 T3 : Time .
@@ -62,6 +59,6 @@ omod TIMER is
     eq decrease([cur: T - base: T2], T3) = [cur: T monus T3 - base: T2] .
     eq expired([cur: 0 - base: T2]) = true .
     eq expired(TR) = false [owise] .
-    eq minCur(none) = inf .
+    eq minCur(none) = ratInf .
     eq minCur([cur: T - base: T2] TS) = min(T, minCur(TS)) .
 endom

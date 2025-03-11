@@ -744,12 +744,12 @@ omod ROBOT is
 
     rl [startGrowingLocTask] :
         < OID : Robot | location : (X,Y), curTask : [OID2, TT], remainingPath : nil, workState : noWork >
-        < OID2 : Field | growingArea : A, location : (X,Y) >
+        < OID2 : Field | growingArea : A, location : (X,Y), reserved : false >
         =>
         if canCompleteNow(< OID : Robot | >, [OID2, TT])
         then
             < OID : Robot | remainingPath : coverArea((X,Y), A), workState : [OID2 TT], speed : 1, state : moving >
-            < OID2 : Field | >
+            < OID2 : Field |, reserved : true >
         else
             < OID : Robot | state : planningPath >
             < OID2 : Field | >
@@ -757,9 +757,10 @@ omod ROBOT is
 
     rl [finishGrowingLocTask] :
         < OID : Robot | location : (X,Y), curTask : [OID2, TT], remainingPath : nil, workState : [OID2 TT] >
-        < OID2 : Field | location : (X,Y) >
+        < OID2 : Field | location : (X,Y), reserved : true >
         =>
         < OID : Robot | cargoLevel : empty, curTask : noTask, workState : noWork >
+        < OID2 : Field | reserved : false >
         taskComplete(< OID2 : Field | >, [OID2, TT]) .  
 endom
 

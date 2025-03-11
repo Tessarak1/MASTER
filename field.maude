@@ -12,7 +12,9 @@ omod FIELD is
     sort Level .
 
     class Field | growingState : GrowingState, waterLevel : Level, fertilizerLevel : Level, 
-        waterTimer : Timer, fertilizerTimer : Timer, growTimer : Timer, growingArea : Area, reserved : Bool .
+        waterTimer : Timer, fertilizerTimer : Timer, growTimer : Timer, growingArea : Area, reserved : Bool,
+        waterActive : Bool, fertilizerActive : Bool, growActive : Bool .
+        ***trackers for tasks that have been accepted by robots, to not reopen auction.
 
     subclass Field < Intersection Auctioneer .
 
@@ -24,6 +26,8 @@ omod FIELD is
     ***Returns the time until the corresponding timer expires. If the field has an active auction for the corresponding task
     ***or a robot is working on it ratInf is returned instead to prevent stalling time infinitely.
     ops waterTime fertilizerTime growTime : Object -> Time .
+    ***returns the minimum of waterTime fertilizerTime and growTime.
+    op fieldTimer : Object -> TimeInf .
 
     vars OID OID2 : Oid .
     var L L2 : Level .
@@ -61,7 +65,7 @@ omod FIELD is
     eq growTime(< OID : Field | growingState : harvest >) = ratInf .
     eq growTime(< OID : Field | growTimer : [cur: T - base: T2] >) = T [owise] .
 
-    eq untilTimerExpire(< OID : Field | >) = min(growTime(< OID : Field | >), min(waterTime(< OID : Field | >), fertilizerTime(< OID : Field | >))) .
+    eq fieldTimer(< OID : Field | >) = min(growTime(< OID : Field | >), min(waterTime(< OID : Field | >), fertilizerTime(< OID : Field | >))) .
 
     ceq needToStartAuction(< OID : Field | growingState : harvest, auctions : AUS >) = true if closed([OID, harvest], AUS) .
     ceq needToStartAuction(< OID : Field | waterLevel : low, auctions : AUS >) = true if closed([OID, watering], AUS) .
