@@ -11,10 +11,14 @@ omod FIELD is
     ***states if a field needs water or fertilizer.
     sort Level .
 
+
+    ***when it opens an auction first check if the task is active
+    ***Task being in activeTasks means that either an auction for it is running, or a robot has accepted the task and is working to perform it.
+    ***Remove from activeTasks when task is finished.
+    ***Add when opening auction.
     class Field | growingState : GrowingState, waterLevel : Level, fertilizerLevel : Level, 
         waterTimer : Timer, fertilizerTimer : Timer, growTimer : Timer, growingArea : Area, reserved : Bool,
-        waterActive : Bool, fertilizerActive : Bool, growActive : Bool .
-        ***trackers for tasks that have been accepted by robots, to not reopen auction.
+        activeTasks : TaskTypeSet .
 
     subclass Field < Intersection Auctioneer .
 
@@ -40,11 +44,12 @@ omod FIELD is
     var CONF : Configuration .
     var BS : BidSet .
     var MC : MsgContent .
+    var TTS : TaskTypeSet .
 
-    eq taskComplete(< OID : Field | waterTimer : TR, waterLevel : low, reserved : true >, [OID, watering]) = < OID : Field | waterLevel : good, waterTimer : reset(TR), reserved : false > .
-    eq taskComplete(< OID : Field | fertilizerTimer : TR, fertilizerLevel : low,  reserved : true >, [OID, fertilize]) = < OID : Field | fertilizerLevel : good, fertilizerTimer : reset(TR), reserved : false > .
-    eq taskComplete(< OID : Field | growingState : empty,  reserved : true >, [OID, plant]) = < OID : Field | growingState : growing, reserved : false > .
-    eq taskComplete(< OID : Field | growingState : harvest, growTimer : TR,  reserved : true >, [OID, harvest]) = < OID : Field | growingState : empty, growTimer : reset(TR),  reserved : false > .
+    eq taskComplete(< OID : Field | waterTimer : TR, waterLevel : low, reserved : true, activeTasks : watering TTS >, [OID, watering]) = < OID : Field | waterLevel : good, waterTimer : reset(TR), reserved : false, activeTasks : TTS > .
+    eq taskComplete(< OID : Field | fertilizerTimer : TR, fertilizerLevel : low,  reserved : true, activeTasks : fertilize TTS >, [OID, fertilize]) = < OID : Field | fertilizerLevel : good, fertilizerTimer : reset(TR), reserved : false, activeTasks : TTS > .
+    eq taskComplete(< OID : Field | growingState : empty,  reserved : true, activeTasks : plant TTS >, [OID, plant]) = < OID : Field | growingState : growing, reserved : false, activeTasks : TTS > .
+    eq taskComplete(< OID : Field | growingState : harvest, growTimer : TR,  reserved : true, activeTasks : harvest TTS >, [OID, harvest]) = < OID : Field | growingState : empty, growTimer : reset(TR),  reserved : false, activeTasks : TTS > .
 
     eq decreaseTimers(< OID : Field | waterLevel : good, fertilizerLevel : good, waterTimer : TR, fertilizerTimer : TR2, growingState : growing, growTimer : TR3 >, T) =
         < OID : Field | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T), growTimer : decrease(TR3, T) > .
@@ -108,7 +113,7 @@ omod FIELD is
         if closed([OID, fertilize], AUS) .
 
     crl [startHarvestAuction] :
-        < OID : Field | growingState : harvest,  auctions : AUS, reserved : false >
+        < OID : Field | growingState : harvest, auctions : AUS,  reserved : false >
         CONF
         =>
         initiateAuction(< OID : Field | reserved : true >, [OID, harvest], CONF)

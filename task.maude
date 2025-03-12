@@ -3,19 +3,21 @@ load time-inf .
 load location .
 load cost .
 load systemVars .
+load set .
 
 omod TASK is
     protecting LOCATION .
     protecting OID-SET .
+    protecting SET .
 
     ***Workers and transporters can complete different types of tasks.
-    sorts WorkerTask TransporterTask TaskType .
+    sorts WorkerTask TransporterTask TaskType TaskTypeSet .
     sorts Tid TidSet .
     ***A robot either is either working on completing a task, or it has none.
     sort TaskStatus . 
 
     subsort Tid < TaskStatus .
-    subsorts WorkerTask TransporterTask < TaskType .
+    subsorts WorkerTask TransporterTask < TaskType < TaskTypeSet < Set .
     subsort Tid < TidSet .
 
     ***A worker can work on growing crops, fixing broken robots or removing obstacles.
@@ -23,6 +25,9 @@ omod TASK is
     ops removeAt_ repairAt_ : Location -> WorkerTask [ctor] .
     ***A transporters only task is harvesting crops and delivering it to the collection point.
     op harvest : -> TransporterTask [ctor] .
+
+    op empty : -> TaskTypeSet [ctor] .
+    op _,_ : TaskTypeSet TaskTypeSet -> TaskTypeSet [ctor assoc comm id: empty] .
 
     ***An identificator for a given task consists of the Oid for the tasks subject (name of field or robot), what operation the task involves.
     op [_,_] : Oid TaskType -> Tid [ctor] .

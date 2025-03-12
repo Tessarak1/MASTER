@@ -50,7 +50,3 @@ endom
 ***When can it be ignored?
 ***Separate auctions from the rest?
 ***mta to check auctions one for the rest and then combine.
-red maxTimeAdvance(
-< "GL1" : Field | location : (0, 100), broadcastRange : 100, auctions : [Task: ["GL1", harvest] [cur: 10 - base: 10] | noBid], neighbors : "I1", growingState : harvest, waterLevel : good, fertilizerLevel :
-    good, waterTimer : [cur: 900 - base: 1000], fertilizerTimer : [cur: 900 - base: 1000], growTimer : [cur: 0 - base: 100], growingArea : area((50, 100), (50, 150), (-50, 100), (-50, 150)), reserved : true >
-) .

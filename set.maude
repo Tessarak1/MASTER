@@ -1,0 +1,17 @@
+fmod SET is
+    sort Set .
+
+    op empty : -> Set [ctor] .
+    op _,_ : Set Set -> Set [ctor assoc comm id: empty] .
+
+    op _\_ : Set Set -> Set .
+    op inSet : Set Set -> Bool .
+
+    vars SET SET2 SET3 SET4 SET5 : Set .
+
+    eq (SET , SET2) \ (SET3 , SET2) = SET .
+    eq SET \ SET2 = SET [owise] .
+
+    eq inSet(SET, (SET , SET2)) = true .
+    eq inSet(SET, SET2) = false .
+endfm
