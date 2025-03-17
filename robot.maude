@@ -74,6 +74,8 @@ omod ROBOT is
     op {_:_|_} : Oid Cid Information -> Representation .
     op _notIn_ : Oid RepresentationSet -> Bool .
 
+    op finishedResupply : Object TaskType -> Object .
+
     op getLocation : Object -> Location .
     ops breaksPath $breaksPath : List-Location RepresentationSet -> Bool .
     op canCompleteNow : Object Tid -> Bool .
@@ -119,6 +121,7 @@ omod ROBOT is
     ***Treats the location as an obstacle, and calculates the additional distance required to complete the robot's task.
     op replanCost : Object Object Location -> Cost .
 
+    var CARGO : Cargo .
     vars CONF CONF2 : Configuration .
     vars OID OID2 OID3 OID4 : Oid .
     vars X Y X2 Y2 X3 Y3 X4 Y4 X5 Y5 : Rat .
@@ -163,6 +166,11 @@ omod ROBOT is
     eq FINAL-RANGE = 1 .
     eq remove(OID, < OID : Robot | > CONF) = CONF .
     eq remove(OID, CONF) = CONF [owise] .
+
+    eq finishedResupply(< OID : Worker | state : resupplying, curCargo : CARGO, cargoLevel : empty >, wateringTask) = < OID : Worker | curCargo : water, cargoLevel : full, state : idle > .
+    eq finishedResupply(< OID : Worker | state : resupplying, curCargo : CARGO, cargoLevel : empty >, fertilizeTask) = < OID : Worker | curCargo : fertilizer, cargoLevel : full, state : idle > .
+    eq finishedResupply(< OID : Worker | state : resupplying, curCargo : CARGO, cargoLevel : empty >, plantTask) = < OID : Worker | curCargo : seed, cargoLevel : full, state : idle > .
+    eq finishedResupply(< OID : Worker | >, TT) = < OID : Worker | > [owise] .
 
     eq replanCost(< OID : Robot | curTask : TID, obstructionPoints : LL >, < OID2 : Map | >, (X,Y)) =
         if planPath(< OID : Robot | obstructionPoints : LL (X,Y) >, TID, < OID2 : Map | >) == nil
@@ -716,23 +724,11 @@ omod ROBOT is
         if needsResupply(< OID : Robot | >, TID) .
 
     rl [finishResupply] :
-        < OID : Robot | location : (X,Y), state : resupplying, curTask : [OID2, TT], workState : [OID, resupplyTask, 0] >
+        < OID : Robot | location : (X,Y), cargoLevel : empty, state : resupplying, curTask : [OID2, TT], workState : [OID, resupplyTask, 0] >
         < OID3 : ResupplyStation | location : (X,Y) >
         =>
-        if (TT == wateringTask)
-        then
-            < OID : Robot | state : moving, curCargo : water, cargoLevel : full >
-            < OID3 : ResupplyStation | >
-        else
-            if (TT == fertilizeTask)
-            then
-                < OID : Robot | state : moving, curCargo : fertilizer, cargoLevel : full >
-                < OID3 : ResupplyStation | >
-            else
-                < OID : Robot | state : moving >
-                < OID3 : ResupplyStation | >
-            fi
-        fi .
+        finishedResupply(< OID : Robot | >, TT)
+        < OID3 : ResupplyStation | > .
 
     rl [startUnloading] : 
         < OID : Transporter | state : FUNC, location : (X,Y), cargoLevel : full, workState : noWork >
@@ -769,7 +765,7 @@ omod ROBOT is
         taskComplete(< OID2 : Field | >, [OID2, WT]) . 
 
     rl [finishTransporterFieldTask] :
-        < OID : Transporter | state : FUNC, location : (X,Y), curTask : [OID2, TPT], remainingPath : nil, workState : [OID2, TPT], cargoLevel : empty >
+        < OID : Transporter | state : FUNC, location : (X,Y), curTask : [OID2, harvestTask], remainingPath : nil, workState : [OID2, TPT], cargoLevel : empty >
         < OID2 : Field | location : (X,Y), reserved : true >
         < OID3 : CollectionStation | >
         =>

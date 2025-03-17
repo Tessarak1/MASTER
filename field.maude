@@ -65,6 +65,7 @@ omod FIELD is
 
     ceq growTime(< OID : Field | waterLevel : L, fertilizerLevel : L2 >) = ratInf if (L == low) or (L2 == low) .
     eq growTime(< OID : Field | growingState : harvest >) = ratInf .
+    eq growTime(< OID : Field | growingState : empty >) = ratInf .
     eq growTime(< OID : Field | growTimer : [cur: T - base: T2], growingState : growing, waterLevel : good, fertilizerLevel : good >) = T .
 
     eq fieldTimer(< OID : Field | >) = min(growTime(< OID : Field | >), min(waterTime(< OID : Field | >), fertilizerTime(< OID : Field | >))) .
@@ -119,4 +120,12 @@ omod FIELD is
         initiateAuction(< OID : Field | activeTasks : harvestTask , TTS >, [OID, harvestTask], CONF)
         CONF
         if not inSet(harvestTask, TTS) .
+
+    crl [startPlantAuction] : 
+        < OID : Field | growingState : empty, activeTasks : TTS >
+        CONF
+        =>
+        initiateAuction(< OID : Field | activeTasks : plantTask , TTS >, [OID, plantTask], CONF)
+        CONF
+        if not inSet(plantTask, TTS) .
 endom

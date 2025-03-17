@@ -18,8 +18,8 @@ omod BASE is
       handledTime : false, workState : noWork, detectionRange : 10, obstructionPoints : nil, negotiations : none .
     eq workerAttrs = cargoLevel : full .
     eq transporterAttrs = cargoLevel : full .
-    eq fieldAttrs = handledTime : false, broadcastRange : 100, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 1000 - base: 1000],
-      fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 100 - base: 100], reserved : false, auctions : noAuction, activeTasks : empty .
+    eq fieldAttrs = handledTime : false, broadcastRange : 100, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 10000 - base: 10000],
+      fertilizerTimer : [cur: 10000 - base: 10000], growTimer : [cur: 100 - base: 100], reserved : false, auctions : noAuction, activeTasks : empty .
 
     eq I1 = < "I1" : PassIntersection | location : (0,0), neighbors : "I2" "I3" "GL1" > .
     eq I2 = < "I2" : PassIntersection | location : (100,0), neighbors : "I1" "I4" "I5" "I6" > .
@@ -43,27 +43,4 @@ omod BASE is
     eq farm1 = map1 rob2 GL1 collection resupply .
 endom
 
-***Why is it unable to planpath.
-***planningPath does not lead to it getting to CollectionStation.
---- < "Collection" : CollectionStation | location : (100, -150), neighbors : "I4", collections : 1 >
---- < "GL1" : Field | location : (0, 100), broadcastRange : 100, handledTime : false, auctions : noAuction, neighbors : "I1", growingState : empty, waterLevel : good, fertilizerLevel : good, waterTimer : [cur:
----     274 - base: 1000], fertilizerTimer : [cur: 274 - base: 1000], growTimer : [cur: 100 - base: 100], growingArea : area((1, 100), (1, 101), (-1, 100), (-1, 101)), reserved : false, activeTasks : empty >
---- < "Map" : Map | allIntersections : (
---- < "Collection" : CollectionStation | location : (100, -150), neighbors : "I4", collections : 0 >
---- < "GL1" : Field | location : (0, 100), broadcastRange : 100, handledTime : false, auctions : noAuction, neighbors : "I1", growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur:
----     1000 - base: 1000], fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 100 - base: 100], growingArea : area((1, 100), (1, 101), (-1, 100), (-1, 101)), reserved : false, activeTasks : empty >
---- < "I1" : PassIntersection | location : (0, 0), neighbors : ("GL1" "I2" "I3") >
---- < "I2" : PassIntersection | location : (100, 0), neighbors : ("I1" "I4" "I5" "I6") >
---- < "I3" : PassIntersection | location : (0, -100), neighbors : ("I1" "I4" "Resupply") >
---- < "I4" : PassIntersection | location : (100, -100), neighbors : ("Collection" "I2" "I3") >
---- < "I5" : PassIntersection | location : (200, 0), neighbors : "I2" >
---- < "I6" : PassIntersection | location : (100, 100), neighbors : "I2" > < "Resupply" : ResupplyStation | location : (-50, -100), neighbors : "I3" >), roads : ({(0, 0) (0, 100)} {(0, 0) (0, -100)} {(0, 0) (100,
----     0)} {(0, -100) (100, -100)} {(0, -100) (-50, -100)} {(100, 0) (100, 100)} {(100, 0) (100, -100)} {(100, 0) (200, 0)} {(100, -100) (100, -150)}) >
---- < "Resupply" : ResupplyStation | location : (-50, -100), neighbors : "I3" >
-  ***< "T1" : Transporter | location : (0, 100), broadcastRange : 100, handledTime : false, auctions : noAuction, direction : west, speed
----     : 0, maxSpeed : 1, remainingPath : nil, state : planningPath, detectionRange : 10, cargoLevel : full, detected : none, obstructionPoints : nil, curTask : ["Collection", unloadTask], workState : noWork,
----     negotiations : none > @ 726
-***Needs to set up plant timer and auction.
-red maxTimeAdvance(< "GL1" : Field | location : (0, 100), broadcastRange : 100, handledTime : false, auctions : noAuction, neighbors : "I1", growingState : empty, waterLevel : good,
-    fertilizerLevel : good, waterTimer : [cur: 274 - base: 1000], fertilizerTimer : [cur: 274 - base: 1000], growTimer : [cur: 100 - base: 100], growingArea : area((1, 100), (1, 101), (-1, 100), (-1, 101)),
-    reserved : false, activeTasks : empty >) .
+
