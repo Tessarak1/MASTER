@@ -55,10 +55,14 @@ omod TIMER is
     var A : Attribute .
 
     eq T monus T2 = if (T - T2) < 0 then 0 else T - T2 fi .
+
     eq reset([cur: T - base: T2]) = [cur: T2 - base: T2] .
+
     eq decrease([cur: T - base: T2], T3) = [cur: T monus T3 - base: T2] .
+
     eq expired([cur: 0 - base: T2]) = true .
     eq expired(TR) = false [owise] .
+    
     eq minCur(none) = ratInf .
     eq minCur([cur: T - base: T2] TS) = min(T, minCur(TS)) .
 endom

@@ -3,12 +3,10 @@ load time-inf .
 load location .
 load cost .
 load systemVars .
-load set .
 
 omod TASK is
     protecting LOCATION .
     protecting OID-SET .
-    protecting SET .
 
     ***Workers and transporters can complete different types of tasks.
     sorts WorkerTask TransporterTask TaskType TaskTypeSet .
@@ -17,17 +15,19 @@ omod TASK is
     sort TaskStatus . 
 
     subsort Tid < TaskStatus .
-    subsorts WorkerTask TransporterTask < TaskType < TaskTypeSet < Set .
+    subsorts WorkerTask TransporterTask < TaskType < TaskTypeSet .
     subsort Tid < TidSet .
 
     ***A worker can work on growing crops, fixing broken robots or removing obstacles.
-    ops watering fertilize plant : -> WorkerTask [ctor] .
+    ops wateringTask fertilizeTask plantTask resupplyTask : -> WorkerTask [ctor] .
     ops removeAt_ repairAt_ : Location -> WorkerTask [ctor] .
     ***A transporters only task is harvesting crops and delivering it to the collection point.
-    op harvest : -> TransporterTask [ctor] .
+    ops harvestTask unloadTask : -> TransporterTask [ctor] .
 
     op empty : -> TaskTypeSet [ctor] .
     op _,_ : TaskTypeSet TaskTypeSet -> TaskTypeSet [ctor assoc comm id: empty] .
+
+    op inSet : TaskTypeSet TaskTypeSet -> Bool .
 
     ***An identificator for a given task consists of the Oid for the tasks subject (name of field or robot), what operation the task involves.
     op [_,_] : Oid TaskType -> Tid [ctor] .
@@ -38,12 +38,17 @@ omod TASK is
     op noTask : -> TaskStatus [ctor] .
 
     var TID : Tid .
-    var TIDS TIDS2 : TidSet .
+    vars TIDS TIDS2 : TidSet .
+    vars TTS TTS2 : TaskTypeSet .
+
+    eq inSet(TTS, (TTS , TTS2)) = true .
+    eq inSet(TTS, TTS2) = false [owise] .
 
     eq TIDS \ none = TIDS .
     eq none \ TIDS = none .
     eq (TID TIDS) \ (TID TIDS2) = TIDS \ TIDS2 .
     eq TIDS \ TIDS2 = TIDS [owise] .
+
 endom 
 
 omod AUCTION is

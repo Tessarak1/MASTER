@@ -50,6 +50,7 @@ omod MESSENGER is
   protecting SYSTEM-VARS .
 
   ***Objects of this class can communicate with one another.
+  ***Each object has a range that they can communicate within. 
   class Messenger | broadcastRange : Rat .
   
   subclass Messenger < Locatable .

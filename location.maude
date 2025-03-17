@@ -10,7 +10,6 @@ fmod LOCATION is
 
     op _inInterval(_,_) : Rat Rat Rat -> Bool .
 
-
     op distance : Location Location -> Rat [comm] .
     op sqrt : Rat -> Rat .
     
@@ -39,17 +38,19 @@ fmod LIST-LOCATION is
 
     op nil : -> List-Location [ctor] .
     op __ : List-Location List-Location -> List-Location [assoc id: nil ctor] .
+
+    ***Basic list operators
     op first : List-Location -> Location .
     op last : List-Location -> Location  .
     op remove : List-Location List-Location -> List-Location .
-
+    ***Checks if a given locations is between two neighboring locations in the list, and returns them if they exist.
     op between : Location List-Location -> List-Location .
     ***The total distance required to traverse the entire list.
     op listLength : List-Location -> Rat .
-
     ***Checks for overlap between two paralell lines
     op overlap : List-Location List-Location -> Bool [comm] .
-        
+    ***removes neighboring duplicates in the list.
+
     vars LL LL2 LL3 LL4 : List-Location .
     vars L L2 : Location .
     vars X X2 X3 X4 Y Y2 Y3 Y4 : Rat .

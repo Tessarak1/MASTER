@@ -9,10 +9,10 @@ omod NEGOTIATION is
 
     subsort String < Oid .
 
-    ***A negotiation consists of 
+
     op none : -> NegotiationSet [ctor] .
     op [_|_|_] : Oid Location Cost -> Negotiation [ctor] .
-    op __ : NegotiationSet NegotiationSet -> NegotiationSet [assoc comm id: none] .
+    op __ : NegotiationSet NegotiationSet -> NegotiationSet [ctor assoc comm id: none] .
     
 
     ***Creates a new negotiation with another robot if one doesn't already exist.

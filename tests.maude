@@ -15,38 +15,55 @@ omod BASE is
     op map1 : -> Object .
 
     eq robotAttrs = broadcastRange : 100, maxSpeed : 1, detected : none, auctions : noAuction, curTask : noTask,
-      handledTime : false, negotiations : none, workState : noWork .
+      handledTime : false, workState : noWork, detectionRange : 10, obstructionPoints : nil, negotiations : none .
     eq workerAttrs = cargoLevel : full .
-    eq transporterAttrs = cargoLevel : empty .
-    eq fieldAttrs = broadcastRange : 100, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 1000 - base: 1000],
-      fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 100 - base: 100], reserved : false, auctions : noAuction .
+    eq transporterAttrs = cargoLevel : full .
+    eq fieldAttrs = handledTime : false, broadcastRange : 100, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 1000 - base: 1000],
+      fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 100 - base: 100], reserved : false, auctions : noAuction, activeTasks : empty .
 
-    eq I1 = < "I1" : PassIntersection | location : (0,0), neighbors : "I2" "I3"  > .
+    eq I1 = < "I1" : PassIntersection | location : (0,0), neighbors : "I2" "I3" "GL1" > .
     eq I2 = < "I2" : PassIntersection | location : (100,0), neighbors : "I1" "I4" "I5" "I6" > .
-    eq I3 = < "I3" : PassIntersection | location : (0,-100), neighbors : "I4" "I1" > .
-    eq I4 = < "I4" : PassIntersection | location : (100,-100), neighbors : "I2" "I3" > .
+    eq I3 = < "I3" : PassIntersection | location : (0,-100), neighbors : "I4" "I1" "Resupply" > .
+    eq I4 = < "I4" : PassIntersection | location : (100,-100), neighbors : "I2" "I3" "Collection" > .
     eq I5 = < "I5" : PassIntersection | location : (200, 0), neighbors : "I2" > .
     eq I6 = < "I6" : PassIntersection | location : (100,100), neighbors : "I2" > .
 
     eq resupply = < "Resupply" : ResupplyStation | location : (-50, -100), neighbors : "I3" > .
-    eq collection = < "Collection" : CollectionStation | location : (100,-150), neighbors : "I4" > .
+    eq collection = < "Collection" : CollectionStation | location : (100,-150), neighbors : "I4", collections : 0 > .
     eq intersections1 = I1 I2 I3 I4 I5 I6 resupply collection GL1 .
 
-    eq GL1 = < "GL1" : Field | location : (0, 100), neighbors : "I1", growingArea : area((-50, 100), (50,100), (-50, 150), (50, 150)), fieldAttrs > .
+    eq GL1 = < "GL1" : Field | location : (0, 100), neighbors : "I1", growingArea : area((-1, 100), (1,100), (-1, 101), (1, 101)), fieldAttrs > .
     eq GL2 = < "GL2" : Field | location : (150, -100), neighbors : "I4", growingArea : area((150,-50), (200, -50), (150,-100), (200, -100)), fieldAttrs > .
     
-    eq rob = < "W1" : Worker | location : (40,0), state : idle, direction : west, remainingPath : nil, workerAttrs > .
-    eq rob2 = < "T1" : Transporter | location : (0,0), state : idle, direction : east, remainingPath : nil, workerAttrs > .
+    eq rob = < "W1" : Worker | speed : 0, location : (40,0), state : idle, direction : west, remainingPath : nil, robotAttrs, workerAttrs > .
+    eq rob2 = < "T1" : Transporter | speed : 0, location : (0,0), state : idle, direction : east, remainingPath : nil, robotAttrs, transporterAttrs > .
 
     eq map1 = < "Map" : Map | allIntersections : intersections1, roads : createRoadSet(intersections1) > .
     
-    eq farm1 = map1 rob rob2 GL1 .
+    eq farm1 = map1 rob2 GL1 collection resupply .
 endom
 
-***General rule for mta for fields?
-***Timers
-***0 if auction needs to be started
-***Auction timers
-***When can it be ignored?
-***Separate auctions from the rest?
-***mta to check auctions one for the rest and then combine.
+***Why is it unable to planpath.
+***planningPath does not lead to it getting to CollectionStation.
+--- < "Collection" : CollectionStation | location : (100, -150), neighbors : "I4", collections : 1 >
+--- < "GL1" : Field | location : (0, 100), broadcastRange : 100, handledTime : false, auctions : noAuction, neighbors : "I1", growingState : empty, waterLevel : good, fertilizerLevel : good, waterTimer : [cur:
+---     274 - base: 1000], fertilizerTimer : [cur: 274 - base: 1000], growTimer : [cur: 100 - base: 100], growingArea : area((1, 100), (1, 101), (-1, 100), (-1, 101)), reserved : false, activeTasks : empty >
+--- < "Map" : Map | allIntersections : (
+--- < "Collection" : CollectionStation | location : (100, -150), neighbors : "I4", collections : 0 >
+--- < "GL1" : Field | location : (0, 100), broadcastRange : 100, handledTime : false, auctions : noAuction, neighbors : "I1", growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur:
+---     1000 - base: 1000], fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 100 - base: 100], growingArea : area((1, 100), (1, 101), (-1, 100), (-1, 101)), reserved : false, activeTasks : empty >
+--- < "I1" : PassIntersection | location : (0, 0), neighbors : ("GL1" "I2" "I3") >
+--- < "I2" : PassIntersection | location : (100, 0), neighbors : ("I1" "I4" "I5" "I6") >
+--- < "I3" : PassIntersection | location : (0, -100), neighbors : ("I1" "I4" "Resupply") >
+--- < "I4" : PassIntersection | location : (100, -100), neighbors : ("Collection" "I2" "I3") >
+--- < "I5" : PassIntersection | location : (200, 0), neighbors : "I2" >
+--- < "I6" : PassIntersection | location : (100, 100), neighbors : "I2" > < "Resupply" : ResupplyStation | location : (-50, -100), neighbors : "I3" >), roads : ({(0, 0) (0, 100)} {(0, 0) (0, -100)} {(0, 0) (100,
+---     0)} {(0, -100) (100, -100)} {(0, -100) (-50, -100)} {(100, 0) (100, 100)} {(100, 0) (100, -100)} {(100, 0) (200, 0)} {(100, -100) (100, -150)}) >
+--- < "Resupply" : ResupplyStation | location : (-50, -100), neighbors : "I3" >
+  ***< "T1" : Transporter | location : (0, 100), broadcastRange : 100, handledTime : false, auctions : noAuction, direction : west, speed
+---     : 0, maxSpeed : 1, remainingPath : nil, state : planningPath, detectionRange : 10, cargoLevel : full, detected : none, obstructionPoints : nil, curTask : ["Collection", unloadTask], workState : noWork,
+---     negotiations : none > @ 726
+***Needs to set up plant timer and auction.
+red maxTimeAdvance(< "GL1" : Field | location : (0, 100), broadcastRange : 100, handledTime : false, auctions : noAuction, neighbors : "I1", growingState : empty, waterLevel : good,
+    fertilizerLevel : good, waterTimer : [cur: 274 - base: 1000], fertilizerTimer : [cur: 274 - base: 1000], growTimer : [cur: 100 - base: 100], growingArea : area((1, 100), (1, 101), (-1, 100), (-1, 101)),
+    reserved : false, activeTasks : empty >) .
