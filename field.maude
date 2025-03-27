@@ -73,8 +73,8 @@ omod FIELD is
     ***TODO: Auction timeout leads to either removal from activeTasks or restart of auction.
 
     ceq needToStartAuction(< OID : Field | growingState : harvest, activeTasks : TTS >) = true if not inSet(harvestTask, TTS) .
-    ceq needToStartAuction(< OID : Field | waterLevel : low, activeTasks : TTS >) = true if not inSet(wateringTask, TTS) .
-    ceq needToStartAuction(< OID : Field | fertilizerLevel : low, activeTasks : TTS >) = true if not inSet(fertilizeTask, TTS) .
+    ceq needToStartAuction(< OID : Field | growingState : growing, waterLevel : low, activeTasks : TTS >) = true if not inSet(wateringTask, TTS) .
+    ceq needToStartAuction(< OID : Field | growingState : growing, fertilizerLevel : low, activeTasks : TTS >) = true if not inSet(fertilizeTask, TTS) .
     ceq needToStartAuction(< OID : Field | growingState : empty, activeTasks : TTS >) = true if not inSet(plantTask, TTS) .
     eq needToStartAuction(< OID : Field | >) = false [owise] .
 

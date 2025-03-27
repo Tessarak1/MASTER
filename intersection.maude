@@ -11,8 +11,6 @@ omod INTERSECTION is
 
     subclass ObsIntersection PassIntersection < Intersection < Locatable .
 
-
-
     ***Returns the intersections with the given locations from a configuration of them.
     op intersectionWithLocation : Configuration List-Location -> Configuration .
 

@@ -19,32 +19,36 @@ fmod ROAD is
     op _inRange(_) : Location Road -> Bool .
     op _\_ : RoadSet RoadSet -> RoadSet .
     op commonIntersection : Road Road -> Bool [comm] .
+    op size : RoadSet -> Nat .
 
     eq findRoad((X,Y) LL, es) = es .
-    eq findRoad(nil, PS) = es .
+    eq findRoad(nil, ROS) = es .
     
-    ceq findRoad((X,Y) LL, {(X2,Y2) (X3,Y3)} PS) = {(X2,Y2) (X3,Y3)} findRoad((X,Y) LL, PS) if (X,Y) inRange({(X2,Y2) (X3,Y3)}) .
-    eq findRoad((X,Y) LL, {(X2,Y2) (X3,Y3)} PS) = findRoad(LL, {(X2,Y2) (X3,Y3)} PS) [owise] .
-    eq addRoad((X,Y), {(X2,Y2) (X3,Y3)}, {(X2,Y2) (X3,Y3)} PS) = {(X,Y) (X2,Y2)} {(X,Y) (X3,Y3)} PS .
-    eq addRoad((X,Y), {(X2,Y2) (X3,Y3)}, PS) = {(X,Y) (X2,Y2)} {(X,Y) (X3,Y3)} PS [owise] .
+    ceq findRoad((X,Y) LL, {(X2,Y2) (X3,Y3)} ROS) = {(X2,Y2) (X3,Y3)} findRoad((X,Y) LL, ROS) if (X,Y) inRange({(X2,Y2) (X3,Y3)}) .
+    eq findRoad((X,Y) LL, {(X2,Y2) (X3,Y3)} ROS) = findRoad(LL, {(X2,Y2) (X3,Y3)} ROS) [owise] .
+    eq addRoad((X,Y), {(X2,Y2) (X3,Y3)}, {(X2,Y2) (X3,Y3)} ROS) = {(X,Y) (X2,Y2)} {(X,Y) (X3,Y3)} ROS .
+    eq addRoad((X,Y), {(X2,Y2) (X3,Y3)}, ROS) = {(X,Y) (X2,Y2)} {(X,Y) (X3,Y3)} ROS [owise] .
 
-    vars I I2 I3 : Rat .
+    vars R R2 R3 : Rat .
     vars X X2 X3 Y Y2 Y3 : Rat .
-    vars PS PS2 : RoadSet .
-    vars P P2 : Road .
+    vars ROS ROS2 : RoadSet .
+    vars RO RO2 : Road .
     var LL : List-Location .
 
     eq {(X,Y) (X2,Y2)} {(X,Y) (X2,Y2)} = {(X,Y) (X2,Y2)} .
 
-    ceq I inRange(I2, I3) = true if I <= max(I2,I3) and I >= min(I2,I3) .
-    eq I inRange(I2, I3) = false [owise] .
+    ceq R inRange(R2, R3) = true if R <= max(R2,R3) and R >= min(R2,R3) .
+    eq R inRange(R2, R3) = false [owise] .
 
     ceq (X,Y) inRange({(X2,Y2) (X3,Y3)}) = true if X inRange(X2,X3) and Y inRange(Y2,Y3) .
     eq (X,Y) inRange({(X2,Y2) (X3,Y3)}) = false [owise] .
 
-    eq ({(X,Y) (X2,Y2)} PS) \ ({(X,Y) (X2,Y2)} PS2) = PS \ PS2 .
-    eq PS \ PS2 = PS [owise] .
+    eq ({(X,Y) (X2,Y2)} ROS) \ ({(X,Y) (X2,Y2)} ROS2) = ROS \ ROS2 .
+    eq ROS \ ROS2 = ROS [owise] .
 
     eq commonIntersection({(X,Y) (X2,Y2)}, {(X2,Y2) (X3,Y3)}) = true .
-    eq commonIntersection(P, P2) = false [owise] .
+    eq commonIntersection(RO, RO2) = false [owise] .
+
+    eq size(es) = 0 .
+    eq size(RO ROS) = 1 + size(ROS) .
 endfm

@@ -77,7 +77,7 @@ omod AUCTION is
     op __ : AuctionSet AuctionSet -> AuctionSet [assoc comm ctor id: noAuction] .
 
     ***Returns the Oid of the lowest bid.
-    op auctionWinner : Bid Oid Cost -> Oid .
+    op auctionWinner : BidSet Oid Cost -> Oid .
 
     ***Creates an auction for every task in the TidSet.
     op createAuction : TidSet -> AuctionSet .

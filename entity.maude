@@ -64,19 +64,18 @@ omod ENTITY is
         =>
         < OID : Entity | speed : 0, remainingPath : nil, state : idle > .
 
-    rl [duplicateIntersection] :
-        < OID : Entity | state : moving, location : (X,Y), remainingPath : (X,Y) (X,Y) LL >
-        =>
-        < OID : Entity | remainingPath : (X,Y) LL > .
-
-    crl [nextIntersection] :
+    rl [nextIntersection] :
         < OID : Entity | state : moving, location : (X,Y), remainingPath : (X,Y) (X2,Y2) LL > 
         =>
-        < OID : Entity | direction : setDirection((X,Y), (X2,Y2)), remainingPath : (X2,Y2) LL >
-        if (X,Y) =/= (X2,Y2) .
+        < OID : Entity | direction : setDirection((X,Y), (X2,Y2)), remainingPath : (X2,Y2) LL > .
 
     rl [startTravel] :
-        < OID : Entity | location : (X,Y), remainingPath : (X,Y) (X2,Y2) LL, state : idle, maxSpeed : SP >
+        < OID : Entity | location : (X,Y), remainingPath : (X2,Y2) LL, state : idle, speed : 0, maxSpeed : SP >
         =>
-        < OID : Entity | state : moving, direction : setDirection((X,Y), (X2,Y2)), remainingPath : (X2,Y2) LL, speed : SP > .
+        if (X,Y) == (X2,Y2)
+        then
+            < OID : Entity | remainingPath : LL >
+        else
+            < OID : Entity | state : moving, direction : setDirection((X,Y), (X2,Y2)), speed : SP >
+        fi .
 endom

@@ -150,7 +150,7 @@ omod TIMED-FARM is
         fi
         if differentAxes(D, D2) .
 
-    ***nested ifs seem terrible.
+    ***TODO: nested ifs seem terrible.
     eq $calculateAdvance(< OID : Robot | location : (X,Y), detectionRange : T >, < OID2 : Robot | location : (X2,Y2), detectionRange : T2 >, SP) =
         if unavoidableCrash(< OID : Robot | >, < OID2 : Robot | >)
         then
@@ -176,29 +176,29 @@ omod TIMED-FARM is
     
     ***If nothing is in the way then time until next location is reached.
     eq calculateAdvance(< OID : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, speed : SP >, none) = distance((X,Y), (X2,Y2)) / SP .
-
     ***If a robot is behind another in the same direction check time until detection happens.
     eq calculateAdvance(< OID : Robot | speed : SP, direction : D >, < OID2 : Robot | state : moving, speed : SP2, direction : D >) = 
         if SP2 >= SP then
-            ratInf
+            ratInf  
         else
             $calculateAdvance(< OID : Robot | >, < OID2 : Robot | >, SP - SP2)
         fi .
-
     ***Check detection if two robots are moving towards one another
     ceq calculateAdvance(< OID : Robot | speed : SP, direction : D >, < OID2 : Robot | state : moving, speed : SP2, direction : D2 >) = 
         $calculateAdvance(< OID : Robot | >, < OID2 : Robot | >, SP + SP2)
         if oppositeDirections(D,D2) .
-
+    ***If the second robot is unmoving, check time until detection happens based on first robot's speed.
     ceq calculateAdvance(< OID : Robot | speed : SP >, < OID2 : Robot | state : STATE >) =
         $calculateAdvance(< OID : Robot | >, < OID2 : Robot | >, SP)
         if STATE =/= moving .
-
     ***Moving towards the same point as another robot from different axes.
     ceq calculateAdvance(< OID : Robot | state : moving, remainingPath : (X,Y) LL, direction : D >, < OID2 : Robot | state : moving, direction : D2 >) =
         $quadraticSolveAdvance(< OID : Robot | >, < OID2 : Robot | >)
         if differentAxes(D, D2) and headedTowards(< OID2 : Robot | >, (X,Y)) .
             
+    ***TODO: Add one for moving towards a robot that is moving away from said intersection. What should it be?
+
+
     eq calculateAdvance(< OID : Robot | location : (X, Y), speed : SP, detectionRange : T >, < OID2 : Obstacle | location : (X2,Y2) >) = 
         if unavoidableCrash(< OID : Robot | >, < OID2 : Obstacle | >) then
             distance((X, Y), (X2,Y2)) / SP
@@ -238,7 +238,6 @@ omod TIMED-FARM is
     ***Needs to start movement
     ceq $maxTimeAdvanceRobot(OID, < OID : Robot | state : idle, remainingPath : LL, detected : none > CONF) = 0 if LL =/= nil .
     ***TODO: Separate mta for state changes into a separate functions
-
     ***Not relevant if incapacitated, negotiating or idle
     eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : INC, detected : none > CONF) = ratInf .
     eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : negotiating, detected : none > CONF) = ratInf .
@@ -251,9 +250,10 @@ omod TIMED-FARM is
         if (objectInWay((X,Y), (X2,Y2), CONF) == none) .
     ***The previous equation wont apply if there is a robot located at the intersection the robot is moving away from it.
     ***This equation ensures that destinationTimeAdvance is still applied in such a scenario.
+    ***The condition checks if the first object in the way is a robot 
     ceq $maxTimeAdvanceRobot(OID, < OID : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, direction : D > < OID2 : Robot | state : moving, location : (X2,Y2), direction : D2 > CONF) =
         $destinationTimeAdvance(< OID : Robot | >, remove(OID, closest((X2,Y2), none, sameDestination((X2,Y2), CONF))))
-        if (getOid(objectInWay((X,Y), (X2,Y2), < OID2 : Robot | state : moving, location : (X2,Y2), direction : D2 > CONF)) == OID2) and oppositeDirections(D, D2) .
+        if (getOid(objectInWay((X,Y), (X2,Y2), < OID2 : Robot | state : moving, location : (X2,Y2), direction : D2 > CONF)) == OID2) and D =/= D2 .
     ***If there is an obstacle or robot in the way, return time until detection happens.
     eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : moving, location : (X, Y), speed : SP, remainingPath : (X2, Y2) LL, detected : none > CONF)
     =
@@ -274,11 +274,10 @@ omod TIMED-FARM is
     eq $timeEffectRobot(< OID : Robot | state : moving, location : (X, Y), direction : south, speed : SP, remainingPath : (X2,Y2) LL >, TIME) = < OID : Robot | location : (X, Y - (SP * TIME)) > .
     eq $timeEffectRobot(< OID : Robot | state : moving, location : (X, Y), direction : west, speed : SP, remainingPath : (X2,Y2) LL >, TIME) = < OID : Robot | location : (X - (SP * TIME), Y) > .
     ***Robot works on removing an obstacle or repairing a robot.
-    ***TODO: Timeeffect for workstate
     ceq $timeEffectRobot(< OID : Robot | state : STATE >, TIME) = decreaseTimers(< OID : Robot | >, TIME) if STATE == removing or STATE == repairing .
     eq $timeEffectRobot(< OID : Robot | state : FUNC, workState : [OID2, TT, TIME] >, TIME2) = < OID : Robot | workState : [OID2, TT, TIME monus TIME2] > .
     ***Can be ignored if the robot is incapacitated or idle.
-    ceq $timeEffectRobot(< OID : Robot | state : STATE >, TIME) = < OID : Robot | > if STATE == failed or STATE == crashed or STATE == idle .
+    ceq $timeEffectRobot(< OID : Robot | state : STATE >, TIME) = < OID : Robot | > if STATE == failed or STATE == crashed or STATE == idle or STATE == negotiating .
 
     eq $timeEffectField(< OID : Field | >, TIME) = decreaseTimers(< OID : Field | >, TIME) .
 

@@ -49,7 +49,8 @@ fmod LIST-LOCATION is
     op listLength : List-Location -> Rat .
     ***Checks for overlap between two paralell lines
     op overlap : List-Location List-Location -> Bool [comm] .
-    ***removes neighboring duplicates in the list.
+    op removeNeighborDuplicates : List-Location -> List-Location .
+
 
     vars LL LL2 LL3 LL4 : List-Location .
     vars L L2 : Location .
@@ -82,5 +83,8 @@ fmod LIST-LOCATION is
     eq overlap((X,Y) (X,Y2), (X,Y3) (X,Y4)) = max(min(Y,Y2), min(Y3,Y4)) <= min(max(Y,Y2), max(Y3,Y4)) .
     eq overlap((X,Y) (X2,Y), (X3,Y) (X4,Y)) = max(min(X,X2), min(X3,X4)) <= min(max(X,X2), max(X3,X4)) .
     eq overlap(LL, LL2) = false [owise] .
+
+    eq removeNeighborDuplicates(LL (X,Y) (X,Y) LL2) = removeNeighborDuplicates(LL (X,Y) LL2) .
+    eq removeNeighborDuplicates(LL) = LL [owise] .
 endfm
 

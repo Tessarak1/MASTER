@@ -56,11 +56,13 @@ omod AUCTIONEER is
         < OID : Auctioneer | auctions  : AUS createAuction(TIDS) >
         broadcastInRange(< OID : Auctioneer | >, tidToMsgContent(TIDS), CONF)  .
 
+    ***No winner, so restat the auction.
     eq retryAuction(< OID : Auctioneer | >, CONF, [Task: TID [cur: TIME - base: TIME2] | noBid]) =
         initiateAuction(< OID : Auctioneer | >, TID, CONF) .
+    ***we have a winner, so send to that winner.
     eq retryAuction(< OID : Auctioneer | auctions : AUS >, CONF, [Task: TID [cur: TIME - base: TIME2] | BS]) =
         < OID : Auctioneer | auctions : [Task: TID [cur: TIME2 - base: TIME2] | BS] AUS >
-        broadcastInRange(< OID : Auctioneer | >, won TID, CONF) [owise] .
+        broadcast(OID, won TID, auctionWinner(BS, "",ratInf)) [owise] .
 
     ***Determines the winner of an auction when its timer runs out.
     rl [auctionTimerExpire] :

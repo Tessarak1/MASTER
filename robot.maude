@@ -84,7 +84,6 @@ omod ROBOT is
     op assignTask : Object Tid -> Object .
     op calculatePathLength : Object Tid Object -> Rat .
     op prepareAuction : Object TidSet -> Configuration .
-    op AUCTION-TIMER : -> Timer .
     ops rejectTask : Object -> Bool .
     op startWorkGL : Object -> Object .
 
@@ -96,7 +95,7 @@ omod ROBOT is
 
     ***Path that robot must traverse to be able to complete task.
     ***Travels to resupply and/or collection station if needed
-    op planPath : Object Tid Configuration -> List-Location .
+    op planPath : Object Tid Object -> List-Location .
 
     ***Adds the locations in the second list that are between locations in the first to the first list.
     op modifyPath : List-Location List-Location -> List-Location .
@@ -104,13 +103,17 @@ omod ROBOT is
     op sameDestination : Location Configuration -> Configuration .
     op closest : Location Configuration Configuration -> Configuration .
 
+    ***Checks if a given intersection has a connecting road that is not used by the list of locations.
+    ***yieldLocation's boolean parameter determines if an intersection needs to have at least three connecting roads to be considered a valid solution.
+    ***This is used for when a robot needs to yield to another yielding robot.
     op $yieldLocationHelper : Location RoadSet -> Location .
     op yieldLocation : Object RoadSet List-Location -> List-Location .
-
-    ***rename this, it should do the entire yielding check.
-    op yieldIntersection : PQueue Object List-Location Location List-Location -> List-Location .
-    
+    ***Creates a path to the intersection that has a valid yieldLocation.
+    op yieldIntersection : PQueue Object List-Location Location -> List-Location .
     op yieldPath : Object Object List-Location -> List-Location .
+    ***Creates a path to the closest intersection that is connected to at least three roads.
+    op conflictIntersection : PQueue Object -> List-Location .
+    op conflictYieldPath : Object Location List-Location -> List-Location .
 
     op yieldProtocol : Object Oid List-Location -> Object .
 
@@ -153,6 +156,7 @@ omod ROBOT is
     var O : Object . 
     var NS : NegotiationSet .
     vars C C2 : Cost .
+    var BOOL : Bool .
 
     vars TT TT2 : TaskType .
     var TS : TaskStatus .
@@ -167,9 +171,9 @@ omod ROBOT is
     eq remove(OID, < OID : Robot | > CONF) = CONF .
     eq remove(OID, CONF) = CONF [owise] .
 
-    eq finishedResupply(< OID : Worker | state : resupplying, curCargo : CARGO, cargoLevel : empty >, wateringTask) = < OID : Worker | curCargo : water, cargoLevel : full, state : idle > .
-    eq finishedResupply(< OID : Worker | state : resupplying, curCargo : CARGO, cargoLevel : empty >, fertilizeTask) = < OID : Worker | curCargo : fertilizer, cargoLevel : full, state : idle > .
-    eq finishedResupply(< OID : Worker | state : resupplying, curCargo : CARGO, cargoLevel : empty >, plantTask) = < OID : Worker | curCargo : seed, cargoLevel : full, state : idle > .
+    eq finishedResupply(< OID : Worker | state : resupplying, curCargo : CARGO >, wateringTask) = < OID : Worker | curCargo : water, cargoLevel : full, state : idle > .
+    eq finishedResupply(< OID : Worker | state : resupplying, curCargo : CARGO >, fertilizeTask) = < OID : Worker | curCargo : fertilizer, cargoLevel : full, state : idle > .
+    eq finishedResupply(< OID : Worker | state : resupplying, curCargo : CARGO >, plantTask) = < OID : Worker | curCargo : seed, cargoLevel : full, state : idle > .
     eq finishedResupply(< OID : Worker | >, TT) = < OID : Worker | > [owise] .
 
     eq replanCost(< OID : Robot | curTask : TID, obstructionPoints : LL >, < OID2 : Map | >, (X,Y)) =
@@ -263,16 +267,6 @@ omod ROBOT is
     ceq (X,Y) west leadsTo (X2,Y) = true if X2 < X .
     eq (X,Y) D leadsTo (X2,Y2) = false [owise] .
 
-
-    ***Need to find a better way to know if two robots are headed towards one another, or they share the same path
-    ***as findRoad can return the entire pathset of.
-    ***check first two instead of just location?
-    ***I need a better way to orient robots. regardless of if they are on intersections or not.
-    ***it has location and remainingpath and direction, this is what I can use.
-    ***Have been using findroad for orientation, this is the only problem with it.
-    ***
-
-    ***Moving in same direction = false
     ***Need to start negotation if two robots move towards each other directly, without any intersection in the middle.
     ceq needNegotiation(< OID : Robot | location : (X,Y), direction : D, state : moving >,
         {OID2 : Robot | (X2,Y2) ; D2 ; moving ; I}, < OID3 : Map | roads : {(X3,Y3) (X4,Y4)} RS >) =
@@ -289,7 +283,7 @@ omod ROBOT is
 
     eq startNegotiation(< OID : Robot | location : (X,Y), remainingPath : LL, negotiations : NS >, {OID2 : Robot | (X2,Y2) ; I}, < OID3 : Map | >) =
         < OID : Robot | state : negotiating, speed : 0, negotiations : addNegotiation(NS, OID2, (X2,Y2)) > 
-        dly(msg requestPath § path((X,Y) LL) from OID to OID2, MSG-DELAY) .
+        dly(msg requestPath & path((X,Y) LL) from OID to OID2, MSG-DELAY) .
 
     eq closest((X,Y), CONF, none) = CONF .
     eq closest((X,Y), < OID : Robot | location : (X2,Y2), direction : D > CONF, < OID2 : Robot | location : (X3,Y3), direction : D > CONF2) =
@@ -316,8 +310,9 @@ omod ROBOT is
     eq needsCPoint(< OID : Worker | >, TID) = false .
     eq needsCPoint(< OID : Transporter | cargoLevel : CL >, TID) = CL == full .
 
-    eq needsResupply(< OID : Worker | curCargo : fertilizer >, [OID2, wateringTask]) = true .
-    eq needsResupply(< OID : Worker | curCargo : water >, [OID2, fertilizeTask]) = true .
+    ceq needsResupply(< OID : Worker | curCargo : CARGO >, [OID2, wateringTask]) = true if CARGO =/= water .
+    ceq needsResupply(< OID : Worker | curCargo : CARGO >, [OID2, fertilizeTask]) = true if CARGO =/= fertilizer .
+    ceq needsResupply(< OID : Worker | curCargo : CARGO >, [OID2, plantTask]) = true if CARGO =/= seed .
     eq needsResupply(< OID : Worker | cargoLevel : empty >, TID) = true .
     eq needsResupply(< OID : Robot | >, TID) = false [owise] .
 
@@ -332,6 +327,7 @@ omod ROBOT is
     ceq canCompleteNow(< OID : Worker | state : FUNC, curTask : TS >, [OID2, repairAt (X,Y)]) = true if (TS == noTask) or (TS == [OID2, repairAt (X,Y)]) .
     eq canCompleteNow(< OID : Worker | state : FUNC, cargoLevel : full, curCargo : water >, [OID2, wateringTask]) = true .
     eq canCompleteNow(< OID : Worker | state : FUNC, cargoLevel : full, curCargo : fertilizer >, [OID2, fertilizeTask]) = true .
+    eq canCompleteNow(< OID : Worker | state : FUNC, cargoLevel : full, curCargo : seed >, [OID2, plantTask]) = true .
     eq canCompleteNow(< OID : Transporter | state : FUNC, cargoLevel : empty >, [OID2, harvestTask]) = true .
     eq canCompleteNow(< OID : Robot | state : INC >, TID) = false .
     ceq canCompleteNow(< OID : Robot | curTask : TID >, TID2) = false if TID =/= noTask .
@@ -346,10 +342,11 @@ omod ROBOT is
     eq $planPath(< OID : Map | >, LL, LL2) = dijkstraChain(getIntersections(modifyMap(< OID : Map | >, LL, LL2)), LL) .
 
     eq planPath(< OID : Robot | location : (X,Y), obstructionPoints : LL >, [OID2, TT], < OID3 : Map | allIntersections : CONF > CONF2) =
-        $planPath(< OID3 : Map | >,
-            $planPathLocations(< OID : Robot | >, [OID2, TT], CONF CONF2), LL) .
+        removeNeighborDuplicates(
+            $planPath(< OID3 : Map | >,
+            $planPathLocations(< OID : Robot | >, [OID2, TT], CONF CONF2), LL)) .
 
-    ceq modifyPath(LL (X,Y) (X2,Y2) LL2, (X3,Y3) LL3) = modifyPath(LL (X,Y) (X3,Y3) (X2,Y2), LL3)
+    ceq modifyPath(LL (X,Y) (X2,Y2) LL2, (X3,Y3) LL3) = modifyPath(LL (X,Y) (X3,Y3) (X2,Y2) LL2, LL3)
         if ((X3,Y3) =/= (X,Y) and (X3,Y3) =/= (X2,Y2) and between((X3,Y3), (X,Y) (X2,Y2)) =/= nil) . 
     eq modifyPath(LL, LL2) = LL [owise] .
 
@@ -369,8 +366,7 @@ omod ROBOT is
             true
         fi .
     eq breaksPath(LL, {OID2 : CID | (X,Y) ; D ; I}) = $breaksPath(between((X,Y), LL), {OID2 : CID | (X,Y) ; D ; I}) .
-    
-    *** X,Y is the location of chosen intersection, the pathset are paths not used and any one of them can therefore be a yield location.
+
     eq $yieldLocationHelper((X,Y), {(X,Y) (X,Y2)} RS) =
         if Y < Y2
         then
@@ -386,79 +382,85 @@ omod ROBOT is
             (X - ROBOT-SIZE, Y)
         fi .
 
-    ***Checks if an intersection has a viable yield location, a location that the robot can stop on and not be in the way of LL (X,Y) LL2.
-    ***Uses findRoad to get the connecting paths of the intersection and checks if it has any that are not used by LL LL2
-    eq yieldLocation(< OID : Intersection | location : (X,Y) >, RS, LL (X,Y) LL2) =
-        ***This check is not good enough since a robot may have a path that is different from the other robots understanding of the map.
+    eq yieldLocation(< OID : PassIntersection | location : (X,Y) >, RS, LL (X,Y) LL2) =
         if findRoad((X,Y), RS) \ findRoad(last(LL) first(LL2), RS) =/= es then
             $yieldLocationHelper((X,Y), findRoad((X,Y), RS) \ findRoad(last(LL) first(LL2), RS))
         else
             nil
         fi .
-
-    ***Send in modifymap and modify path and UpdateDistances(PQ) for this.
-    eq yieldIntersection(noQueue, < OID : Map | >, LL, (X,Y), LL2) = LL2 .
-    eq yieldIntersection([< OID : Intersection | location : (X,Y) >, 0, "Start"] PQ, < OID2 : Map | allIntersections : CONF, roads : RS >, LL, (X,Y), nil) = 
-        if yieldLocation(< OID : Intersection | >, RS, LL) =/= nil
+    eq yieldLocation(< OID : Intersection | >, RS, LL) = nil [owise] .
+        
+    eq yieldIntersection([< OID : PassIntersection | location : (X,Y) >, 0, "Start"] PQ, < OID2 : Map | roads : RS >, LL, (X,Y)) = 
+        if yieldLocation(< OID : PassIntersection | >, RS, LL) =/= nil
         then
-            yieldLocation(< OID : Intersection | >, RS, LL)
+            yieldLocation(< OID : PassIntersection | >, RS, LL)
         else
-            yieldIntersection(PQ, < OID2 : Map | >, LL, (X,Y), nil)
+            if size(findRoad((X,Y), RS)) == 1
+            then
+                nil
+            else
+                yieldIntersection(PQ, < OID2 : Map | >, LL, (X,Y))
+            fi
         fi .
-    ceq yieldIntersection([< OID : Intersection | location : (X,Y) >, RI, OID2] PQ, < OID3 : Map | allIntersections : CONF, roads : RS >, LL, (X2,Y2), nil) =
+    ceq yieldIntersection([< OID : PassIntersection | location : (X,Y) >, RI, OID2] PQ, < OID3 : Map | allIntersections : CONF, roads : RS >, LL, (X2,Y2)) =
         if RI == ratInf
         then
-            none
+            nil
         else
-            if yieldLocation(< OID : Intersection | >, RS, LL) =/= nil
+            if yieldLocation(< OID : PassIntersection | >, RS, LL) =/= nil
             then
                 if not directConflict(dijkstraSearch(CONF, (X2,Y2), (X,Y)), LL)
                 then
-                    dijkstraSearch(CONF, (X2,Y2), (X,Y)) yieldLocation(< OID : Intersection | >, RS, LL)
+                    dijkstraSearch(CONF, (X2,Y2), (X,Y)) yieldLocation(< OID : PassIntersection | >, RS, LL)
                 else
-                    yieldIntersection(PQ, < OID3 : Map | >, LL, (X2,Y2), dijkstraSearch(CONF, (X2,Y2), (X,Y)))
+                    yieldIntersection(PQ, < OID3 : Map | >, LL, (X2,Y2))
                 fi
             else
-                yieldIntersection(PQ, < OID3 : Map | >, LL, (X2,Y2), LL)
+                yieldIntersection(PQ, < OID3 : Map | >, LL, (X2,Y2))
             fi
         fi
         if OID2 =/= "Start" .
+    eq yieldIntersection(noQueue, < OID : Map | >, LL, (X,Y)) = nil .
 
-    ceq yieldIntersection([< OID : Intersection | location : (X,Y) >, RI, OID2] PQ, < OID3 : Map | allIntersections : CONF, roads : RS >, LL, (X2,Y2), LL2) =
-        if RI == ratInf
-        then
-            none
-        else
-            if yieldLocation(< OID : Intersection | >, RS, LL) =/= nil
-            then
-                if not directConflict(dijkstraSearch(CONF, (X2,Y2), (X,Y)), LL)
-                then
-                    dijkstraSearch(CONF, (X2,Y2), (X,Y)) yieldLocation(< OID : Intersection | >, RS, LL)
-                else
-                    yieldIntersection(PQ, < OID3 : Map | >, LL, (X2,Y2), LL2)
-                fi
-            else
-                yieldIntersection(PQ, < OID3 : Map | >, LL, (X2,Y2), LL2)
-            fi
-        fi
-        if OID2 =/= "Start" .
-
-
-    ***Returns the path the robot must take to avoid conflict with another path, LL2.
-    ***returns nil if there is none.
     eq yieldPath(< OID : Robot | location : (X,Y), obstructionPoints : LL >, < OID2 : Map | >, LL2) =
         yieldIntersection(
-            updateDistances(PQConvert(getIntersections(modifyMap(< OID2 : Map | >, (X,Y), LL)), (X,Y))),
-            modifyMap(< OID2 : Map | >, (X,Y), LL),
+            updateDistances(PQConvert(getIntersections(modifyMap(< OID2 : Map | >, (X,Y) LL2, LL)), (X,Y))),
+            modifyMap(< OID2 : Map | >, (X,Y) LL2, LL),
             modifyPath(LL2, (X,Y)),
-            (X,Y),
-            nil
+            (X,Y)
         ) .
 
-    ceq yieldProtocol(< OID : Robot | remainingPath : LL >, OID2, LL2) =
-        < OID : Robot | remainingPath : LL2 >
-        dly(msg yielding from OID to OID2, MSG-DELAY)
-        if LL2 =/= nil .
+    --- eq conflictYieldLocation(< OID : PassIntersection | location : (X,Y) >, RS, LL (X,Y) LL2) =
+    ---     if size(findRoad((X,Y), RS)) > 2
+    ---     then
+
+    ---     else
+    ---         nil
+    ---     fi .
+
+    --- ***valid yieldIntersection has at least 3 connected roads.
+    --- eq conflictYieldIntersection([< OID : PassIntersection | >, RI, OID2] PQ, < OID3 : Map | >)
+
+
+    --- eq conflictYieldPath(< OID : Map | >, (X,Y), LL) =
+    ---     conflictYieldIntersection(
+    ---         updateDistances(PQConvert(getIntersections(modifyMap(< OID : Map | >, (X,Y), LL)))),
+    ---         < OID : Map | >
+    ---     )
+
+    --- ***robot, map and path.
+    --- --- ***try yieldpath, if it returns nil, then the function that finds closest intersection with three road segments.
+    --- --- ceq yieldProtocol(< OID : Robot | location : (X,Y), remainingPath : LL, obstructionPoints : LL2 >, < OID2 : Map | >, OID3, LL2) =
+    --- ---     if yieldPath(< OID : Robot | >, < OID2 : Map | >, LL2) =/= nil
+    --- ---     then
+    --- ---         < OID : Robot | remainingPath : yieldPath(< OID : Robot | >, < OID2 : Map | >, LL2) >
+    --- ---         dly(msg yielding from OID to OID3, MSG-DELAY)
+    --- ---     else
+    --- ---         ***stage 2, need the other way to find path.
+    --- ---         ***TODO: To extend this to max 4 robot conflict, they cant immediately start moving on this.
+    --- ---         < OID : Robot | remainingPath : conflictYieldPath(< OID2 : Map | >, (X,Y), LL2) >
+    --- ---         ***send message back that we need path.
+    --- ---     fi .
     
     rl [rcvWonMsg] :
         < OID : Robot | >
@@ -517,7 +519,7 @@ omod ROBOT is
     rl [rcvPathNegotiationIdle] :
         < OID : Robot | location : (X,Y), remainingPath : nil, state : idle >
         < OID2 : Map | >
-        msg requestPath § path(LL) from OID3 to OID
+        msg requestPath & path(LL) from OID3 to OID
         =>
         if between((X,Y), LL) =/= nil
         then
@@ -536,7 +538,7 @@ omod ROBOT is
     --- rl [rcvPathNegotiationSharedIntersection] :
     ---     < OID : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, curTask : TID, state : FUNC >
     ---     < OID2 : Map | >
-    ---     msg requestPath § path((X3, Y3) (X2,Y2) LL2) from OID3 to OID 
+    ---     msg requestPath & path((X3, Y3) (X2,Y2) LL2) from OID3 to OID 
     ---     =>
     ---     intersectionCoordination.
     ***Dont want direct conflict to override intersection coordination.
@@ -545,7 +547,7 @@ omod ROBOT is
     crl [rcvPathNegotiationDirectConflict] :
         < OID : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, curTask : TID, state : FUNC, obstructionPoints : LL2, negotiations : NS >
         < OID2 : Map | >
-        msg requestPath § path((X3, Y3) (X4,Y4) LL3) from OID3 to OID 
+        msg requestPath & path((X3, Y3) (X4,Y4) LL3) from OID3 to OID 
         =>
         < OID : Robot | negotiations : updateNegotiation(NS, [OID3 | (X3,Y3) | replanCost(< OID : Robot | >, < OID2 : Map | >, (X3, Y3))]) NS > 
         < OID2 : Map | >
@@ -719,22 +721,22 @@ omod ROBOT is
         < OID : Robot | state : FUNC, location : (X,Y), curTask : TID >
         < OID2 : ResupplyStation | location : (X,Y) >
         =>
-        < OID : Robot | state : resupplying, workState : [OID2, resupplyTask, RESUPPLY-TIME] > 
+        < OID : Robot | speed : 0, state : resupplying, workState : [OID2, resupplyTask, RESUPPLY-TIME] > 
         < OID2 : ResupplyStation | >
-        if needsResupply(< OID : Robot | >, TID) .
+        if needsResupply(< OID : Robot | >, TID) and FUNC =/= resupplying .
 
     rl [finishResupply] :
-        < OID : Robot | location : (X,Y), cargoLevel : empty, state : resupplying, curTask : [OID2, TT], workState : [OID, resupplyTask, 0] >
+        < OID : Robot | location : (X,Y), state : resupplying, curTask : [OID2, TT], workState : [OID3, resupplyTask, 0] >
         < OID3 : ResupplyStation | location : (X,Y) >
         =>
-        finishedResupply(< OID : Robot | >, TT)
+        finishedResupply(< OID : Robot | workState : noWork >, TT)
         < OID3 : ResupplyStation | > .
 
     rl [startUnloading] : 
         < OID : Transporter | state : FUNC, location : (X,Y), cargoLevel : full, workState : noWork >
         < OID2 : CollectionStation | location : (X,Y) >
         =>
-        < OID : Transporter | state : unloading,  workState : [OID2, unloadTask, UNLOAD-TIME] >
+        < OID : Transporter | speed : 0, state : unloading,  workState : [OID2, unloadTask, UNLOAD-TIME] >
         < OID2 : CollectionStation | > .
     
     rl [finishUnloading] :

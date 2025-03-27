@@ -12,8 +12,8 @@ omod MESSAGE-WRAPPER is
   subsort MsgContent < MsgContentSet .
 
   op noContent : -> MsgContentSet [ctor] .
-  op _§_ : MsgContentSet MsgContentSet -> MsgContentSet [assoc comm ctor id: noContent] .
-  op msg_from_to_ : MsgContent Oid Oid -> Msg [ctor] .
+  op _&_ : MsgContentSet MsgContentSet -> MsgContentSet [assoc comm ctor id: noContent] .
+  op msg_from_to_ : MsgContentSet Oid Oid -> Msg [ctor] .
 endom
  
 omod MESSAGE is
@@ -41,7 +41,7 @@ omod MESSAGE is
   var TIDS : TidSet .
 
   eq tidToMsgContent(none) = noContent .
-  eq tidToMsgContent(TID TIDS) = TID § tidToMsgContent(TIDS) .
+  eq tidToMsgContent(TID TIDS) = TID & tidToMsgContent(TIDS) .
 endom
 
 omod MESSENGER is
@@ -84,5 +84,5 @@ omod MESSENGER is
     $broadcastInRange(OID, MCS, messengerOids(withinDistance(< OID : Messenger | >, R, CONF))) .
   
   eq $broadcastInRange(OID, noContent, OIDS) = none .
-  eq $broadcastInRange(OID, MC § MCS, OIDS) = broadcast(OID, MC, OIDS) $broadcastInRange(OID, MCS, OIDS) .
+  eq $broadcastInRange(OID, MC & MCS, OIDS) = broadcast(OID, MC, OIDS) $broadcastInRange(OID, MCS, OIDS) .
 endom
