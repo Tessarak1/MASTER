@@ -111,11 +111,13 @@ omod ROBOT is
     ***Creates a path to the intersection that has a valid yieldLocation.
     op yieldIntersection : PQueue Object List-Location Location -> List-Location .
     op yieldPath : Object Object List-Location -> List-Location .
-    ***Creates a path to the closest intersection that is connected to at least three roads.
-    op conflictIntersection : PQueue Object -> List-Location .
-    op conflictYieldPath : Object Location List-Location -> List-Location .
 
-    op yieldProtocol : Object Oid List-Location -> Object .
+    ***Creates a path to the closest intersection that is connected to at least three roads.
+    op conflictYieldIntersection : PQueue Object -> Object .
+    op $conflictYieldPath : Configuration Object Location -> List-Location .
+    op conflictYieldPath : Object Object -> List-Location .
+
+    op yieldProtocol : Object Object Oid List-Location -> Object .
 
     op __leadsTo_ : Location Direction Location -> Bool .
 
@@ -430,37 +432,48 @@ omod ROBOT is
             (X,Y)
         ) .
 
-    --- eq conflictYieldLocation(< OID : PassIntersection | location : (X,Y) >, RS, LL (X,Y) LL2) =
-    ---     if size(findRoad((X,Y), RS)) > 2
-    ---     then
+    ***valid yieldIntersection has at least 3 connected roads.
+    ***When we have it, we dijkstraSearch to it, and then do the road check thingy.
+    ***or should it just return the intersection?
+    eq conflictYieldIntersection([< OID : PassIntersection | location : (X,Y) >, RI, OID2] PQ, < OID3 : Map | roads : RS >) =
+        if RI == ratInf
+        then
+            none
+        else
+            if size(findRoad((X,Y), RS)) > 2
+            then
+                < OID : PassIntersection | >
+            else
+                conflictYieldIntersection(PQ, < OID3 : Map | >)
+            fi
+        fi .
 
-    ---     else
-    ---         nil
-    ---     fi .
+    eq $conflictYieldPath(none, < OID2 : Map | >, (X2,Y2)) = nil .
 
-    --- ***valid yieldIntersection has at least 3 connected roads.
-    --- eq conflictYieldIntersection([< OID : PassIntersection | >, RI, OID2] PQ, < OID3 : Map | >)
+    eq $conflictYieldPath(< OID : PassIntersection | location : (X,Y) >, < OID2 : Map | allIntersections : CONF, roads : RS >, (X2,Y2)) =
+        dijkstraSearch(CONF, (X2,Y2), (X,Y)) yieldLocation(< OID : PassIntersection | >, RS, last(dijkstraSearch(CONF, (X2,Y2), (X,Y)))) .
 
+    eq conflictYieldPath(< OID : Robot | location : (X,Y), obstructionPoints : LL >, < OID2 : Map | >) =
+        $conflictYieldPath(
+            conflictYieldIntersection(
+                updateDistances(PQConvert(getIntersections(modifyMap(< OID2 : Map | >, (X,Y), LL)), (X,Y))),
+                modifyMap(< OID2 : Map | >, (X,Y), LL)
+            ),
+            modifyMap(< OID2 : Map | >, (X,Y), LL),
+            (X,Y)
+        ) .
 
-    --- eq conflictYieldPath(< OID : Map | >, (X,Y), LL) =
-    ---     conflictYieldIntersection(
-    ---         updateDistances(PQConvert(getIntersections(modifyMap(< OID : Map | >, (X,Y), LL)))),
-    ---         < OID : Map | >
-    ---     )
-
-    --- ***robot, map and path.
-    --- --- ***try yieldpath, if it returns nil, then the function that finds closest intersection with three road segments.
-    --- --- ceq yieldProtocol(< OID : Robot | location : (X,Y), remainingPath : LL, obstructionPoints : LL2 >, < OID2 : Map | >, OID3, LL2) =
-    --- ---     if yieldPath(< OID : Robot | >, < OID2 : Map | >, LL2) =/= nil
-    --- ---     then
-    --- ---         < OID : Robot | remainingPath : yieldPath(< OID : Robot | >, < OID2 : Map | >, LL2) >
-    --- ---         dly(msg yielding from OID to OID3, MSG-DELAY)
-    --- ---     else
-    --- ---         ***stage 2, need the other way to find path.
-    --- ---         ***TODO: To extend this to max 4 robot conflict, they cant immediately start moving on this.
-    --- ---         < OID : Robot | remainingPath : conflictYieldPath(< OID2 : Map | >, (X,Y), LL2) >
-    --- ---         ***send message back that we need path.
-    --- ---     fi .
+    ***robot, map and path.
+     ***try yieldpath, if it returns nil, then the function that finds closest intersection with three road segments.
+    eq yieldProtocol(< OID : Robot | location : (X,Y), remainingPath : LL >, < OID2 : Map | >, OID3, LL2) =
+        if yieldPath(< OID : Robot | >, < OID2 : Map | >, LL2) =/= nil
+        then
+            < OID : Robot | remainingPath : yieldPath(< OID : Robot | >, < OID2 : Map | >, LL2) >
+            dly(msg yielding from OID to OID3, MSG-DELAY)
+        else
+            < OID : Robot | remainingPath : conflictYieldPath(< OID : Robot | >, < OID2 : Map | >) >
+            dly(msg conflictYield(conflictYieldPath(< OID : Robot | >, < OID2 : Map | >)) from OID to OID3, MSG-DELAY)
+        fi .
     
     rl [rcvWonMsg] :
         < OID : Robot | >
@@ -525,8 +538,9 @@ omod ROBOT is
         then
             yieldProtocol(
                 < OID : Robot | >,
+                < OID2 : Map | >,
                 OID3,
-                yieldPath(< OID : Robot | >, < OID2 : Map | >, LL)
+                LL
             )
             < OID2 :  Map | >
         else

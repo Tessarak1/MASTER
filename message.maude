@@ -30,7 +30,7 @@ omod MESSAGE is
 
   op dly : Msg Time -> DlyMsg [ctor right id: 0] .
   ops obstacleAt_ removed_ : Location -> MsgContent .
-  op path : List-Location -> MsgContent .
+  ops path conflictYield : List-Location -> MsgContent .
   op cost : Cost -> MsgContent .
   ops yielding requestPath noConflict : -> MsgContent .
 

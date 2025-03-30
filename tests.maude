@@ -80,9 +80,10 @@ omod YIELD-TESTS is
   op roads : -> RoadSet .
 
   eq yieldRobot = < "Y1" : Worker | location : (150,0), speed : 0, state : idle, direction : west, remainingPath : nil, robotAttrs, workerAttrs >  .
-  eq yieldRobot2 = < "Y2" : Worker | location : (100, -100), speed : 1, state : moving, direction : west, remainingPath : nil, robotAttrs, workerAttrs > .
+  eq yieldRobot2 = < "Y2" : Worker | location : (100, 0), speed : 1, state : moving, direction : west, remainingPath : nil, robotAttrs, workerAttrs > .
   eq roads = getRoads(map1) .
 endom
 
-red yieldPath(yieldRobot, map1, (100,0) (200,0) (200,99)) .
-
+red yieldPath(yieldRobot, map1, (100,0) (200,0) (200,100)) .
+red yieldProtocol(yieldRobot, map1, "Y2", (100,0) (200,0) (200,100)) .
+red yieldPath(yieldRobot2, map1, (150,0) (100,0) (100,1)) .
