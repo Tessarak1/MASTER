@@ -70,6 +70,7 @@ omod TIMED-FARM is
     var TT : TaskType .
     var WT : WorkerTask .
     var TPT : TransporterTask .
+    var YIS : YieldInformationSet .
 
     eq $coefficientA(SP, SP2) = (SP ^ 2) + (SP2 ^ 2) .
     eq $coefficientB(SP, DIST, SP2, DIST2) = -2 * ((SP * DIST) + (SP2 * DIST2)) .
@@ -150,7 +151,6 @@ omod TIMED-FARM is
         fi
         if differentAxes(D, D2) .
 
-    ***TODO: nested ifs seem terrible.
     eq $calculateAdvance(< OID : Robot | location : (X,Y), detectionRange : T >, < OID2 : Robot | location : (X2,Y2), detectionRange : T2 >, SP) =
         if unavoidableCrash(< OID : Robot | >, < OID2 : Robot | >)
         then
@@ -262,7 +262,8 @@ omod TIMED-FARM is
     ceq $maxTimeAdvanceField(< OID : Field | >) = 0 if needToStartAuction(< OID : Field | >) .
     eq $maxTimeAdvanceField(< OID : Field | >) = fieldTimer(< OID : Field | >) [owise] .
 
-    eq maxTimeAdvance(< OID : Robot | handledTime : false, auctions : AUS > CONF) = min(minTimeToClose(AUS), min($maxTimeAdvanceRobot(OID, < OID : Robot | > CONF), maxTimeAdvance(< OID : Robot | handledTime : true > CONF))) .
+    ***Decrease timers on robot, maxTimerAdvance or something, which checks every timer. Get timers from auctions, and from yieldStatus.
+    eq maxTimeAdvance(< OID : Robot | handledTime : false, auctions : AUS, yieldStatus : YIS > CONF) = min(minTimer(getAuctionTimers(AUS) getYieldTimers(YIS)), min($maxTimeAdvanceRobot(OID, < OID : Robot | > CONF), maxTimeAdvance(< OID : Robot | handledTime : true > CONF))) .
     eq maxTimeAdvance(< OID : Field | handledTime : false, auctions : AUS > CONF) = min(minTimeToClose(AUS), min($maxTimeAdvanceField(< OID : Field | >), maxTimeAdvance(< OID : Field | handledTime : true > CONF))) .
     ***time until the message becomes active.
     eq maxTimeAdvance(dly(MSG, TIME) CONF) = min(TIME, maxTimeAdvance(CONF)).
@@ -281,7 +282,7 @@ omod TIMED-FARM is
 
     eq $timeEffectField(< OID : Field | >, TIME) = decreaseTimers(< OID : Field | >, TIME) .
 
-    eq timeEffect(< OID : Robot | auctions : AUS > CONF, TIME) = $timeEffectRobot(< OID : Robot | auctions : decreaseAuctionTimers(AUS, TIME) >, TIME) timeEffect(CONF, TIME) .
+    eq timeEffect(< OID : Robot | auctions : AUS > CONF, TIME) = $timeEffectRobot(decreaseTimers(< OID : Robot | >, TIME), TIME) timeEffect(CONF, TIME) .
     eq timeEffect(< OID : Field | auctions : AUS > CONF, TIME) = $timeEffectField(< OID : Field | auctions : decreaseAuctionTimers(AUS, TIME) >, TIME) timeEffect(CONF, TIME) .
     eq timeEffect(dly(MSG, TIME) CONF, TIME2) = dly(MSG, TIME monus TIME2) timeEffect(CONF, TIME) .
     eq timeEffect(CONF, TIME) = CONF [owise] .
@@ -298,5 +299,3 @@ omod TIMED-FARM is
         detect(handleCollisions(timeEffect(CONF, maxTimeAdvance(CONF)))) @ (TIME + maxTimeAdvance(CONF))
         if maxTimeAdvance(CONF) > 0 and maxTimeAdvance(CONF) < ratInf .
 endom
-
-****TODO: Decrease timers for fields and robots cleanup, also add for auction time effect.

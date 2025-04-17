@@ -29,10 +29,10 @@ omod MESSAGE is
   subsort Tid < MsgContent .
 
   op dly : Msg Time -> DlyMsg [ctor right id: 0] .
-  ops obstacleAt_ removed_ : Location -> MsgContent .
+  ops obstacleAt_ removed_ yielding_ : Location -> MsgContent .
   ops path conflictYield : List-Location -> MsgContent .
   op cost : Cost -> MsgContent .
-  ops yielding requestPath noConflict : -> MsgContent .
+  ops requestPath noConflict noYield completedYield rerouting : -> MsgContent .
 
   ***Converts a set of tasks into msg content.
   op tidToMsgContent : TidSet -> MsgContentSet .

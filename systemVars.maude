@@ -6,12 +6,14 @@ omod SYSTEM-VARS is
     ops SAFE-TIME EMERGENCY-TIME REMOVAL-TIME REPAIR-TIME : -> Time .
     ops RESUPPLY-TIME UNLOAD-TIME : -> Time .
     ops WORK-RANGE FINAL-RANGE : -> Rat .
+    ops FINAL-RANGE : -> Rat .
     op MSG-DELAY : -> Time .
     op ROBOT-SIZE : -> Rat .
 
-    op AUCTION-TIMER : -> Timer .
+    ops AUCTION-TIMER YIELD-TIMER : -> Timer .
 
     eq AUCTION-TIMER = [cur: 10 - base: 10] .
+    eq YIELD-TIMER = [cur: 100 - base: 100] .
     eq FIELD-SPEED = 1 .
     eq WORK-RANGE = 1 .
     eq REMOVAL-TIME = 5 .
@@ -24,4 +26,5 @@ omod SYSTEM-VARS is
     eq EMERGENCY-TIME = 3 .
     eq ROBOT-SIZE = 1 .
     eq MSG-DELAY = 1 .
+    eq FINAL-RANGE = 2 .
 endom    

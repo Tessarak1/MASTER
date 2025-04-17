@@ -29,9 +29,6 @@ omod AUCTIONEER is
     ***Object tries an auction again.
     op retryAuction : Object Configuration Auction -> Object .
 
-    ***Decreases the timers of the active auctions.
-    op decreaseAuctionTimers : AuctionSet Time -> AuctionSet .
-
     vars OID OID2 : Oid .
     var R : Rat .
     var TID : Tid .
@@ -48,15 +45,12 @@ omod AUCTIONEER is
     var CONF : Configuration .
     vars COST : Cost .
 
-    eq decreaseAuctionTimers(noAuction, TIME) = noAuction .
-    eq decreaseAuctionTimers([Task: TID [cur: TIME - base: TIME2] | BS] AUS, TIME3) = [Task: TID decrease([cur: TIME - base: TIME2], TIME3) | BS] decreaseAuctionTimers(AUS, TIME3) .
-
     eq initiateAuction(< OID : Auctioneer | >, none, CONF) = < OID : Auctioneer | > CONF .
     eq initiateAuction(< OID : Auctioneer | auctions : AUS >, TIDS, CONF) =
         < OID : Auctioneer | auctions  : AUS createAuction(TIDS) >
         broadcastInRange(< OID : Auctioneer | >, tidToMsgContent(TIDS), CONF)  .
 
-    ***No winner, so restat the auction.
+    ***No winner, so restart the auction.
     eq retryAuction(< OID : Auctioneer | >, CONF, [Task: TID [cur: TIME - base: TIME2] | noBid]) =
         initiateAuction(< OID : Auctioneer | >, TID, CONF) .
     ***we have a winner, so send to that winner.

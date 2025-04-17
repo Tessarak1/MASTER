@@ -39,6 +39,7 @@ omod FIELD is
     vars TR TR2 TR3 TR4 : Timer .
     var GS : GrowingState .
     var N : Nat .
+    var TID : Tid .
     var TT : TaskType .
     var AUS : AuctionSet .
     var CONF : Configuration .
@@ -69,8 +70,6 @@ omod FIELD is
     eq growTime(< OID : Field | growTimer : [cur: T - base: T2], growingState : growing, waterLevel : good, fertilizerLevel : good >) = T .
 
     eq fieldTimer(< OID : Field | >) = min(growTime(< OID : Field | >), min(waterTime(< OID : Field | >), fertilizerTime(< OID : Field | >))) .
-
-    ***TODO: Auction timeout leads to either removal from activeTasks or restart of auction.
 
     ceq needToStartAuction(< OID : Field | growingState : harvest, activeTasks : TTS >) = true if not inSet(harvestTask, TTS) .
     ceq needToStartAuction(< OID : Field | growingState : growing, waterLevel : low, activeTasks : TTS >) = true if not inSet(wateringTask, TTS) .
@@ -128,4 +127,11 @@ omod FIELD is
         initiateAuction(< OID : Field | activeTasks : plantTask , TTS >, [OID, plantTask], CONF)
         CONF
         if not inSet(plantTask, TTS) .
+    
+    ***Fields ignore task messages
+    rl [rcvTaskMsg] :
+        < OID : Field | >
+        msg TID from OID2 to OID
+        =>
+        < OID : Field | > .
 endom

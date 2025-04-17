@@ -9,20 +9,19 @@ omod NEGOTIATION is
 
     subsort String < Oid .
 
-
     op none : -> NegotiationSet [ctor] .
     op [_|_|_] : Oid Location Cost -> Negotiation [ctor] .
     op __ : NegotiationSet NegotiationSet -> NegotiationSet [ctor assoc comm id: none] .
     
 
-    ***Creates a new negotiation with another robot if one doesn't already exist.
-    op addNegotiation : NegotiationSet Oid Location -> NegotiationSet .
+    ***Creates a new negotiation with another robot, or updates an existing one.
+    op addNegotiation : NegotiationSet Negotiation -> NegotiationSet .
 
-    ***Removes a negotiation with the given Oid from the negotiation set 
-    op endNegotiation : Negotiation Oid -> NegotiationSet .
+    ***Removes a negotiation with the given Oid from the negotiation set.
+    op endNegotiation : NegotiationSet Oid -> NegotiationSet .
 
-    ***Updates an existing negotiation, or creates one if it doesn't exist
-    op updateNegotiation : NegotiationSet Negotiation -> NegotiationSet .
+    ***returns if the given oid is in the negotiationset.
+    op inNegotiationSet : NegotiationSet Oid -> Bool .
 
     var OID : Oid .
     vars X X2 Y Y2 : Rat .
@@ -32,12 +31,12 @@ omod NEGOTIATION is
     
     eq NN NN = NN .
 
-    eq addNegotiation([OID | (X,Y) | COST] NS, OID, (X2,Y2)) = [OID | (X,Y) | COST] NS .
-    eq addNegotiation(NS, OID, (X,Y)) = [OID | (X,Y) | noCost] NS [owise] .
+    eq addNegotiation([OID | (X,Y) | COST] NS, [OID | (X2,Y2) | COST2]) = [OID | (X2,Y2) | COST2] NS .
+    eq addNegotiation(NS, [OID | (X,Y) | COST]) = [OID | (X,Y) | COST] NS [owise] .
 
     eq endNegotiation([OID | (X,Y) | COST] NS, OID) = NS .
     eq endNegotiation(NS, OID) = NS [owise] .
 
-    eq updateNegotiation([OID | (X,Y) | COST] NS, [OID | (X2,Y2) | COST2]) = [OID | (X2,Y2) | COST2] NS .
-    eq updateNegotiation(NS, [OID | (X,Y) | COST]) = [OID | (X,Y) | COST] NS [owise] .
+    eq inNegotiationSet([OID | (X,Y) | COST] NS, OID) = true .
+    eq inNegotiationSet(NS, OID) = false [owise] .
 endom

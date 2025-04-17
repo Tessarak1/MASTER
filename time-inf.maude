@@ -12,17 +12,17 @@ fmod TIME-INF is
     op _<=_ : TimeInf TimeInf -> Bool [ditto] .
     op _>_ : TimeInf TimeInf -> Bool [ditto] .
     op _>=_ : TimeInf TimeInf -> Bool [ditto] .
-    vars T T' T2 T2' : Time .
+    vars TIME TIME' TIME2 TIME2' : Time .
     vars INF INF' : TimeInf .
 
-    eq T < ratInf = true .
+    eq TIME < ratInf = true .
     eq ratInf < INF = false .
     eq INF <= ratInf = true .
-    eq ratInf <= T = false .
-    eq ratInf > T = true . 
+    eq ratInf <= TIME = false .
+    eq ratInf > TIME = true . 
     eq INF > ratInf = false .
     eq ratInf >= INF = true .
-    eq T >= ratInf = false .
+    eq TIME >= ratInf = false .
 
     ops min max : TimeInf TimeInf -> TimeInf [ditto] .
     eq max(INF, ratInf) = ratInf .
@@ -36,17 +36,19 @@ omod TIMER is
     sorts Timer TimerSet .
     subsort Timer < TimerSet .
 
-    op none : -> TimerSet [ctor] .
-    op __ : TimerSet TimerSet -> TimerSet [ctor assoc comm id: none] .
+    op noTimer : -> TimerSet [ctor] .
+    op __ : TimerSet TimerSet -> TimerSet [ctor assoc comm id: noTimer] .
     op [cur:_- base:_] : Time Time -> Timer [ctor] .
     op _monus_ : Time Time -> Time .
     op reset : Timer -> Timer .
     op decrease : Timer Time -> Timer .
+    ***For a set as well
+    op decreaseTimerSet : TimerSet Time -> TimerSet .
     op expired : Timer -> Bool .
     op decreaseTimers : Object Time -> Object .
-    op minCur : TimerSet -> Time .
+    op minTimer : TimerSet -> Time .
 
-    vars T T2 T3 : Time .
+    vars TIME TIME2 TIME3 : Time .
     var TS : TimerSet .
     var TR : Timer .
     var AS : AttributeSet .
@@ -54,15 +56,14 @@ omod TIMER is
     var C : Cid .
     var A : Attribute .
 
-    eq T monus T2 = if (T - T2) < 0 then 0 else T - T2 fi .
+    eq TIME monus TIME2 = if (TIME - TIME2) < 0 then 0 else TIME - TIME2 fi .
 
-    eq reset([cur: T - base: T2]) = [cur: T2 - base: T2] .
+    eq reset([cur: TIME - base: TIME2]) = [cur: TIME2 - base: TIME2] .
 
-    eq decrease([cur: T - base: T2], T3) = [cur: T monus T3 - base: T2] .
-
-    eq expired([cur: 0 - base: T2]) = true .
-    eq expired(TR) = false [owise] .
+    eq decrease([cur: TIME - base: TIME2], TIME3) = [cur: TIME monus TIME3 - base: TIME2] .
     
-    eq minCur(none) = ratInf .
-    eq minCur([cur: T - base: T2] TS) = min(T, minCur(TS)) .
+    eq expired([cur: TIME - base: TIME2]) = TIME == 0 .
+
+    eq minTimer(noTimer) = ratInf .
+    eq minTimer([cur: TIME - base: TIME2] TS) = min(TIME, minTimer(TS)) .
 endom
