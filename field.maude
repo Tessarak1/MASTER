@@ -10,20 +10,14 @@ omod FIELD is
     sort GrowingState .
     ***states if a field needs water or fertilizer.
     sort Level .
-
-
-    ***when it opens an auction first check if the task is active
-    ***Task being in activeTasks means that either an auction for it is running, or a robot has accepted the task and is working to perform it.
-    ***Remove from activeTasks when task is finished.
-    ***Add when opening auction.
     class Field | growingState : GrowingState, waterLevel : Level, fertilizerLevel : Level, 
         waterTimer : Timer, fertilizerTimer : Timer, growTimer : Timer, growingArea : Area, reserved : Bool,
         activeTasks : TaskTypeSet .
 
     subclass Field < PassIntersection Auctioneer .
 
+    op decreaseFieldTimers : Object Time -> Object .
     ops low good : -> Level [ctor] .
-
     ops empty growing harvest : -> GrowingState [ctor] .
     ***Changes the field based on the task that has been completed on it.
     op taskComplete : Object Tid -> Object .
@@ -35,7 +29,7 @@ omod FIELD is
 
     vars OID OID2 : Oid .
     var L L2 : Level .
-    vars T T2 : Time .
+    vars TIME TIME2 : Time .
     vars TR TR2 TR3 TR4 : Timer .
     var GS : GrowingState .
     var N : Nat .
@@ -53,21 +47,23 @@ omod FIELD is
     eq taskComplete(< OID : Field | growingState : harvest, growTimer : TR,  reserved : true, activeTasks : harvestTask , TTS >, [OID, harvestTask]) = < OID : Field | growingState : empty, growTimer : reset(TR),  reserved : false, activeTasks : TTS > .
 
     ***growTimer is only decreased if fertilizerlevel and waterlevel are good.
-    eq decreaseTimers(< OID : Field | waterLevel : good, fertilizerLevel : good, waterTimer : TR, fertilizerTimer : TR2, growingState : growing, growTimer : TR3 >, T) =
-        < OID : Field | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T), growTimer : decrease(TR3, T) > .
-    eq decreaseTimers(< OID : Field | waterTimer : TR, fertilizerTimer : TR2 >, T) =
-        < OID : Field | waterTimer : decrease(TR, T), fertilizerTimer : decrease(TR2, T) > [owise] .
+    eq decreaseFieldTimers(< OID : Field | waterLevel : good, fertilizerLevel : good, waterTimer : TR, fertilizerTimer : TR2, growingState : growing, growTimer : TR3 >, TIME) =
+        < OID : Field | waterTimer : decrease(TR, TIME), fertilizerTimer : decrease(TR2, TIME), growTimer : decrease(TR3, TIME) > .
+    eq decreaseFieldTimers(< OID : Field | waterTimer : TR, fertilizerTimer : TR2 >, TIME) =
+        < OID : Field | waterTimer : decrease(TR, TIME), fertilizerTimer : decrease(TR2, TIME) > [owise] .
+    
+    eq decreaseTimers(< OID : Field | auctions : AUS >, TIME) = decreaseFieldTimers(< OID : Field | auctions : decreaseAuctionTimers(AUS, TIME) >, TIME) .
 
     eq waterTime(< OID : Field | waterLevel : low >) = ratInf .
-    eq waterTime(< OID : Field | waterTimer : [cur: T - base: T2], waterLevel : good >) = T .
+    eq waterTime(< OID : Field | waterTimer : [cur: TIME - base: TIME2], waterLevel : good >) = TIME .
 
     eq fertilizerTime(< OID : Field | fertilizerLevel : low >) = ratInf .
-    eq fertilizerTime(< OID : Field | fertilizerTimer : [cur: T - base: T2], fertilizerLevel : good >) = T .
+    eq fertilizerTime(< OID : Field | fertilizerTimer : [cur: TIME - base: TIME2], fertilizerLevel : good >) = TIME .
 
     ceq growTime(< OID : Field | waterLevel : L, fertilizerLevel : L2 >) = ratInf if (L == low) or (L2 == low) .
     eq growTime(< OID : Field | growingState : harvest >) = ratInf .
     eq growTime(< OID : Field | growingState : empty >) = ratInf .
-    eq growTime(< OID : Field | growTimer : [cur: T - base: T2], growingState : growing, waterLevel : good, fertilizerLevel : good >) = T .
+    eq growTime(< OID : Field | growTimer : [cur: TIME - base: TIME2], growingState : growing, waterLevel : good, fertilizerLevel : good >) = TIME .
 
     eq fieldTimer(< OID : Field | >) = min(growTime(< OID : Field | >), min(waterTime(< OID : Field | >), fertilizerTime(< OID : Field | >))) .
 

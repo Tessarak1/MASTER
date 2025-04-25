@@ -10,10 +10,11 @@ omod SYSTEM-VARS is
     op MSG-DELAY : -> Time .
     op ROBOT-SIZE : -> Rat .
 
-    ops AUCTION-TIMER YIELD-TIMER : -> Timer .
+    ops AUCTION-TIMER YIELD-TIMER WAITING-TIMER : -> Timer .
 
     eq AUCTION-TIMER = [cur: 10 - base: 10] .
     eq YIELD-TIMER = [cur: 100 - base: 100] .
+    eq WAITING-TIMER = [cur: 1 - base: 1] .
     eq FIELD-SPEED = 1 .
     eq WORK-RANGE = 1 .
     eq REMOVAL-TIME = 5 .

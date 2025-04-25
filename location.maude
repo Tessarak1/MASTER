@@ -31,8 +31,30 @@ fmod LOCATION is
     eq makeArea((X,Y), R) = area((X + R, Y + R),(X + R, Y - R), (X - R, Y + R), (X - R, Y - R)) .
 endfm
 
-fmod LIST-LOCATION is
+fmod DIRECTION is
     protecting LOCATION .
+    sort Direction .
+
+    op setDirection : Location Location -> Direction .
+    ops north east south west : -> Direction [ctor] .
+    op oppositeDirections : Direction Direction -> Bool [comm] .
+    op differentAxes : Direction Direction -> Bool [comm] .
+
+    vars D D2 : Direction .
+
+    eq oppositeDirections(north, south) = true .
+    eq oppositeDirections(east, west) = true .
+    eq oppositeDirections(D, D2) = false [owise] .
+
+    eq differentAxes(north, west) = true .
+    eq differentAxes(north, east) = true .
+    eq differentAxes(south, west) = true .
+    eq differentAxes(south, east) = true .
+    eq differentAxes(D, D2) = false [owise] .
+endfm
+
+fmod LIST-LOCATION is
+    protecting DIRECTION .
     sort List-Location .
     subsort Location < List-Location .
 
@@ -50,7 +72,8 @@ fmod LIST-LOCATION is
     ***Checks for overlap between two paralell lines
     op overlap : List-Location List-Location -> Bool [comm] .
     op removeNeighborDuplicates : List-Location -> List-Location .
-
+    ***Checks if the path represented by the second list is an obstruction for the first.
+    op pathConflict : List-Location List-Location -> Bool .
 
     vars LL LL2 LL3 LL4 : List-Location .
     vars L L2 : Location .
@@ -86,5 +109,11 @@ fmod LIST-LOCATION is
 
     eq removeNeighborDuplicates(LL (X,Y) (X,Y) LL2) = removeNeighborDuplicates(LL (X,Y) LL2) .
     eq removeNeighborDuplicates(LL) = LL [owise] .
-endfm
 
+    ***There is a path conflict if the paths share an intersection from different direction, or if they share a path going in opposite directions
+    ceq pathConflict(LL (X,Y) (X2,Y2) LL2, LL3 (X3,Y3) (X2,Y2) LL4) = true if setDirection((X,Y),(X2,Y2)) =/= setDirection((X3,Y3), (X2,Y2)) . 
+    ceq pathConflict(LL (X,Y) (X2,Y2) LL2, LL3 (X3,Y3) (X4,Y4) LL4) = true if
+        overlap((X,Y) (X2,Y2), (X3,Y3) (X4,Y4)) and oppositeDirections(setDirection((X,Y), (X2,Y2)), setDirection((X3,Y3), (X4,Y4))) .
+    eq pathConflict(LL, (X,Y)) = between((X,Y), LL) =/= nil .
+    eq pathConflict(LL, LL2) = false [owise] .
+endfm

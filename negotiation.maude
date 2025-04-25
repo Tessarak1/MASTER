@@ -12,7 +12,6 @@ omod NEGOTIATION is
     op none : -> NegotiationSet [ctor] .
     op [_|_|_] : Oid Location Cost -> Negotiation [ctor] .
     op __ : NegotiationSet NegotiationSet -> NegotiationSet [ctor assoc comm id: none] .
-    
 
     ***Creates a new negotiation with another robot, or updates an existing one.
     op addNegotiation : NegotiationSet Negotiation -> NegotiationSet .

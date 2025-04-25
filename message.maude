@@ -32,7 +32,7 @@ omod MESSAGE is
   ops obstacleAt_ removed_ yielding_ : Location -> MsgContent .
   ops path conflictYield : List-Location -> MsgContent .
   op cost : Cost -> MsgContent .
-  ops requestPath noConflict noYield completedYield rerouting : -> MsgContent .
+  ops requestPath noConflict noYield completedYield : -> MsgContent .
 
   ***Converts a set of tasks into msg content.
   op tidToMsgContent : TidSet -> MsgContentSet .

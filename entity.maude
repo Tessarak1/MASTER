@@ -4,7 +4,6 @@ omod ENTITY is
     protecting LIST-LOCATION .
     
     sorts IncapacitatedState FunctioningState State .
-    sort Direction .
 
     subsort IncapacitatedState FunctioningState < State .
 
@@ -12,14 +11,9 @@ omod ENTITY is
     subclass Entity < PhysicalObj .    
 
     ops crashed failed : -> IncapacitatedState [ctor] .
-    ops moving deadlocked idle negotiating resupplying repairing removing unloading planningPath : -> FunctioningState [ctor] .
-    op setDirection : Location Location -> Direction .
-    ops inFront : Object Object -> Object [comm] .
-    op _isBehind_ : Object Object -> Bool .
+    ops moving deadlocked waiting idle negotiating resupplying repairing removing unloading planningPath : -> FunctioningState [ctor] .
     op stoppingDistance : Object -> Rat .
-    ops north east south west : -> Direction [ctor] .
-    op oppositeDirections : Direction Direction -> Bool [comm] .
-    op differentAxes : Direction Direction -> Bool [comm] .
+
     op headedTowards : Object Location -> Bool . 
 
     vars OID OID2 : Oid .
@@ -28,17 +22,6 @@ omod ENTITY is
     var LL : List-Location .
     var CONF : Configuration .
     var STATE : State .
-    vars D D2 : Direction .
-
-    eq oppositeDirections(north, south) = true .
-    eq oppositeDirections(east, west) = true .
-    eq oppositeDirections(D, D2) = false [owise] .
-
-    eq differentAxes(north, west) = true .
-    eq differentAxes(north, east) = true .
-    eq differentAxes(south, west) = true .
-    eq differentAxes(south, east) = true .
-    eq differentAxes(D, D2) = false [owise] .
 
     eq headedTowards(< OID : Entity | state : moving, location : (X,Y), direction : north >, (X,Y2)) = Y2 > Y .
     eq headedTowards(< OID : Entity | state : moving, location : (X,Y), direction : east >, (X2,Y)) = X2 > X .
@@ -51,12 +34,6 @@ omod ENTITY is
     ceq setDirection((X,Y), (X,Y2)) = south if Y2 < Y .
     ceq setDirection((X,Y), (X2,Y)) = west if X2 < X .
 
-    ceq < OID : Entity | location : (X,Y), direction : north > isBehind < OID2 : Entity | location : (X2,Y2), direction : north > = true if Y < Y2 .
-    ceq < OID : Entity | location : (X,Y), direction : east > isBehind < OID2 : Entity | location : (X2,Y2), direction : east > = true if X < X2 .
-    ceq < OID : Entity | location : (X,Y), direction : south > isBehind < OID2 : Entity | location : (X2,Y2), direction : south > = true if Y > Y2 .
-    ceq < OID : Entity | location : (X,Y), direction : west > isBehind < OID2 : Entity | location : (X2,Y2), direction : west > = true if X > X2 .
-
-    eq < OID : Entity | > isBehind < OID2 : Entity | > = false [owise] .
     eq stoppingDistance(< OID : Entity | speed : SP >) =  ((SP / 5) ^ 2) / 2 .
 
     rl [finish] :
