@@ -4,10 +4,8 @@ fmod COST is
 
     ***Cost is used for bids on auctions, and when robots negotiate.
     sort Cost .
-    
-    ***A cost is expressed with a rational number, infinity or noCost. 
-    subsort RatInf < Cost .
 
+    op cost : RatInf -> Cost .
     ***value for when a cost associated with a negotiaton has yet to be calculated.
     op noCost : -> Cost [ctor] .
 endfm

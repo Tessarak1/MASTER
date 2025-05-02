@@ -24,17 +24,17 @@ omod MESSAGE is
   protecting NEGOTIATION .
   
   sort DlyMsg .
-
+  
   subsort Msg < DlyMsg < Configuration .
   subsort Tid < MsgContent .
 
   op dly : Msg Time -> DlyMsg [ctor right id: 0] .
   ops obstacleAt_ removed_ yielding_ : Location -> MsgContent .
   ops path conflictYield : List-Location -> MsgContent .
-  op cost : Cost -> MsgContent .
-  ops requestPath noConflict noYield completedYield : -> MsgContent .
+  op pathCost : Cost -> MsgContent .
+  ops requestPath noConflict completedYield noYield : -> MsgContent .
 
-  ***Converts a set of tasks into msg content.
+  ***Converts a set of tasks into msg content set.
   op tidToMsgContent : TidSet -> MsgContentSet .
 
   var TID : Tid .

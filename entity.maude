@@ -3,15 +3,17 @@ omod ENTITY is
     protecting PHYSICAL-OBJ .
     protecting LIST-LOCATION .
     
-    sorts IncapacitatedState FunctioningState State .
+    sorts IncapacitatedState FunctioningState TimedWorkState State .
 
     subsort IncapacitatedState FunctioningState < State .
+    subsort TimedWorkState < FunctioningState .
 
     class Entity | direction : Direction, speed : Rat, maxSpeed : Rat, remainingPath : List-Location, state : State .
     subclass Entity < PhysicalObj .    
 
     ops crashed failed : -> IncapacitatedState [ctor] .
-    ops moving deadlocked waiting idle negotiating resupplying repairing removing unloading planningPath : -> FunctioningState [ctor] .
+    ops moving deadlocked waiting idle negotiating planningPath : -> FunctioningState [ctor] .
+    ops resupplying repairing removing unloading : -> TimedWorkState [ctor] .
     op stoppingDistance : Object -> Rat .
 
     op headedTowards : Object Location -> Bool . 

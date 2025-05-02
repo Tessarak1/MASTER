@@ -105,17 +105,18 @@ omod AUCTION is
     var AUS : AuctionSet .
     var OS : OidSet .
     vars OID OID2 : Oid .
-    vars COST COST2 : Cost .
+    var COST : Cost .
+    vars RI RI2 : RatInf .
     var TIME-INF : TimeInf .
     vars TIME TIME2 TIME3 : Time .
 
     eq auctionWinner(noBid, OID, COST) = OID .
-    eq auctionWinner([OID bids COST] BS, OID2, COST2) =
-        if COST < COST2
+    eq auctionWinner([OID bids cost(RI)] BS, OID2, cost(RI2)) =
+        if RI < RI2
         then
-            auctionWinner(BS, OID, COST)
+            auctionWinner(BS, OID, cost(RI))
         else
-            auctionWinner(BS, OID2, COST2)
+            auctionWinner(BS, OID2, cost(RI2))
         fi .
 
     eq createAuction(none) = noAuction .

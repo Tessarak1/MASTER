@@ -41,10 +41,11 @@ omod FIELD is
     var MC : MsgContent .
     var TTS : TaskTypeSet .
 
-    eq taskComplete(< OID : Field | waterTimer : TR, waterLevel : low, reserved : true, activeTasks : wateringTask , TTS >, [OID, wateringTask]) = < OID : Field | waterLevel : good, waterTimer : reset(TR), reserved : false, activeTasks : TTS > .
-    eq taskComplete(< OID : Field | fertilizerTimer : TR, fertilizerLevel : low,  reserved : true, activeTasks : fertilizeTask , TTS >, [OID, fertilizeTask]) = < OID : Field | fertilizerLevel : good, fertilizerTimer : reset(TR), reserved : false, activeTasks : TTS > .
+    eq taskComplete(< OID : Field | waterTimer : TR, reserved : true, activeTasks : wateringTask , TTS >, [OID, wateringTask]) = < OID : Field | waterLevel : good, waterTimer : reset(TR), reserved : false, activeTasks : TTS > .
+    eq taskComplete(< OID : Field | fertilizerTimer : TR, reserved : true, activeTasks : fertilizeTask , TTS >, [OID, fertilizeTask]) = < OID : Field | fertilizerLevel : good, fertilizerTimer : reset(TR), reserved : false, activeTasks : TTS > .
     eq taskComplete(< OID : Field | growingState : empty,  reserved : true, activeTasks : plantTask , TTS >, [OID, plantTask]) = < OID : Field | growingState : growing, reserved : false, activeTasks : TTS > .
     eq taskComplete(< OID : Field | growingState : harvest, growTimer : TR,  reserved : true, activeTasks : harvestTask , TTS >, [OID, harvestTask]) = < OID : Field | growingState : empty, growTimer : reset(TR),  reserved : false, activeTasks : TTS > .
+    eq taskComplete(< OID : Field | >, TID) = < OID : Field | > [owise] .
 
     ***growTimer is only decreased if fertilizerlevel and waterlevel are good.
     eq decreaseFieldTimers(< OID : Field | waterLevel : good, fertilizerLevel : good, waterTimer : TR, fertilizerTimer : TR2, growingState : growing, growTimer : TR3 >, TIME) =
