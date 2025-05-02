@@ -19,7 +19,7 @@ omod SYSTEM-VARS is
     eq AUCTION-TIMER = [cur: 100 - base: 100] .
     eq YIELD-TIMER = [cur: 100 - base: 100] .
     eq RESCAN-TIMER = [cur: 1 - base: 1] .
-    eq WAITING-TIMER = [cur: 150 - base: 150] .
+    eq WAITING-TIMER = [cur: 15 - base: 15] .
     eq FIELD-SPEED = 1 .
     eq WORK-RANGE = 1 .
     eq REMOVAL-TIME = 5 .

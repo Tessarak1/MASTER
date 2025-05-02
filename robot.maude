@@ -67,14 +67,12 @@ omod ROBOT is
     op [Oid:_-_|_] : Oid Location Timer -> YieldInformation [ctor] .
     ***Robot is waiting for another to have finished yielding
     op [Oid:_|_] : Oid Timer -> YieldInformation [ctor] .
-    ***one for conflictYields.
-    op [{Conflict} Oid:_|_] : Oid Timer -> YieldInformation [ctor] .
     op noYieldInformation : -> YieldInformationSet [ctor] .    
     op _,_ : YieldInformationSet YieldInformationSet -> YieldInformationSet [ctor assoc comm id: noYieldInformation] .
     op addYieldInformation : Oid Location YieldInformationSet -> YieldInformationSet .
     op addYieldInformation : Oid YieldInformationSet -> YieldInformationSet .
-    op removeConflictYieldInformation : OidSet YieldInformationSet -> YieldInformationSet .
     op getYieldTimers : YieldInformationSet -> TimerSet .
+    op removeYieldInformation : Oid YieldInformationSet -> YieldInformationSet .
     op decreaseYieldTimers : YieldInformationSet Time -> YieldInformationSet .
     op yieldExpired : YieldInformation -> Bool .
     op getOid : YieldInformation -> Oid .
@@ -247,7 +245,6 @@ omod ROBOT is
 
     eq yieldExpired([Oid: OID - (X,Y) | TR]) = expired(TR) .
     eq yieldExpired([Oid: OID | TR]) = expired(TR) .
-    eq yieldExpired([{Conflict} Oid: OID | TR]) = expired(TR) .
 
     eq finishedResupply(< OID : Worker | state : resupplying, curCargo : CARGO >, wateringTask) = < OID : Worker | curCargo : water, cargoLevel : full, state : idle > .
     eq finishedResupply(< OID : Worker | state : resupplying, curCargo : CARGO >, fertilizeTask) = < OID : Worker | curCargo : fertilizer, cargoLevel : full, state : idle > .
@@ -385,12 +382,10 @@ omod ROBOT is
 
     eq getYieldTimers(([Oid: OID - (X,Y) | TR] , YIS)) = TR getYieldTimers(YIS) .
     eq getYieldTimers(([Oid: OID | TR] , YIS)) = TR getYieldTimers(YIS) .
-    eq getYieldTimers(([{Conflict} Oid: OID | TR] , YIS)) = TR getYieldTimers(YIS) .
     eq getYieldTimers(noYieldInformation) = noTimer .
 
     eq decreaseYieldTimers(([Oid: OID - (X,Y) | TR] , YIS), TIME) = [Oid: OID - (X,Y) | decrease(TR, TIME)] , decreaseYieldTimers(YIS, TIME) .
     eq decreaseYieldTimers(([Oid: OID | TR] , YIS), TIME) = [Oid: OID | decrease(TR, TIME)] , decreaseYieldTimers(YIS, TIME) .
-    eq decreaseYieldTimers(([{Conflict} Oid: OID | TR], YIS), TIME) = [{Conflict} Oid: OID | decrease(TR,TIME)] , decreaseYieldTimers(YIS, TIME) .
     eq decreaseYieldTimers(noYieldInformation, TIME) = noYieldInformation .
 
     eq decreaseWorkTimer(< OID : Robot | workState : [OID2, (removeAt (X,Y)), TIME] >, TIME2) = < OID : Robot | workState : [OID2, (removeAt (X,Y)), (TIME monus TIME2)] > .
@@ -408,6 +403,9 @@ omod ROBOT is
 
     eq needsCPoint(< OID : Worker | >, TID) = false .
     eq needsCPoint(< OID : Transporter | cargoLevel : CL >, TID) = CL == full .
+
+    ceq removeYieldInformation(OID, (YI ,YIS)) = YIS if getOid(YI) == OID .
+    eq removeYieldInformation(OID, YIS) = YIS [owise] .
 
     ceq needsResupply(< OID : Worker | curCargo : CARGO >, [OID2, wateringTask]) = true if CARGO =/= water .
     ceq needsResupply(< OID : Worker | curCargo : CARGO >, [OID2, fertilizeTask]) = true if CARGO =/= fertilizer .
@@ -578,7 +576,7 @@ omod ROBOT is
         dly(msg noYield from OID to OID3, MSG-DELAY) .
     
     eq $conflictYieldProtocol(< OID : Robot | negotiations : NS, yieldStatus : YIS >, < OID2 : Map | >, OID3, LL (X,Y) (X2,Y2)) =
-        < OID : Robot | remainingPath : LL (X,Y) (X2,Y2), negotiations : endNegotiation(NS, OID3), yieldStatus : [{Conflict} Oid: OID3 | YIELD-TIMER] , YIS >
+        < OID : Robot | remainingPath : LL (X,Y) (X2,Y2), negotiations : endNegotiation(NS, OID3), yieldStatus : addYieldInformation(OID3, YIS) >
         dly(msg yielding (X,Y) from OID to OID3, MSG-DELAY) .
 
     eq conflictYieldProtocol(< OID : Robot | location : (X,Y) >, < OID2 : Map | >, OID3, LL) =
@@ -588,7 +586,7 @@ omod ROBOT is
     eq yieldProtocol(< OID : Robot | location : (X,Y), remainingPath : LL, negotiations : NS, yieldStatus : YIS >, < OID2 : Map | >, OID3, LL2) =
         if not pathConflict((LL2), (X,Y))
         then
-            < OID : Robot | remainingPath : nil, negotiations : endNegotiation(NS, OID3), yieldStatus : [Oid: OID3 | YIELD-TIMER] , YIS >
+            < OID : Robot | remainingPath : nil, negotiations : endNegotiation(NS, OID3), yieldStatus : addYieldInformation(OID3, YIS) >
             dly(msg yielding sharedLocation((X,Y) LL, LL2) from OID to OID3, MSG-DELAY)
         else
             $yieldProtocol(< OID : Robot | >, < OID2 : Map | >, OID3, yieldPath(< OID : Robot | >, < OID2 : Map | >, LL2))
@@ -602,13 +600,9 @@ omod ROBOT is
         [Oid: OID | YIELD-TIMER] , YIS .
     eq addYieldInformation(OID, YIS) =
         [Oid: OID | YIELD-TIMER] , YIS [owise] .
-    
-    eq removeConflictYieldInformation(OID OIDS, ([{Conflict} Oid: OID | TR] , YIS)) = removeConflictYieldInformation(OIDS, YIS) .
-    eq removeConflictYieldInformation(OIDS, YIS) = YIS [owise] .
 
     eq getOid([Oid: OID - (X,Y) | TR]) = OID .
     eq getOid([Oid: OID | TR]) = OID .
-    eq getOid([{Conflict} Oid: OID | TR]) = OID .
 
     crl [rescanTimerExpire] :
         < OID : Robot | waitingStatus : [BIS | TR | TR2] >
@@ -790,21 +784,16 @@ omod ROBOT is
         fi .
 
     ***Notify another robot when Self has reached the yieldIntersection, Other can move again.
-    ***TODO: How to ensure that we dont retrigger rule, while keeping yieldStatus?
-    ***Change the oid of the yield?
     rl [finishYieldingTask] :
         < OID : Robot | state : FUNC, location : (X,Y), yieldStatus : ([Oid: OID2 - (X,Y) | TR], YIS) >
         < OID2 : Robot | >
         < OID3 : Map | >
         =>
-        < OID : Robot | state : FUNC, yieldStatus : ([Oid: YIELD-PLACEHOLDER - (X,Y) | TR], YIS) >
+        < OID : Robot | state : FUNC, yieldStatus : YIS >
         < OID2 : Robot | >
         < OID3 : Map | >
         dly(msg completedYield from OID to OID2, MSG-DELAY) .
 
-    ***should only apply if there really isnt a pathconflict
-    ***pathconflict is based on state as well
-    ***
     crl [rcvPathNegotiationNoConflict] :
         < OID : Robot | location : (X,Y), state : STATE, remainingPath : LL >
         msg requestPath & path(LL2) & PS from OID2 to OID
@@ -907,7 +896,7 @@ omod ROBOT is
         < OID : Robot | state : FUNC, yieldStatus : YIS >
         msg completedYield from OID2 to OID
         =>
-        < OID : Robot  | yieldStatus : removeConflictYieldInformation(OID2, YIS) > .
+        < OID : Robot  | yieldStatus : removeYieldInformation(OID2, YIS) > .
 
     ***Workers discard transporter tasks
     rl [rcvWrongWorkerTask] :

@@ -19,8 +19,8 @@ omod BASE is
     handledTime : false, workState : noWork, detectionRange : 10, obstructionPoints : nil, negotiations : none, yieldStatus : noYieldInformation, waitingStatus : noWaitingInformation .
   ***eq workerAttrs = cargoLevel : empty .
   eq transporterAttrs = cargoLevel : empty .
-  eq fieldAttrs = handledTime : false, broadcastRange : 200, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 1000 - base: 1000],
-    fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 1000 - base: 1000], reserved : false, auctions : noAuction, activeTasks : empty .
+  eq fieldAttrs = handledTime : false, broadcastRange : 200, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 500 - base: 500],
+    fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 1200 - base: 1200], reserved : false, auctions : noAuction, activeTasks : empty .
 
   eq I1 = < "I1" : PassIntersection | location : (0,0), neighbors : "I2" "I3" "GL1" > .
   eq I2 = < "I2" : PassIntersection | location : (100,0), neighbors : "I1" "I4" "I5" "I6" > .
@@ -115,26 +115,19 @@ omod ROW-TESTS is
   op rowTest : -> ClockedConfiguration .
 
   eq rowAttrs = broadcastRange : 200, maxSpeed : 1, detected : none, auctions : noAuction, handledTime : false,
-    detectionRange : 10, obstructionPoints : nil, cargoLevel : empty, workState : noWork, waitingStatus : noWaitingInformation,
+    detectionRange : 10, obstructionPoints : nil, cargoLevel : full, workState : noWork, waitingStatus : noWaitingInformation,
     negotiations : none .
 
-  eq rowRob1 = < "R1" : Worker | curCargo : water, speed : 1, location : (20,0), remainingPath : (100,0),
-    direction : east, state : moving, curTask : noTask, yieldStatus : [Oid: "placeholder" | [cur: 100 - base: 100]], rowAttrs > .
-  eq rowRob2 = < "R2" : Worker | curCargo : water, speed : 1, location : (30,0), remainingPath : (100,0) (120,0),
-    direction : east, state : moving, curTask : noTask, yieldStatus : [Oid: "placeholder" | [cur: 100 - base: 100]], rowAttrs > .
-  eq rowRob3 = < "R3" : Worker | curCargo : water, speed : 0, location : (80,0), remainingPath : nil,
-    direction : west, state : idle, curTask : noTask, yieldStatus : noYieldInformation, rowAttrs > .
-  eq rowRob4 = < "R4" : Worker | curCargo : water, speed : 1, location : (90,0), remainingPath : nil,
-    direction : west, state : idle, curTask : noTask, yieldStatus : noYieldInformation, rowAttrs > .
+  eq rowRob1 = < "R1" : Worker | curCargo : water, speed : 1, location : (10,0), remainingPath : (100,0) (100,-100) (150,-100),
+    direction : east, state : moving, curTask : ["GL2", wateringTask], yieldStatus : noYieldInformation, rowAttrs > .
+  eq rowRob2 = < "R2" : Worker | curCargo : water, speed : 1, location : (30,0), remainingPath : (100,0) (100,-100) (150,-100),
+    direction : east, state : moving, curTask : ["GL2", fertilizeTask], yieldStatus : noYieldInformation, rowAttrs > .
+  eq rowRob3 = < "R3" : Worker | curCargo : water, speed : 1, location : (90,0), remainingPath : (0,0) (0,-1),
+    direction : west, state : moving, curTask : noTask, yieldStatus : [Oid: "placeholder" | [cur: 100 - base: 100]], rowAttrs > .
+  eq rowRob4 = < "R4" : Worker | curCargo : water, speed : 1, location : (100,0), remainingPath : (0,0) (0,-2),
+    direction : west, state : moving, curTask : noTask, yieldStatus : [Oid: "placeholder" | [cur: 100 - base: 100]], rowAttrs > .
 
-
-  eq rowTest = farm1 rowRob1 rowRob2 rowRob3 rowRob4 @ 0 .
+  eq rowTest = farm1 rowRob2 rowRob3 @ 0 .
 endom
-
-rew [100] rowTest .
---- omod MULTI-INTERSECTION-TESTS is
----   ***Checks behavior when multiple robots are headed towards the same intersection from different directions.
-
-***search [1] rowTest =>* C:Configuration < "R2" : Worker | location : (120,0), AS:AttributeSet > @ T:Time .
-
-***Robot in intersection mucks it up.
+rew [10] rowTest .
+***search [1] rowTest =>* < "R1" : Worker | location : (150,100), AS:AttributeSet > C:Configuration @ T:Time .
