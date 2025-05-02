@@ -32,7 +32,7 @@ omod SYSTEM-VARS is
     eq EMERGENCY-TIME = 3 .
     eq ROBOT-SIZE = 1 .
     eq MSG-DELAY = 1 .
-    eq FINAL-RANGE = 2 .
+    eq FINAL-RANGE = 3 .
 
 ***    eq YIELD-PLACEHOLDER = "Yield Placeholder" .
 endom    

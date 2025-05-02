@@ -108,19 +108,33 @@ omod HIERARCHY-TESTS is
 endom
 
 omod ROW-TESTS is
+  protecting BASE .
   ***Checks behavior when multiple robots are headed towards each other.
-  
+  ops rowRob1 rowRob2 rowRob3 rowRob4 : -> Object .
+  op rowAttrs : -> AttributeSet .
+  op rowTest : -> ClockedConfiguration .
+
+  eq rowAttrs = broadcastRange : 200, maxSpeed : 1, detected : none, auctions : noAuction, handledTime : false,
+    detectionRange : 10, obstructionPoints : nil, cargoLevel : empty, workState : noWork, waitingStatus : noWaitingInformation,
+    negotiations : none .
+
+  eq rowRob1 = < "R1" : Worker | curCargo : water, speed : 1, location : (20,0), remainingPath : (100,0),
+    direction : east, state : moving, curTask : noTask, yieldStatus : [Oid: "placeholder" | [cur: 100 - base: 100]], rowAttrs > .
+  eq rowRob2 = < "R2" : Worker | curCargo : water, speed : 1, location : (30,0), remainingPath : (100,0) (120,0),
+    direction : east, state : moving, curTask : noTask, yieldStatus : [Oid: "placeholder" | [cur: 100 - base: 100]], rowAttrs > .
+  eq rowRob3 = < "R3" : Worker | curCargo : water, speed : 0, location : (80,0), remainingPath : nil,
+    direction : west, state : idle, curTask : noTask, yieldStatus : noYieldInformation, rowAttrs > .
+  eq rowRob4 = < "R4" : Worker | curCargo : water, speed : 1, location : (90,0), remainingPath : nil,
+    direction : west, state : idle, curTask : noTask, yieldStatus : noYieldInformation, rowAttrs > .
+
+
+  eq rowTest = farm1 rowRob1 rowRob2 rowRob3 rowRob4 @ 0 .
 endom
 
-omod MULTI-INTERSECTION-TESTS is
-  ***Checks behavior when multiple robots are headed towards the same intersection from different directions.
-  
-endom
---- rew [40] taskTest .
+rew [100] rowTest .
+--- omod MULTI-INTERSECTION-TESTS is
+---   ***Checks behavior when multiple robots are headed towards the same intersection from different directions.
 
-***initial detection
-***rew [8] taskTest2 .
-***handling of wait message.
-***rew [10] taskTest2 .
-***rew [80] taskTest2 .
-rew [1] yieldTest .
+***search [1] rowTest =>* C:Configuration < "R2" : Worker | location : (120,0), AS:AttributeSet > @ T:Time .
+
+***Robot in intersection mucks it up.

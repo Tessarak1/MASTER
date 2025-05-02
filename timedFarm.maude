@@ -249,7 +249,7 @@ omod TIMED-FARM is
     eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : FUNC, workState : [OID2, TT, TIME], detected : none > CONF) = TIME .
     ***If it is moving uninterrupted towards an intersection then check until it may detect other robots that are closest to that intersection
     ceq $maxTimeAdvanceRobot(OID, < OID : Robot | state : moving, location : (X,Y), remainingPath : (X2,Y2) LL > CONF) = 
-        $destinationTimeAdvance(< OID : Robot | >, remove(OID, closest((X2,Y2), none, getRobots(CONF))))
+        $destinationTimeAdvance(< OID : Robot | >, remove(OID, closest((X2,Y2), none, sameDestination((X2,Y2), getRobots(CONF)))))
         if (objectInWay((X,Y), (X2,Y2), CONF) == none) .
     ***The previous equation wont apply if there is a robot located at the intersection the robot is moving away from it.
     ***This equation ensures that destinationTimeAdvance is still applied in such a scenario.

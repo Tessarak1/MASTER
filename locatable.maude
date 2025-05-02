@@ -36,7 +36,7 @@ omod LOCATABLE is
     eq minDistance(OBJ, (X,Y), none) = OBJ .
     eq minDistance(none, (X,Y), < OID : Locatable | > CONF) = minDistance(< OID : Locatable | >, (X,Y), CONF) .
     eq minDistance(< OID : Locatable | location : (X,Y) >, (X2,Y2), < OID2 : Locatable | location : (X3, Y3) > CONF) =
-        if distance((X3,Y3), (X,Y)) < distance((X2,Y2), (X,Y)) then
+        if distance((X3,Y3), (X2,Y2)) < distance((X,Y), (X2,Y2)) then
             minDistance(< OID2 : Locatable | >, (X2,Y2), CONF)
         else
             minDistance(< OID : Locatable | >, (X2,Y2), CONF)
