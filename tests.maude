@@ -113,6 +113,7 @@ omod ROW-TESTS is
   ops rowRob1 rowRob2 rowRob3 rowRob4 : -> Object .
   op rowAttrs : -> AttributeSet .
   op rowTest : -> ClockedConfiguration .
+  op obstacle1 : -> Object .
 
   eq rowAttrs = broadcastRange : 200, maxSpeed : 1, detected : none, auctions : noAuction, handledTime : false,
     detectionRange : 10, obstructionPoints : nil, cargoLevel : full, workState : noWork, waitingStatus : noWaitingInformation,
@@ -120,14 +121,21 @@ omod ROW-TESTS is
 
   eq rowRob1 = < "R1" : Worker | curCargo : water, speed : 1, location : (10,0), remainingPath : (100,0) (100,-100) (150,-100),
     direction : east, state : moving, curTask : ["GL2", wateringTask], yieldStatus : noYieldInformation, rowAttrs > .
-  eq rowRob2 = < "R2" : Worker | curCargo : water, speed : 1, location : (30,0), remainingPath : (100,0) (100,-100) (150,-100),
+  eq rowRob2 = < "R2" : Worker | curCargo : water, speed : 1, location : (20,0), remainingPath : (100,0) (100,-100) (150,-100),
     direction : east, state : moving, curTask : ["GL2", fertilizeTask], yieldStatus : noYieldInformation, rowAttrs > .
-  eq rowRob3 = < "R3" : Worker | curCargo : water, speed : 1, location : (90,0), remainingPath : (0,0) (0,-1),
+  eq rowRob3 = < "R3" : Worker | curCargo : water, speed : 1, location : (90,0), remainingPath : (0,0) (0,-5),
     direction : west, state : moving, curTask : noTask, yieldStatus : [Oid: "placeholder" | [cur: 100 - base: 100]], rowAttrs > .
   eq rowRob4 = < "R4" : Worker | curCargo : water, speed : 1, location : (100,0), remainingPath : (0,0) (0,-2),
     direction : west, state : moving, curTask : noTask, yieldStatus : [Oid: "placeholder" | [cur: 100 - base: 100]], rowAttrs > .
+  
 
-  eq rowTest = farm1 rowRob2 rowRob3 @ 0 .
+  eq obstacle1 = < "O" : Obstacle | location : (30,0) > .
+
+
+  eq rowTest = farm1 rowRob2 obstacle1 @ 0 .
 endom
-rew [10] rowTest .
+red maxTimeAdvance(< "O" : Obstacle | location : (21, 0) >
+< "R2" : Worker | location : (20, 0), broadcastRange : 200, handledTime : false, auctions : noAuction, direction : east, speed : 1, maxSpeed : 1, remainingPath : ((100, 0) (100, -100) (150, -100)), state :
+    moving, detectionRange : 10, cargoLevel : full, curCargo : water, detected : none, obstructionPoints : nil, curTask : ["GL2", fertilizeTask], workState : noWork, negotiations : none, yieldStatus :
+    noYieldInformation, waitingStatus : noWaitingInformation > < "Resupply" : ResupplyStation | location : (-50, -100), neighbors : "I3" >) .
 ***search [1] rowTest =>* < "R1" : Worker | location : (150,100), AS:AttributeSet > C:Configuration @ T:Time .

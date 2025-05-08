@@ -9,9 +9,8 @@ omod SYSTEM-VARS is
     ops SAFE-TIME EMERGENCY-TIME REMOVAL-TIME REPAIR-TIME : -> Time .
     ops RESUPPLY-TIME UNLOAD-TIME : -> Time .
     ops WORK-RANGE FINAL-RANGE : -> Rat .
-    ops FINAL-RANGE : -> Rat .
     op MSG-DELAY : -> Time .
-    op ROBOT-SIZE : -> Rat .
+    ops ROBOT-SIZE YIELD-GAP : -> Rat .
     op YIELD-PLACEHOLDER : -> Oid .
 
     ops AUCTION-TIMER YIELD-TIMER CONFLICT-YIELD-TIMER RESCAN-TIMER WAITING-TIMER : -> Timer .
@@ -33,6 +32,7 @@ omod SYSTEM-VARS is
     eq ROBOT-SIZE = 1 .
     eq MSG-DELAY = 1 .
     eq FINAL-RANGE = 3 .
+    eq YIELD-GAP = 5 .
 
 ***    eq YIELD-PLACEHOLDER = "Yield Placeholder" .
 endom    

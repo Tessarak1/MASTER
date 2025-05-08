@@ -92,6 +92,9 @@ omod ROBOT is
     op crashPrevention : Object Representation -> Object .
     op safetyChecks : Object Representation Object -> Configuration .
 
+    op detect : Configuration -> Configuration .
+    op _detects_ : Object Object -> Bool .
+
     op remove : Oid Configuration -> Configuration .
     op _;_ : Information Information -> Information [ctor assoc comm id: noInfo] .
     op noInfo : -> Information [ctor] .
@@ -264,7 +267,7 @@ omod ROBOT is
             listLength(planPath(< OID : Robot | obstructionPoints : remove(LL, (X,Y)) >, TID, < OID2 : Map | >)))
         fi .
 
-    ***Don't apply safety checks if the robot is moving.
+    ***Don'DR apply safety checks if the robot is moving.
     ceq safetyChecks(< OID : Robot | state : STATE >, {OID2 : Robot | I}, < OID3 : Map | >) = < OID : Robot | > if STATE =/= moving .
     eq safetyChecks(< OID : Robot | >, {OID2 : Robot | FUNC ; I}, < OID3 : Map | >) =
         if needNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC ; I}, < OID3 : Map | >)
@@ -470,16 +473,16 @@ omod ROBOT is
     eq $yieldLocationHelper((X,Y), {(X,Y) (X,Y2)} RS) =
         if Y < Y2
         then
-            (X, Y + ROBOT-SIZE)
+            (X, Y + YIELD-GAP)
         else
-            (X, Y - ROBOT-SIZE)
+            (X, Y - YIELD-GAP)
         fi .
     eq $yieldLocationHelper((X,Y), {(X,Y) (X2,Y)} RS) =
         if X < X2
         then
-            (X + ROBOT-SIZE, Y)
+            (X + YIELD-GAP, Y)
         else
-            (X - ROBOT-SIZE, Y)
+            (X - YIELD-GAP, Y)
         fi .
 
     eq yieldLocation(< OID : PassIntersection | location : (X,Y) >, RS, LL (X,Y) LL2) =
@@ -603,6 +606,32 @@ omod ROBOT is
 
     eq getOid([Oid: OID - (X,Y) | TR]) = OID .
     eq getOid([Oid: OID | TR]) = OID .
+
+    eq < OID : Robot | curTask : [OID2, TT] > detects < OID2 : Locatable | > = false .
+    eq < OID : Robot | obstructionPoints : (X,Y) LL > detects < OID2 : Locatable | location : (X,Y) > = false .
+    eq < OID : Robot | location : (X,Y), detected : REPS, detectionRange : DR > detects < OID2 : Locatable | location : (X2,Y2) > = (OID2 notIn REPS) and distance((X,Y), (X2,Y2)) <= DR .
+    eq < OID : Robot | > detects < OID2 : Locatable | > = true [owise] .
+
+    ceq detect(< OID : Robot | state : FUNC, detected : REPS > < OID2 : Obstacle | location : (X2,Y2) > CONF) =
+        detect(< OID : Robot | detected : {OID2 : Obstacle | (X2,Y2)} REPS > < OID2 : Obstacle | > CONF) if < OID : Robot | > detects < OID2 : Obstacle | > .
+    ceq detect(< OID : Robot | detected : REPS, workState : WS > < OID2 : Robot | state : STATE, location : (X2,Y2), direction : D, speed : SP, workState : WS2 > CONF) =
+        detect(< OID : Robot | detected : {OID2 : Robot | (X2,Y2) ; D ; detectedSpeed(SP) ; STATE} REPS > < OID2 : Robot | > CONF) if (< OID : Robot | > detects < OID2 : Robot | >) .
+    eq detect(CONF) = CONF [owise] .
+
+    ***Do a detection before starting to travel.
+    ***maybe change how detect works. Instead of doing all, it does one at a time, so I can check result
+    ***add that detection must be empty to prevent looping
+    ***but it may still loop, update detection, parse them try to start travel, update detection.
+
+    rl [startTravel] :
+        < OID : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, state : idle, speed : 0, maxSpeed : SP, detected : none, negotiations : none >
+        =>
+        if (X,Y) == (X2,Y2)
+        then
+            < OID : Robot | remainingPath : LL >
+        else
+            < OID : Robot | state : moving, direction : setDirection((X,Y), (X2,Y2)), speed : SP >
+        fi .
 
     crl [rescanTimerExpire] :
         < OID : Robot | waitingStatus : [BIS | TR | TR2] >
@@ -961,7 +990,7 @@ omod ROBOT is
         < OID3 : Map | > .
 
     rl [detectFailedRobot] :
-        < OID : Robot | location : (X,Y), remainingPath : LL, detected : {OID2 : Robot | INC ; (X2,Y2) ; I} REPS, obstructionPoints : LL2 >
+        < OID : Robot | state : FUNC, location : (X,Y), remainingPath : LL, detected : {OID2 : Robot | INC ; (X2,Y2) ; I} REPS, obstructionPoints : LL2 >
         < OID2 : Robot | location : (X2,Y2) >
         < OID3 : Map | >
         CONF
@@ -989,8 +1018,13 @@ omod ROBOT is
             fi
         fi .
     
+    rl [detectIgnore] :
+        < OID : Robot | state : INC, detected : REPS >
+        =>
+        < OID : Robot | state : INC, detected : none > .
+
     rl [detectObstacle] : 
-        < OID : Robot | location : (X,Y), remainingPath : LL, detected : {OID2 : Obstacle | (X2,Y2)} REPS, obstructionPoints : LL2  > 
+        < OID : Robot | state : FUNC, location : (X,Y), remainingPath : LL, detected : {OID2 : Obstacle | (X2,Y2)} REPS, obstructionPoints : LL2  > 
         < OID2 : Obstacle | location : (X2,Y2) >
         < OID3 : Map | > 
         CONF
@@ -1007,7 +1041,7 @@ omod ROBOT is
         else
             if between((X2,Y2), (X,Y) LL) =/= nil
             then
-                initiateAuction(< OID : Robot | state : planningPath, detected : REPS, obstructionPoints : (X2,Y2) LL2 >, [OID2, removeAt (X2,Y2)], CONF)
+                initiateAuction(< OID : Robot | state : planningPath, speed : 0, detected : REPS, obstructionPoints : (X2,Y2) LL2 >, [OID2, removeAt (X2,Y2)], CONF)
                 < OID2 : Obstacle | >
                 < OID3 : Map | >
                 CONF

@@ -35,9 +35,7 @@ omod TIMED-FARM is
     op collision : Configuration Object -> Configuration .
     op handleCollisions : Configuration -> Configuration .
     op updateLocation : Object -> Object .
-    op detect : Configuration -> Configuration .
     op unavoidableCrash : Object Object -> Bool .
-    op _detects_ : Object Object -> Bool .
 
     vars CONF CONF2 CONF3 : Configuration .
     var OBS : Configuration .
@@ -110,10 +108,6 @@ omod TIMED-FARM is
             fi
         fi .
     
-    eq < OID : Robot | curTask : [OID2, TT] > detects < OID2 : Locatable | > = false .
-    eq < OID : Robot | obstructionPoints : (X,Y) LL > detects < OID2 : Locatable | location : (X,Y) > = false .
-    eq < OID : Robot | location : (X,Y), detected : REPS, detectionRange : T > detects < OID2 : Locatable | location : (X2,Y2) > = (OID2 notIn REPS) and distance((X,Y), (X2,Y2)) <= T .
-    eq < OID : Robot | > detects < OID2 : Locatable | > = true [owise] .
 
     eq updateLocation(< OID : Robot | location : (X, Y), direction : north >) = < OID : Robot | location : (X, Y - ROBOT-SIZE) > .
     eq updateLocation(< OID : Robot | location : (X, Y), direction : east >) = < OID : Robot | location : (X - ROBOT-SIZE, Y) > .
@@ -177,7 +171,7 @@ omod TIMED-FARM is
         fi .
     
     ***If nothing is in the way then time until next location is reached.
-    eq calculateAdvance(< OID : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, speed : SP >, none) = distance((X,Y), (X2,Y2)) / SP .
+    eq calculateAdvance(< OID : Robot | state : moving, location : (X,Y), remainingPath : (X2,Y2) LL, speed : SP >, none) = distance((X,Y), (X2,Y2)) / SP .
     ***If a robot is behind another in the same direction check time until detection happens.
     eq calculateAdvance(< OID : Robot | speed : SP, direction : D >, < OID2 : Robot | state : moving, speed : SP2, direction : D >) = 
         if SP2 >= SP then
@@ -186,28 +180,36 @@ omod TIMED-FARM is
             $calculateAdvance(< OID : Robot | >, < OID2 : Robot | >, SP - SP2)
         fi .
     ***Check detection if two robots are moving towards one another
-    ceq calculateAdvance(< OID : Robot | speed : SP, direction : D >, < OID2 : Robot | state : moving, speed : SP2, direction : D2 >) = 
+    ceq calculateAdvance(< OID : Robot | state : moving, speed : SP, direction : D >, < OID2 : Robot | state : moving, speed : SP2, direction : D2 >) = 
         $calculateAdvance(< OID : Robot | >, < OID2 : Robot | >, SP + SP2)
         if oppositeDirections(D,D2) .
     ***If the second robot is unmoving, check time until detection happens based on first robot's speed.
-    ceq calculateAdvance(< OID : Robot | speed : SP >, < OID2 : Robot | state : STATE >) =
+    ceq calculateAdvance(< OID : Robot | state : moving, speed : SP >, < OID2 : Robot | state : STATE >) =
         $calculateAdvance(< OID : Robot | >, < OID2 : Robot | >, SP)
         if STATE =/= moving .
     ***Moving towards the same point as another robot from different axes.
     ceq calculateAdvance(< OID : Robot | state : moving, remainingPath : (X,Y) LL, direction : D >, < OID2 : Robot | state : moving, direction : D2 >) =
         $quadraticSolveAdvance(< OID : Robot | >, < OID2 : Robot | >)
         if differentAxes(D, D2) and headedTowards(< OID2 : Robot | >, (X,Y)) .
-            
-    eq calculateAdvance(< OID : Robot | location : (X, Y), speed : SP, detectionRange : T >, < OID2 : Obstacle | location : (X2,Y2) >) = 
+    
+    ***TODO: add a lower limit here
+    eq calculateAdvance(< OID : Robot | state : moving, location : (X, Y), speed : SP, detectionRange : T >, < OID2 : Obstacle | location : (X2,Y2) >) = 
         if unavoidableCrash(< OID : Robot | >, < OID2 : Obstacle | >) then
             distance((X, Y), (X2,Y2)) / SP
         else
             if (distance((X, Y), (X2,Y2)) > T) then
                 (distance((X, Y), (X2,Y2)) - T) / SP
             else
-                distance((X, Y), (X2,Y2)) / SP
+                if distance((X,Y), (X2,Y2)) > FINAL-RANGE
+                then
+                    (distance((X,Y), (X2,Y2)) - FINAL-RANGE) / SP
+                else
+                    distance((X,Y), (X2,Y2)) / SP
+                fi
             fi 
         fi .
+
+
 
     eq $destinationTimeAdvance(< OID : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, speed : SP >, none) = distance((X,Y), (X2,Y2)) / SP .
     eq $destinationTimeAdvance(< OID : Robot | >, < OID2 : Robot | > CONF) = min(calculateAdvance(< OID : Robot | >, < OID2 : Robot | >), $destinationTimeAdvance(< OID : Robot | >, CONF)) .
@@ -287,11 +289,6 @@ omod TIMED-FARM is
     eq timeEffect(dly(MSG, TIME) CONF, TIME2) = dly(MSG, TIME monus TIME2) timeEffect(CONF, TIME) .
     eq timeEffect(CONF, TIME) = CONF [owise] .
 
-    ceq detect(< OID : Robot | state : FUNC, detected : REPS > < OID2 : Obstacle | location : (X2,Y2) > CONF) =
-        detect(< OID : Robot | detected : {OID2 : Obstacle | (X2,Y2)} REPS > < OID2 : Obstacle | > CONF) if < OID : Robot | > detects < OID2 : Obstacle | > .
-    ceq detect(< OID : Robot | detected : REPS, workState : WS > < OID2 : Robot | state : STATE, location : (X2,Y2), direction : D, speed : SP, workState : WS2 > CONF) =
-        detect(< OID : Robot | detected : {OID2 : Robot | (X2,Y2) ; D ; detectedSpeed(SP) ; STATE} REPS > < OID2 : Robot | > CONF) if (< OID : Robot | > detects < OID2 : Robot | >) .
-    eq detect(CONF) = CONF [owise] .
 
     crl [timeEffect] :
         CONF @ TIME
