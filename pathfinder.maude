@@ -42,8 +42,8 @@ endom
 omod PATHFINDER is
     protecting PRIORITY-QUEUE .
 
-    ***Converts a set of intersections into a priority queue starting with the intersection with the given location.
-    op PQConvert : Configuration Location -> PQueue .
+    ***Converts a set of intersections into a priority queue starting with the intersection with the given coordinate.
+    op PQConvert : Configuration Coordinate -> PQueue .
 
     ***Updates the distances for a priority queue.
     op $updateDistances : PQueue DijkstraNode -> PQueue .
@@ -52,20 +52,20 @@ omod PATHFINDER is
     ***construct path from goal node to starting node.
     ***Starts from goal node and traces back previous nodes until starting node is reached.
     ***returns nil if no path is possible
-    op buildPath : Oid PQueue -> List-Location .
+    op buildPath : Oid PQueue -> List-Coordinate .
 
     ***Constructs shortest path from intersection with first oid to intersection with second oid.
-    ***can also do dijkstra search from location to location
-    op dijkstraSearch : Configuration Oid Oid -> List-Location .
-    op dijkstraSearch : Configuration Location Location -> List-Location .
+    ***can also do dijkstra search from coordinate to coordinate
+    op dijkstraSearch : Configuration Oid Oid -> List-Coordinate .
+    op dijkstraSearch : Configuration Coordinate Coordinate -> List-Coordinate .
 
     ***Performs consecutive dijkstra searches when a sequence of locations need to be visited in order
-    op dijkstraChain : Configuration List-Location -> List-Location .
+    op dijkstraChain : Configuration List-Coordinate -> List-Coordinate .
 
     ***Creates a path that covers a square area and returns to a given beginning point
-    ops coverVertical coverHorizontal : List-Location List-Location -> List-Location .
-    op backToStart : Location Location -> List-Location .
-    ops coverArea $coverArea : Location Area -> List-Location .
+    ops coverVertical coverHorizontal : List-Coordinate List-Coordinate -> List-Coordinate .
+    op backToStart : Coordinate Coordinate -> List-Coordinate .
+    ops coverArea $coverArea : Coordinate Area -> List-Coordinate .
 
     vars I I2 : Object .
     var CONF : Configuration .
@@ -77,15 +77,15 @@ omod PATHFINDER is
     vars RI RI2 : RatInf .
     var DN : DijkstraNode .
     var A : Area .
-    var LL : List-Location .
+    var LCO : List-Coordinate .
     var CID : Cid .
 
     eq PQConvert(none, (X,Y)) = noQueue .
-    eq PQConvert(< OID : Intersection | location : (X,Y) > CONF, (X,Y)) = [< OID : Intersection | >, 0, "Start"] PQConvert(CONF, (X,Y)) .   
+    eq PQConvert(< OID : Intersection | coordinate : (X,Y) > CONF, (X,Y)) = [< OID : Intersection | >, 0, "Start"] PQConvert(CONF, (X,Y)) .   
     eq PQConvert(I2 CONF, (X,Y)) = [I2, ratInf, "Placeholder"] PQConvert(CONF, (X,Y)) [owise] .
         
-    eq $updateDistances(PQ [< OID : Intersection | location : (X,Y), neighbors : OID3 OS >, RI, OID2] PQ2,
-        [< OID3 : Intersection | location : (X2,Y2) >, RI2, OID4]) =
+    eq $updateDistances(PQ [< OID : Intersection | coordinate : (X,Y), neighbors : OID3 OS >, RI, OID2] PQ2,
+        [< OID3 : Intersection | coordinate : (X2,Y2) >, RI2, OID4]) =
             if (distance((X,Y), (X2,Y2)) + RI2) < RI
             then
                 put([< OID : Intersection | neighbors : OS >, distance((X,Y), (X2,Y2)) + RI2, OID3], PQ PQ2)
@@ -93,22 +93,22 @@ omod PATHFINDER is
                 PQ [< OID : Intersection | neighbors : OS >, RI, OID2] PQ2
             fi .
 
-    eq updateDistances(PQ [< OID : PassIntersection | location : (X,Y), neighbors : OID2 OS >, R, OID3] PQ2) = 
-        updateDistances($updateDistances(PQ [< OID : PassIntersection | neighbors : OS >, R, OID3] PQ2, [< OID : PassIntersection | location : (X,Y), neighbors : OID2 OS >, R, OID3])) .
+    eq updateDistances(PQ [< OID : PassIntersection | coordinate : (X,Y), neighbors : OID2 OS >, R, OID3] PQ2) = 
+        updateDistances($updateDistances(PQ [< OID : PassIntersection | neighbors : OS >, R, OID3] PQ2, [< OID : PassIntersection | coordinate : (X,Y), neighbors : OID2 OS >, R, OID3])) .
     eq updateDistances(PQ) = PQ [owise] .
     
     eq buildPath(OID, PQ [< OID : Intersection | >, ratInf, OID2] PQ2) = nil .
-    eq buildPath(OID, PQ [< OID : Intersection | location : (X,Y) >, R, "Start"] PQ2) = (X,Y) .
-    ceq buildPath(OID, PQ [< OID : Intersection | location : (X,Y) >, R, OID2] PQ2) = buildPath(OID2, PQ PQ2) (X,Y) if OID2 =/= "Start" .
-    eq buildPath(OID, PQ [< OID : Intersection | location : (X,Y) >, R, OID2] PQ2) = buildPath(OID2, PQ) (X,Y) .
+    eq buildPath(OID, PQ [< OID : Intersection | coordinate : (X,Y) >, R, "Start"] PQ2) = (X,Y) .
+    ceq buildPath(OID, PQ [< OID : Intersection | coordinate : (X,Y) >, R, OID2] PQ2) = buildPath(OID2, PQ PQ2) (X,Y) if OID2 =/= "Start" .
+    eq buildPath(OID, PQ [< OID : Intersection | coordinate : (X,Y) >, R, OID2] PQ2) = buildPath(OID2, PQ) (X,Y) .
 
-    eq dijkstraSearch(< OID : Intersection | location : (X,Y) > CONF, OID, OID2) = buildPath(OID2, updateDistances(PQConvert(< OID : Intersection | > CONF, (X,Y)))) .
+    eq dijkstraSearch(< OID : Intersection | coordinate : (X,Y) > CONF, OID, OID2) = buildPath(OID2, updateDistances(PQConvert(< OID : Intersection | > CONF, (X,Y)))) .
     eq dijkstraSearch(CONF, (X,Y), (X,Y)) = nil .
-    eq dijkstraSearch(< OID : Intersection | location : (X,Y) > < OID2 : Intersection | location : (X2,Y2) > CONF, (X,Y), (X2,Y2)) =
-        dijkstraSearch(< OID : Intersection | location : (X,Y) > < OID2 : Intersection | location : (X2,Y2) > CONF, OID, OID2) .
+    eq dijkstraSearch(< OID : Intersection | coordinate : (X,Y) > < OID2 : Intersection | coordinate : (X2,Y2) > CONF, (X,Y), (X2,Y2)) =
+        dijkstraSearch(< OID : Intersection | coordinate : (X,Y) > < OID2 : Intersection | coordinate : (X2,Y2) > CONF, OID, OID2) .
 
     eq dijkstraChain(CONF, (X,Y) (X2,Y2)) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) .
-    eq dijkstraChain(CONF, (X,Y) (X2,Y2) LL) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) dijkstraChain(CONF, (X2,Y2) LL) .
+    eq dijkstraChain(CONF, (X,Y) (X2,Y2) LCO) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) dijkstraChain(CONF, (X2,Y2) LCO) .
 
     eq backToStart((X,Y), (X2,Y2)) = (X,Y2) (X2,Y2) .
     eq coverHorizontal((X,Y) (X2, Y), (X,Y) (X2,Y)) = nil .

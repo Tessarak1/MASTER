@@ -1,0 +1,95 @@
+fmod COORDINATE is 
+    protecting CONVERSION .
+
+    ***Sort Area denotes a rectangular area, the coordinateSet denotes the four corners of said area.
+    sorts Coordinate CoordinateSet Area .
+
+    subsort Coordinate < CoordinateSet .
+
+    op ((_,_)) : Rat Rat -> Coordinate [ctor] .
+    op noCoordinate : -> CoordinateSet [ctor] .
+    op _,_ : CoordinateSet CoordinateSet -> CoordinateSet [ctor assoc comm id: noCoordinate] .
+    op area : CoordinateSet -> Area [ctor] .
+
+    op _inInterval(_,_) : Rat Rat Rat -> Bool .
+
+    ***Euclidean distance between two points
+    op distance : Coordinate Coordinate -> Rat [comm] .
+    op sqrt : Rat -> Rat .
+    
+    ***Checks if a point is inside an area.
+    op _inArea_ : Coordinate Area -> Bool .
+    
+    vars X X2 X3 Y Y2 Y3 : Rat .
+    vars R R2 R3 : Rat .
+
+    ceq X inInterval(X2, X3) = true if (X >= min(X2,X3) and X <= max(X2,X3)) .
+    eq X inInterval(X2,X3) = false [owise] .
+    eq sqrt(R) = rat(sqrt(float(R))) .
+    eq distance((X,Y), (X2,Y2)) = sqrt(((X - X2) ^ 2) + ((Y - Y2) ^ 2)) .
+    
+    ceq (X,Y) inArea area((X2,Y2), (X3,Y2), (X3,Y3), (X2, Y3)) = true if (X inInterval(X2,X3) and Y inInterval(Y2,Y3)) .
+    eq (X,Y) inArea area((X2,Y2), (X3,Y2), (X3,Y3), (X2,Y3)) = false [owise] .
+endfm
+
+fmod LIST-COORDINATE is
+    protecting COORDINATE .
+
+    sort List-Coordinate .
+    subsort Coordinate < List-Coordinate .
+
+    op nil : -> List-Coordinate [ctor] .
+    op __ : List-Coordinate List-Coordinate -> List-Coordinate [assoc id: nil ctor] .
+
+    ***Basic list operators
+    op first : List-Coordinate -> Coordinate .
+    op last : List-Coordinate -> Coordinate  .
+    op remove : List-Coordinate List-Coordinate -> List-Coordinate .
+    ***Checks if a given locations is between two neighboring locations in the list, and returns them if they exist.
+    op between : Coordinate List-Coordinate -> List-Coordinate .
+    ***The total distance required to traverse the entire list.
+    op listLength : List-Coordinate -> Rat .
+    ***Checks for overlap between two paralell lines represented by two locations
+    op overlap : List-Coordinate List-Coordinate -> Bool [comm] .
+    ***removes duplicate elements that are right next to each other
+    op removeNeighborDuplicates : List-Coordinate -> List-Coordinate .
+
+    op sharedLocation : List-Coordinate List-Coordinate -> List-Coordinate .
+
+    vars LCO LCO2 LCO3 LCO4 : List-Coordinate .
+    vars L L2 : Coordinate .
+    vars X X2 X3 X4 Y Y2 Y3 Y4 : Rat .
+
+    eq first(nil) = nil .
+    eq first(L LCO) = L .
+
+    eq last(nil) = nil .
+    eq last(LCO L) = L .
+
+    eq between(L, nil) = nil .
+    eq between(L, (X,Y)) = nil .
+    eq between((X, Y), (X2, Y2) (X3, Y3) LCO) =
+        if ((X inInterval(X2,X3)) and (Y inInterval(Y2,Y3))) then
+            (X2, Y2) (X3,Y3)
+        else
+            between((X,Y), (X3,Y3) LCO)
+        fi .
+
+    eq remove(nil, LCO) = nil .
+    eq remove(LCO, nil) = LCO .
+    eq remove(LCO (X,Y) LCO2, LCO3 (X,Y) LCO4) = remove(LCO LCO2, LCO3 LCO4) .
+    eq remove(LCO, LCO2) = LCO [owise] .
+
+    eq listLength((X,Y) (X2,Y2) LCO) = distance((X,Y), (X2,Y2)) + listLength((X2,Y2) LCO) .
+    eq listLength((X,Y) (X2,Y2)) = distance((X,Y), (X2,Y2)) .
+    eq listLength(LCO) = 0 [owise] .
+
+    eq overlap((X,Y) (X,Y2), (X,Y3) (X,Y4)) = max(min(Y,Y2), min(Y3,Y4)) <= min(max(Y,Y2), max(Y3,Y4)) .
+    eq overlap((X,Y) (X2,Y), (X3,Y) (X4,Y)) = max(min(X,X2), min(X3,X4)) <= min(max(X,X2), max(X3,X4)) .
+    eq overlap(LCO, LCO2) = false [owise] .
+
+    eq removeNeighborDuplicates(LCO (X,Y) (X,Y) LCO2) = removeNeighborDuplicates(LCO (X,Y) LCO2) .
+    eq removeNeighborDuplicates(LCO) = LCO [owise] .
+
+    eq sharedLocation((X,Y) (X2,Y2) LCO, (X3,Y3) (X2,Y2) LCO2) = (X2,Y2) .
+endfm

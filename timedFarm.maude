@@ -18,7 +18,7 @@ omod TIMED-FARM is
     op  _@_ : Configuration Time -> ClockedConfiguration [ctor] .
     op $maxTimeAdvanceRobot : Oid Configuration -> TimeInf .
     op $maxTimeAdvanceField : Object -> TimeInf .
-    op maxTimeAdvance : Configuration -> TimeInf .
+    op mte : Configuration -> TimeInf .
 
     op $destinationTimeAdvance : Object Configuration -> Time .
     op quadraticTimeAdvance : Rat Rat Rat Time -> Time .
@@ -51,14 +51,13 @@ omod TIMED-FARM is
     vars T T2 : Rat .
     vars N N' N2 N3 N4 : Nat .
     vars L L2 : Level .
-    vars LL LL2 : List-Location .
+    vars LCO LCO2 : List-Coordinate .
     vars I I2 : Int .
     vars D D2 : Direction .
     var STATE : State .
     vars R R2 R3 : Rat .
     var GS : GrowingState .
     var REPS : RepresentationSet .
-    var C : Cargo .
     var FUNC : FunctioningState .
     var INC : IncapacitatedState .
     var MSG : Msg .
@@ -85,7 +84,7 @@ omod TIMED-FARM is
         fi .
 
     ***Calculates the time until two robots that are moving on different axes towards the same intersection detect each other.
-    eq $quadraticSolveAdvance(< OID : Robot | location : (X,Y), speed : SP, remainingPath : (X2,Y2) LL, detectionRange : T >, < OID2 : Robot | location : (X3,Y3), speed : SP2, remainingPath : (X2,Y2) LL2, detectionRange : T2 >) =
+    eq $quadraticSolveAdvance(< OID : Robot | coordinate : (X,Y), speed : SP, remainingPath : (X2,Y2) LCO, detectionRange : T >, < OID2 : Robot | coordinate : (X3,Y3), speed : SP2, remainingPath : (X2,Y2) LCO2, detectionRange : T2 >) =
         if distance((X,Y), (X3,Y3)) > max(T, T2)
         then
             quadraticTimeAdvance(
@@ -109,36 +108,36 @@ omod TIMED-FARM is
         fi .
     
 
-    eq updateLocation(< OID : Robot | location : (X, Y), direction : north >) = < OID : Robot | location : (X, Y - ROBOT-SIZE) > .
-    eq updateLocation(< OID : Robot | location : (X, Y), direction : east >) = < OID : Robot | location : (X - ROBOT-SIZE, Y) > .
-    eq updateLocation(< OID : Robot | location : (X, Y), direction : south >) = < OID : Robot | location : (X, Y + ROBOT-SIZE) > .
-    eq updateLocation(< OID : Robot | location : (X, Y), direction : west >) = < OID : Robot | location : (X + ROBOT-SIZE, Y) > .
+    eq updateLocation(< OID : Robot | coordinate : (X, Y), direction : north >) = < OID : Robot | coordinate : (X, Y - ROBOT-SIZE) > .
+    eq updateLocation(< OID : Robot | coordinate : (X, Y), direction : east >) = < OID : Robot | coordinate : (X - ROBOT-SIZE, Y) > .
+    eq updateLocation(< OID : Robot | coordinate : (X, Y), direction : south >) = < OID : Robot | coordinate : (X, Y + ROBOT-SIZE) > .
+    eq updateLocation(< OID : Robot | coordinate : (X, Y), direction : west >) = < OID : Robot | coordinate : (X + ROBOT-SIZE, Y) > .
 
-    eq collision(< OID : Robot | location : (X, Y) > < OID2 : Obstacle | >, < OID3 : Map | >) =  updateLocation(< OID : Robot | speed : 0, state : crashed >) < OID2 : Obstacle | > .
+    eq collision(< OID : Robot | coordinate : (X, Y) > < OID2 : Obstacle | >, < OID3 : Map | >) =  updateLocation(< OID : Robot | speed : 0, state : crashed >) < OID2 : Obstacle | > .
     ceq collision(< OID : Robot | speed : SP > < OID2 : Robot | speed : SP2 >, < OID3 : Map | roads : RS >) = 
         updateLocation(< OID : Robot | state : crashed, speed : 0 >) < OID2 : Robot | speed : 0, state : crashed >
         if outsideMap(getLocation(updateLocation(< OID : Robot | >)), RS) == false .
 
-    eq handleCollisions(< OID : Robot | location : (X, Y) > < OID2 : PhysicalObj | location : (X, Y) >  < OID3 : Map | > CONF) = collision(< OID : Robot | > < OID2 : PhysicalObj | >, < OID3 : Map | >) handleCollisions(< OID3 : Map | > CONF) .
+    eq handleCollisions(< OID : Robot | coordinate : (X, Y) > < OID2 : PhysicalObj | coordinate : (X, Y) >  < OID3 : Map | > CONF) = collision(< OID : Robot | > < OID2 : PhysicalObj | >, < OID3 : Map | >) handleCollisions(< OID3 : Map | > CONF) .
     eq handleCollisions(CONF) = CONF [owise] .
 
     eq unavoidableCrash(< OID : Robot | >, none) = false .
     eq unavoidableCrash(< OID : Robot | speed : 0 >, O) = false .
-    ceq unavoidableCrash(< OID : Robot | state : moving, location : (X, Y), direction : D, speed : SP >, < OID2 : Robot | state : moving, location : (X2, Y2), direction : D2, speed : SP2 >) = 
+    ceq unavoidableCrash(< OID : Robot | state : moving, coordinate : (X, Y), direction : D, speed : SP >, < OID2 : Robot | state : moving, coordinate : (X2, Y2), direction : D2, speed : SP2 >) = 
         if distance((X, Y), (X2, Y2)) <= stoppingDistance(< OID : Robot | >) + stoppingDistance(< OID2 : Robot | >) then
             true
         else
             false
         fi
     if oppositeDirections(D, D2) .
-    eq unavoidableCrash(< OID : Robot | location : (X, Y) >, < OID2 : PhysicalObj | location : (X2, Y2) >) = 
+    eq unavoidableCrash(< OID : Robot | coordinate : (X, Y) >, < OID2 : PhysicalObj | coordinate : (X2, Y2) >) = 
         if distance((X, Y), (X2, Y2)) <= stoppingDistance(< OID : Robot | >)
         then
             true
         else
             false
         fi .
-    ceq unavoidableCrash(< OID : Robot | state : moving, location : (X,Y), direction : D, remainingPath : (X2,Y2) LL, speed : SP >, < OID2 : Robot | state : moving, location : (X3,Y3), direction : D2, remainingPath : (X2,Y2) LL2, speed : SP2 >) =
+    ceq unavoidableCrash(< OID : Robot | state : moving, coordinate : (X,Y), direction : D, remainingPath : (X2,Y2) LCO, speed : SP >, < OID2 : Robot | state : moving, coordinate : (X3,Y3), direction : D2, remainingPath : (X2,Y2) LCO2, speed : SP2 >) =
         if (distance((X,Y), (X2,Y2)) / SP) == distance((X3,Y3), (X2,Y2))
         then
             true
@@ -147,7 +146,7 @@ omod TIMED-FARM is
         fi
         if differentAxes(D, D2) .
 
-    eq $calculateAdvance(< OID : Robot | location : (X,Y), detectionRange : T >, < OID2 : Robot | location : (X2,Y2), detectionRange : T2 >, SP) =
+    eq $calculateAdvance(< OID : Robot | coordinate : (X,Y), detectionRange : T >, < OID2 : Robot | coordinate : (X2,Y2), detectionRange : T2 >, SP) =
         if unavoidableCrash(< OID : Robot | >, < OID2 : Robot | >)
         then
             distance((X,Y), (X2,Y2)) / SP
@@ -170,8 +169,8 @@ omod TIMED-FARM is
             fi
         fi .
     
-    ***If nothing is in the way then time until next location is reached.
-    eq calculateAdvance(< OID : Robot | state : moving, location : (X,Y), remainingPath : (X2,Y2) LL, speed : SP >, none) = distance((X,Y), (X2,Y2)) / SP .
+    ***If nothing is in the way then time until next coordinate is reached.
+    eq calculateAdvance(< OID : Robot | state : moving, coordinate : (X,Y), remainingPath : (X2,Y2) LCO, speed : SP >, none) = distance((X,Y), (X2,Y2)) / SP .
     ***If a robot is behind another in the same direction check time until detection happens.
     eq calculateAdvance(< OID : Robot | speed : SP, direction : D >, < OID2 : Robot | state : moving, speed : SP2, direction : D >) = 
         if SP2 >= SP then
@@ -188,12 +187,12 @@ omod TIMED-FARM is
         $calculateAdvance(< OID : Robot | >, < OID2 : Robot | >, SP)
         if STATE =/= moving .
     ***Moving towards the same point as another robot from different axes.
-    ceq calculateAdvance(< OID : Robot | state : moving, remainingPath : (X,Y) LL, direction : D >, < OID2 : Robot | state : moving, direction : D2 >) =
+    ceq calculateAdvance(< OID : Robot | state : moving, remainingPath : (X,Y) LCO, direction : D >, < OID2 : Robot | state : moving, direction : D2 >) =
         $quadraticSolveAdvance(< OID : Robot | >, < OID2 : Robot | >)
         if differentAxes(D, D2) and headedTowards(< OID2 : Robot | >, (X,Y)) .
     
     ***TODO: add a lower limit here
-    eq calculateAdvance(< OID : Robot | state : moving, location : (X, Y), speed : SP, detectionRange : T >, < OID2 : Obstacle | location : (X2,Y2) >) = 
+    eq calculateAdvance(< OID : Robot | state : moving, coordinate : (X, Y), speed : SP, detectionRange : T >, < OID2 : Obstacle | coordinate : (X2,Y2) >) = 
         if unavoidableCrash(< OID : Robot | >, < OID2 : Obstacle | >) then
             distance((X, Y), (X2,Y2)) / SP
         else
@@ -211,19 +210,19 @@ omod TIMED-FARM is
 
 
 
-    eq $destinationTimeAdvance(< OID : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, speed : SP >, none) = distance((X,Y), (X2,Y2)) / SP .
+    eq $destinationTimeAdvance(< OID : Robot | coordinate : (X,Y), remainingPath : (X2,Y2) LCO, speed : SP >, none) = distance((X,Y), (X2,Y2)) / SP .
     eq $destinationTimeAdvance(< OID : Robot | >, < OID2 : Robot | > CONF) = min(calculateAdvance(< OID : Robot | >, < OID2 : Robot | >), $destinationTimeAdvance(< OID : Robot | >, CONF)) .
 
 
     ***Needs to start working on a field
-    ceq $maxTimeAdvanceRobot(OID, < OID : Robot | location : (X,Y), curTask : [OID2, TT], workState : noWork > < OID2 : Field | location : (X,Y) > CONF) = 0 if canCompleteNow(< OID : Robot | >, [OID2, TT]) .
+    ceq $maxTimeAdvanceRobot(OID, < OID : Robot | coordinate : (X,Y), curTask : [OID2, TT], workState : noWork > < OID2 : Field | coordinate : (X,Y) > CONF) = 0 if canCompleteNow(< OID : Robot | >, [OID2, TT]) .
     ***Needs to finish working on a field.
-    eq $maxTimeAdvanceRobot(OID, < OID : Worker | location : (X,Y), state : FUNC, remainingPath : nil, workState : [OID2, WT], cargoLevel : full > < OID2 : Field | location : (X,Y) > CONF) = 0 .
-    eq $maxTimeAdvanceRobot(OID, < OID : Transporter | location : (X,Y), state : FUNC, remainingPath : nil, workState : [OID2, TPT], cargoLevel : empty > < OID2 : Field | location : (X,Y) > CONF) = 0 .
+    eq $maxTimeAdvanceRobot(OID, < OID : Worker | coordinate : (X,Y), state : FUNC, remainingPath : nil, workState : [OID2, WT], cargoLevel : full > < OID2 : Field | coordinate : (X,Y) > CONF) = 0 .
+    eq $maxTimeAdvanceRobot(OID, < OID : Transporter | coordinate : (X,Y), state : FUNC, remainingPath : nil, workState : [OID2, TPT], cargoLevel : empty > < OID2 : Field | coordinate : (X,Y) > CONF) = 0 .
     ***Don't advance time if a robot needs to parse through detections
     ceq $maxTimeAdvanceRobot(OID, < OID : Robot | detected : REPS > CONF) = 0 if REPS =/= none .    
     ***Needs to potentially change directions
-    eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : moving, location : (X,Y), remainingPath : (X,Y) LL > CONF) = 0 .
+    eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : moving, coordinate : (X,Y), remainingPath : (X,Y) LCO > CONF) = 0 .
     ***Needs to stop negotiating
     eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : negotiating, negotiations : none > CONF) = 0 .
     ***Needs to transition to planningPath
@@ -231,17 +230,17 @@ omod TIMED-FARM is
     ***Needs to stop waiting
     eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : waiting, waitingStatus : noWaitingInformation > CONF) = 0 .
     ***Allow robot to start resupplying if needed
-    ceq $maxTimeAdvanceRobot(OID, < OID : Robot | location : (X,Y), state : FUNC, curTask : TID > < OID2 : ResupplyStation | location : (X,Y) > CONF) = 0 if needsResupply(< OID : Robot | >, TID) and (FUNC =/= resupplying) .
+    ceq $maxTimeAdvanceRobot(OID, < OID : Robot | coordinate : (X,Y), state : FUNC, curTask : TID > < OID2 : ResupplyStation | coordinate : (X,Y) > CONF) = 0 if needsResupply(< OID : Robot | >, TID) and (FUNC =/= resupplying) .
     ***finish resupply.
-    eq $maxTimeAdvanceRobot(OID, < OID : Robot | location : (X,Y), state : resupplying, workState : [OID2, resupplyTask, 0] >  < OID2 : ResupplyStation | location : (X,Y) > CONF) = 0 .
+    eq $maxTimeAdvanceRobot(OID, < OID : Robot | coordinate : (X,Y), state : resupplying, workState : [OID2, resupplyTask, 0] >  < OID2 : ResupplyStation | coordinate : (X,Y) > CONF) = 0 .
     ***Need to start unloading
-    eq $maxTimeAdvanceRobot(OID, < OID : Robot | location : (X,Y), state : FUNC, cargoLevel : full, workState : noWork > < OID2 : CollectionStation | location : (X,Y) > CONF) = 0 .
+    eq $maxTimeAdvanceRobot(OID, < OID : Robot | coordinate : (X,Y), state : FUNC, cargoLevel : full, workState : noWork > < OID2 : CollectionStation | coordinate : (X,Y) > CONF) = 0 .
     ***Need to finish unloading
-    eq $maxTimeAdvanceRobot(OID, < OID : Robot | location : (X,Y), state : unloading, cargoLevel : full, workState : [OID2, unloadTask, 0] > < OID2 : CollectionStation | location : (X,Y) > CONF) = 0 .
+    eq $maxTimeAdvanceRobot(OID, < OID : Robot | coordinate : (X,Y), state : unloading, cargoLevel : full, workState : [OID2, unloadTask, 0] > < OID2 : CollectionStation | coordinate : (X,Y) > CONF) = 0 .
     ***Needs to start replanning path.
     eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : planningPath > CONF) = 0 .
     ***Needs to start movement
-    ceq $maxTimeAdvanceRobot(OID, < OID : Robot | state : idle, remainingPath : LL, detected : none > CONF) = 0 if LL =/= nil .
+    ceq $maxTimeAdvanceRobot(OID, < OID : Robot | state : idle, remainingPath : LCO, detected : none > CONF) = 0 if LCO =/= nil .
     ***Not relevant if incapacitated, negotiating, idle or waiting
     eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : INC, detected : none > CONF) = ratInf .
     eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : negotiating, detected : none > CONF) = ratInf .
@@ -250,37 +249,37 @@ omod TIMED-FARM is
     ***time until timedWork is completed.
     eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : FUNC, workState : [OID2, TT, TIME], detected : none > CONF) = TIME .
     ***If it is moving uninterrupted towards an intersection then check until it may detect other robots that are closest to that intersection
-    ceq $maxTimeAdvanceRobot(OID, < OID : Robot | state : moving, location : (X,Y), remainingPath : (X2,Y2) LL > CONF) = 
+    ceq $maxTimeAdvanceRobot(OID, < OID : Robot | state : moving, coordinate : (X,Y), remainingPath : (X2,Y2) LCO > CONF) = 
         $destinationTimeAdvance(< OID : Robot | >, remove(OID, closest((X2,Y2), none, sameDestination((X2,Y2), getRobots(CONF)))))
         if (objectInWay((X,Y), (X2,Y2), CONF) == none) .
     ***The previous equation wont apply if there is a robot located at the intersection the robot is moving away from it.
     ***This equation ensures that destinationTimeAdvance is still applied in such a scenario.
     ***The condition checks if the first object in the way is a robot 
-    ceq $maxTimeAdvanceRobot(OID, < OID : Robot | state : moving, location : (X,Y), remainingPath : (X2,Y2) LL, direction : D > < OID2 : Robot | state : moving, location : (X2,Y2), direction : D2 > CONF) =
+    ceq $maxTimeAdvanceRobot(OID, < OID : Robot | state : moving, coordinate : (X,Y), remainingPath : (X2,Y2) LCO, direction : D > < OID2 : Robot | state : moving, coordinate : (X2,Y2), direction : D2 > CONF) =
         $destinationTimeAdvance(< OID : Robot | >, remove(OID, closest((X2,Y2), none, getRobots(CONF))))
-        if (getOid(objectInWay((X,Y), (X2,Y2), < OID2 : Robot | state : moving, location : (X2,Y2), direction : D2 > CONF)) == OID2) and not oppositeDirections(D, D2) .
+        if (getOid(objectInWay((X,Y), (X2,Y2), < OID2 : Robot | state : moving, coordinate : (X2,Y2), direction : D2 > CONF)) == OID2) and not oppositeDirections(D, D2) .
     ***If there is an obstacle or robot in the way, return time until detection happens.
-    eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : moving, location : (X, Y), speed : SP, remainingPath : (X2, Y2) LL, detected : none > CONF)
+    eq $maxTimeAdvanceRobot(OID, < OID : Robot | state : moving, coordinate : (X, Y), speed : SP, remainingPath : (X2, Y2) LCO, detected : none > CONF)
     =
     calculateAdvance(< OID : Robot | >, objectInWay((X, Y), (X2,Y2), CONF)) [owise] .
 
     ceq $maxTimeAdvanceField(< OID : Field | >) = 0 if needToStartAuction(< OID : Field | >) .
     eq $maxTimeAdvanceField(< OID : Field | >) = fieldTimer(< OID : Field | >) [owise] .
 
-    eq maxTimeAdvance(< OID : Robot | handledTime : false, auctions : AUS, yieldStatus : YIS, waitingStatus : WI > CONF) =
+    eq mte(< OID : Robot | handledTime : false, auctions : AUS, yieldStatus : YIS, waitingStatus : WI > CONF) =
         min(minTimer(getAuctionTimers(AUS) getYieldTimers(YIS) getWaitingTimer(WI)),
         min($maxTimeAdvanceRobot(OID, < OID : Robot | > CONF),
-        maxTimeAdvance(< OID : Robot | handledTime : true > CONF))) .
-    eq maxTimeAdvance(< OID : Field | handledTime : false, auctions : AUS > CONF) = min(minTimeToClose(AUS), min($maxTimeAdvanceField(< OID : Field | >), maxTimeAdvance(< OID : Field | handledTime : true > CONF))) .
+        mte(< OID : Robot | handledTime : true > CONF))) .
+    eq mte(< OID : Field | handledTime : false, auctions : AUS > CONF) = min(minTimeToClose(AUS), min($maxTimeAdvanceField(< OID : Field | >), mte(< OID : Field | handledTime : true > CONF))) .
     ***time until the message becomes active.
-    eq maxTimeAdvance(dly(MSG, TIME) CONF) = min(TIME, maxTimeAdvance(CONF)).
-    eq maxTimeAdvance(CONF) = ratInf [owise] .
+    eq mte(dly(MSG, TIME) CONF) = min(TIME, mte(CONF)).
+    eq mte(CONF) = ratInf [owise] .
 
-    ***Robot moves towards next location
-    eq $timeEffectRobot(< OID : Robot | state : moving, location : (X, Y), direction : north, speed : SP, remainingPath : (X2,Y2) LL >, TIME) = < OID : Robot | location : (X, Y + (SP * TIME)) > .
-    eq $timeEffectRobot(< OID : Robot | state : moving, location : (X, Y), direction : east, speed : SP, remainingPath : (X2,Y2) LL >, TIME) = < OID : Robot | location : (X + (SP * TIME), Y) > .
-    eq $timeEffectRobot(< OID : Robot | state : moving, location : (X, Y), direction : south, speed : SP, remainingPath : (X2,Y2) LL >, TIME) = < OID : Robot | location : (X, Y - (SP * TIME)) > .
-    eq $timeEffectRobot(< OID : Robot | state : moving, location : (X, Y), direction : west, speed : SP, remainingPath : (X2,Y2) LL >, TIME) = < OID : Robot | location : (X - (SP * TIME), Y) > .
+    ***Robot moves towards next coordinate
+    eq $timeEffectRobot(< OID : Robot | state : moving, coordinate : (X, Y), direction : north, speed : SP, remainingPath : (X2,Y2) LCO >, TIME) = < OID : Robot | coordinate : (X, Y + (SP * TIME)) > .
+    eq $timeEffectRobot(< OID : Robot | state : moving, coordinate : (X, Y), direction : east, speed : SP, remainingPath : (X2,Y2) LCO >, TIME) = < OID : Robot | coordinate : (X + (SP * TIME), Y) > .
+    eq $timeEffectRobot(< OID : Robot | state : moving, coordinate : (X, Y), direction : south, speed : SP, remainingPath : (X2,Y2) LCO >, TIME) = < OID : Robot | coordinate : (X, Y - (SP * TIME)) > .
+    eq $timeEffectRobot(< OID : Robot | state : moving, coordinate : (X, Y), direction : west, speed : SP, remainingPath : (X2,Y2) LCO >, TIME) = < OID : Robot | coordinate : (X - (SP * TIME), Y) > .
     ***Can be ignored if the robot is incapacitated or idle.
     ceq $timeEffectRobot(< OID : Robot | state : STATE >, TIME) = < OID : Robot | > if STATE =/= moving .
 
@@ -289,10 +288,9 @@ omod TIMED-FARM is
     eq timeEffect(dly(MSG, TIME) CONF, TIME2) = dly(MSG, TIME monus TIME2) timeEffect(CONF, TIME) .
     eq timeEffect(CONF, TIME) = CONF [owise] .
 
-
-    crl [timeEffect] :
+    crl [timeElapse] :
         CONF @ TIME
         =>
-        detect(handleCollisions(timeEffect(CONF, maxTimeAdvance(CONF)))) @ (TIME + maxTimeAdvance(CONF))
-        if maxTimeAdvance(CONF) > 0 and maxTimeAdvance(CONF) < ratInf .
+        detect(handleCollisions(timeEffect(CONF, mte(CONF)))) @ (TIME + mte(CONF))
+        if mte(CONF) > 0 and mte(CONF) < ratInf .
 endom

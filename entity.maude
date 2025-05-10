@@ -1,50 +1,49 @@
-load physicalObject .
+load direction
+load physicalObject
+
 omod ENTITY is
     protecting PHYSICAL-OBJ .
-    protecting LIST-LOCATION .
+    protecting LIST-COORDINATE .
+    protecting DIRECTION .
     
     sorts IncapacitatedState FunctioningState TimedWorkState State .
 
     subsort IncapacitatedState FunctioningState < State .
     subsort TimedWorkState < FunctioningState .
 
-    class Entity | direction : Direction, speed : Rat, maxSpeed : Rat, remainingPath : List-Location, state : State .
+    class Entity | direction : Direction, speed : Rat, maxSpeed : Rat, remainingPath : List-Coordinate, state : State .
     subclass Entity < PhysicalObj .    
 
     ops crashed failed : -> IncapacitatedState [ctor] .
     ops moving deadlocked waiting idle negotiating planningPath : -> FunctioningState [ctor] .
     ops resupplying repairing removing unloading : -> TimedWorkState [ctor] .
+
     op stoppingDistance : Object -> Rat .
 
-    op headedTowards : Object Location -> Bool . 
+    op headedTowards : Object Coordinate -> Bool . 
 
     vars OID OID2 : Oid .
     vars X X2 Y Y2 : Rat .
     var SP : Rat .
-    var LL : List-Location .
+    var LCO : List-Coordinate .
     var CONF : Configuration .
     var STATE : State .
 
-    eq headedTowards(< OID : Entity | state : moving, location : (X,Y), direction : north >, (X,Y2)) = Y2 > Y .
-    eq headedTowards(< OID : Entity | state : moving, location : (X,Y), direction : east >, (X2,Y)) = X2 > X .
-    eq headedTowards(< OID : Entity | state : moving, location : (X,Y), direction : south >, (X,Y2)) = Y > Y2 .
-    eq headedTowards(< OID : Entity | state : moving, location : (X,Y), direction : west >, (X2,Y)) = X > X2 .
+    eq headedTowards(< OID : Entity | state : moving, coordinate : (X,Y), direction : north >, (X,Y2)) = Y2 > Y .
+    eq headedTowards(< OID : Entity | state : moving, coordinate : (X,Y), direction : east >, (X2,Y)) = X2 > X .
+    eq headedTowards(< OID : Entity | state : moving, coordinate : (X,Y), direction : south >, (X,Y2)) = Y > Y2 .
+    eq headedTowards(< OID : Entity | state : moving, coordinate : (X,Y), direction : west >, (X2,Y)) = X > X2 .
     eq headedTowards(< OID : Entity | >, (X,Y)) = false [owise] .
- 
-    ceq setDirection((X,Y), (X,Y2)) = north if Y2 > Y .
-    ceq setDirection((X,Y), (X2,Y)) = east if X2 > X .
-    ceq setDirection((X,Y), (X,Y2)) = south if Y2 < Y .
-    ceq setDirection((X,Y), (X2,Y)) = west if X2 < X .
 
     eq stoppingDistance(< OID : Entity | speed : SP >) =  ((SP / 5) ^ 2) / 2 .
 
     rl [finish] :
-        < OID : Entity | location : (X,Y), remainingPath : (X,Y), state : moving >
+        < OID : Entity | coordinate : (X,Y), remainingPath : (X,Y), state : moving >
         =>
         < OID : Entity | speed : 0, remainingPath : nil, state : idle > .
 
     rl [nextIntersection] :
-        < OID : Entity | state : moving, location : (X,Y), remainingPath : (X,Y) (X2,Y2) LL > 
+        < OID : Entity | state : moving, coordinate : (X,Y), remainingPath : (X,Y) (X2,Y2) LCO > 
         =>
-        < OID : Entity | direction : setDirection((X,Y), (X2,Y2)), remainingPath : (X2,Y2) LL > .
+        < OID : Entity | direction : setDirection((X,Y), (X2,Y2)), remainingPath : (X2,Y2) LCO > .
 endom

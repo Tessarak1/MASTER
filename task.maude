@@ -1,11 +1,11 @@
 load oidSet .
 load time-inf .
-load location .
+load coordinate .
 load cost .
 load systemVars .
 
 omod TASK is
-    protecting LOCATION .
+    protecting COORDINATE .
     protecting OID-SET .
 
     ***Workers and transporters can complete different types of tasks.
@@ -20,7 +20,7 @@ omod TASK is
 
     ***A worker can work on growing crops, fixing broken robots or removing obstacles.
     ops wateringTask fertilizeTask plantTask resupplyTask : -> WorkerTask [ctor] .
-    ops removeAt_ repairAt_ : Location -> WorkerTask [ctor] .
+    ops removeAt_ repairAt_ : Coordinate -> WorkerTask [ctor] .
     ***A transporters only task is harvesting crops and delivering it to the collection point.
     ops harvestTask unloadTask : -> TransporterTask [ctor] .
 

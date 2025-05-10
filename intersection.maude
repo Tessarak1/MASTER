@@ -1,7 +1,7 @@
 load locatable .
 omod INTERSECTION is
     protecting LOCATABLE .
-    protecting LIST-LOCATION .
+    protecting LIST-COORDINATE .
     protecting STRING .
 
     ***Intersections are connected to one another. ObsIntersections cannot be traveled through
@@ -12,13 +12,13 @@ omod INTERSECTION is
     subclass ObsIntersection PassIntersection < Intersection < Locatable .
 
     ***Returns the intersections with the given locations from a configuration of them.
-    op intersectionWithLocation : Configuration List-Location -> Configuration .
+    op intersectionWithLocation : Configuration List-Coordinate -> Configuration .
 
     vars OID OID2 : Oid .
     vars X Y X2 Y2 : Rat .
     var CONF : Configuration .
-    var LL : List-Location .
+    var LCO : List-Coordinate .
 
-    eq intersectionWithLocation(< OID : Intersection | location : (X, Y) > CONF, (X, Y) LL) = < OID : Intersection | > intersectionWithLocation(CONF, LL) .
-    eq intersectionWithLocation(CONF, LL) = none [owise] .
+    eq intersectionWithLocation(< OID : Intersection | coordinate : (X, Y) > CONF, (X, Y) LCO) = < OID : Intersection | > intersectionWithLocation(CONF, LCO) .
+    eq intersectionWithLocation(CONF, LCO) = none [owise] .
 endom

@@ -1,7 +1,7 @@
 load cost .
-load location .
+load coordinate .
 omod NEGOTIATION is
-    protecting LIST-LOCATION .
+    protecting LIST-COORDINATE .
     protecting COST .
     
     sorts Negotiation NegotiationSet .
@@ -11,7 +11,7 @@ omod NEGOTIATION is
     subsort String < Oid .
 
     op none : -> NegotiationSet [ctor] .
-    op [_|_|_] : Oid Location Cost -> Negotiation [ctor] .
+    op [_|_|_] : Oid Coordinate Cost -> Negotiation [ctor] .
     op __ : NegotiationSet NegotiationSet -> NegotiationSet [ctor assoc comm id: none] .
 
     ***Creates a new negotiation with another robot, or updates an existing one.
@@ -26,7 +26,7 @@ omod NEGOTIATION is
     vars X X2 Y Y2 : Rat .
     var NS : NegotiationSet .
     vars COST COST2 : Cost .
-    var LL : List-Location .
+    var LCO : List-Coordinate .
 
     eq addNegotiation([OID | (X,Y) | COST] NS, [OID | (X2,Y2) | COST2]) = [OID | (X2,Y2) | COST2] NS .
     eq addNegotiation(NS, [OID | (X,Y) | COST]) = [OID | (X,Y) | COST] NS [owise] .

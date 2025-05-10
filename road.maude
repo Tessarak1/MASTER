@@ -1,21 +1,21 @@
-load location .
+load coordinate .
 fmod ROAD is
-    protecting LIST-LOCATION .
+    protecting LIST-COORDINATE .
     protecting RAT .
 
     sorts Road RoadSet .
     subsort Road < RoadSet .
 
     ***RoadSet constructors. A road is defined by two locations on the same axis.
-    op {__} : Location Location -> Road [ctor comm] .
+    op {__} : Coordinate Coordinate -> Road [ctor comm] .
     op noRoad : -> RoadSet [ctor] .
     op _,_ : RoadSet RoadSet -> RoadSet [assoc comm id: noRoad] .
 
-    op findRoad : List-Location RoadSet -> RoadSet .
-    op splitRoad : Location Road RoadSet -> RoadSet .
+    op findRoad : List-Coordinate RoadSet -> RoadSet .
+    op splitRoad : Coordinate Road RoadSet -> RoadSet .
     ***Checks if the first rat is in the interval between the two others.
     op _inRange(_,_) : Rat Rat Rat -> Bool .
-    op _inRange(_) : Location Road -> Bool .
+    op _inRange(_) : Coordinate Road -> Bool .
     op _\_ : RoadSet RoadSet -> RoadSet .
     op commonIntersection : Road Road -> Bool [comm] .
     op size : RoadSet -> Nat .
@@ -24,15 +24,15 @@ fmod ROAD is
     vars X X2 X3 Y Y2 Y3 : Rat .
     vars RS RS2 : RoadSet .
     vars RO RO2 : Road .
-    var LL : List-Location .
+    var LCO : List-Coordinate .
 
     eq ({(X,Y) (X2,Y2)} , {(X,Y) (X2,Y2)}) = {(X,Y) (X2,Y2)} .
 
-    eq findRoad((X,Y) LL, noRoad) = noRoad .
+    eq findRoad((X,Y) LCO, noRoad) = noRoad .
     eq findRoad(nil, RS) = noRoad .
-    ceq findRoad((X,Y) LL, (RO , RS)) = (RO , findRoad((X,Y) LL, RS))
+    ceq findRoad((X,Y) LCO, (RO , RS)) = (RO , findRoad((X,Y) LCO, RS))
         if (X,Y) inRange(RO) .
-    eq findRoad((X,Y) LL, RS) = findRoad(LL, RS) [owise] .
+    eq findRoad((X,Y) LCO, RS) = findRoad(LCO, RS) [owise] .
 
     eq splitRoad((X,Y), {(X2,Y2) (X3,Y3)}, ({(X2,Y2) (X3,Y3)} , RS)) = ({(X,Y) (X2,Y2)} , {(X,Y) (X3,Y3)} , RS) .
     eq splitRoad((X,Y), {(X2,Y2) (X3,Y3)}, RS) = ({(X,Y) (X2,Y2)} , {(X,Y) (X3,Y3)} , RS) [owise] .

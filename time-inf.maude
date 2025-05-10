@@ -43,7 +43,6 @@ omod TIMER is
     op reset : Timer -> Timer .
     op decrease : Timer Time -> Timer .
     ***For a set as well
-    op decreaseTimerSet : TimerSet Time -> TimerSet .
     op expired : Timer -> Bool .
     op decreaseTimers : Object Time -> Object .
     op minTimer : TimerSet -> Time .
@@ -51,10 +50,6 @@ omod TIMER is
     vars TIME TIME2 TIME3 : Time .
     var TS : TimerSet .
     var TR : Timer .
-    var AS : AttributeSet .
-    var O : Oid .
-    var C : Cid .
-    var A : Attribute .
 
     eq TIME monus TIME2 = if (TIME - TIME2) < 0 then 0 else TIME - TIME2 fi .
 

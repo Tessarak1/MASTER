@@ -18,7 +18,7 @@ endom
  
 omod MESSAGE is
   protecting MESSAGE-WRAPPER .
-  protecting LIST-LOCATION .
+  protecting LIST-COORDINATE .
   protecting TASK .
   protecting TIME-INF .
   protecting NEGOTIATION .
@@ -29,8 +29,8 @@ omod MESSAGE is
   subsort Tid < MsgContent .
 
   op dly : Msg Time -> DlyMsg [ctor right id: 0] .
-  ops obstacleAt_ removed_ yielding_ : Location -> MsgContent .
-  ops path conflictYield : List-Location -> MsgContent .
+  ops obstacleAt_ removed_ yielding_ : Coordinate -> MsgContent .
+  ops path conflictYield : List-Coordinate -> MsgContent .
   op pathCost : Cost -> MsgContent .
   ops requestPath noConflict completedYield noYield : -> MsgContent .
 
