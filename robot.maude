@@ -4,7 +4,7 @@ load message .
 load map .
 load field .
 load obstacle .
-load buildings .
+load sites .
 load auctioneer .
 load fail .
 load entity
@@ -17,7 +17,7 @@ omod ROBOT is
     protecting TIME-INF .
     protecting FIELD .
     protecting PATHFINDER .
-    protecting BUILDINGS .
+    protecting SITES .
     protecting ENTITY .
 
     sort CargoLevel .
@@ -37,7 +37,7 @@ omod ROBOT is
 
     class Robot | detectionRange : Rat, cargoLevel : CargoLevel, curCargo : Cargo,
         detected : Representation, obstructionPoints : List-Location,
-        curTask : TaskStatus, workState : WorkState .
+        curTask : TaskStatus, workState : WorkState, handledTime : Bool .
     class Worker .
     class Transporter .
     
@@ -214,7 +214,7 @@ omod ROBOT is
     eq needsResupply(< OID : Robot | >, TID) = false [owise] .
     eq cPointLocCheck(< OID : Robot | >, TID, (X,Y)) = if needsCPoint(< OID : Robot | >, TID) then (X,Y) else nil fi .
     eq resupplyLocCheck(< OID : Robot | >, TID, (X,Y)) = if needsResupply(< OID : Robot | >, TID) then (X,Y) else nil fi .
-    eq performChecks(< OID : Robot | >, TID, < OID2 : ResupplyStation | location : (X,Y) > < OID3 : CollectionStation | location : (X2,Y2) > CONF) =
+    eq performChecks(< OID : Robot | >, TID, < OID2 : ResupplySite | location : (X,Y) > < OID3 : CollectionSite | location : (X2,Y2) > CONF) =
         resupplyLocCheck(< OID : Robot | >, TID, (X,Y)) cPointLocCheck(< OID : Robot | >, TID, (X2,Y2)) .
     eq canCompleteNow(< OID : Worker | state : FUNC >, [OID2, removeAt (X,Y), N]) = true .
     eq canCompleteNow(< OID : Worker | state : FUNC >, [OID2, repairAt (X,Y), N]) = true .
@@ -503,16 +503,18 @@ omod ROBOT is
         =>
         < OID : Robot | speed : 0, state : idle, curTask : noTask, workState : noWork >
         < OID2 : Robot | state : idle > .
+    
+    ***Correct pattern or extract Sites to upper layer of configuration?
     crl [startResupply] :
         < OID : Robot | state : FUNC, location : (X,Y), curTask : TID >
-        < OID2 : Map | allIntersections : < OID3 : ResupplyStation | location : (X,Y), AS > CONF >
+        < OID2 : Map | allIntersections : < OID3 : ResupplySite | location : (X,Y), AS > CONF >
         =>
         < OID : Robot | state : resupplying > 
         < OID2 : Map | > 
         if needsResupply(< OID : Robot | >, TID) .
     rl [finishResupply] :
         < OID : Robot | location : (X,Y), state : resupplying, curTask : [OID2, TT, N] >
-        < OID3 : Map | allIntersections : < OID4 : ResupplyStation | location : (X,Y), AS > CONF > 
+        < OID3 : Map | allIntersections : < OID4 : ResupplySite | location : (X,Y), AS > CONF > 
         =>
         if (TT == watering)
         then

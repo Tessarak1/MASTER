@@ -1,0 +1,8 @@
+load intersection .
+omod SITES is
+    protecting INTERSECTION .
+    protecting NAT .
+    class CollectionSite | collections : Nat .
+    class ResupplySite .
+    subclass CollectionSite ResupplySite < PassIntersection .
+endom

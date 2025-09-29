@@ -33,36 +33,3 @@ fmod TIME-INF is
     eq intervalOverlap(interval(T, T'), interval(T2, T2')) = false [owise] .
 endfm 
 
-omod TIMER is
-    protecting TIME-INF .
-
-    sorts Timer TimerSet .
-    subsort Timer < TimerSet .
-
-    op none : -> TimerSet [ctor] .
-    op __ : TimerSet TimerSet -> TimerSet [ctor assoc comm id: none] .
-    op [cur:_- base:_] : Time Time -> Timer [ctor] .
-    op _monus_ : Time Time -> Time .
-    op reset : Timer -> Timer .
-    op decrease : Timer Time -> Timer .
-    op expired : Timer -> Bool .
-    op decreaseTimers : Object Time -> Object .
-    op untilTimerExpire : Object -> Time .
-    op minCur : TimerSet -> Time .
-
-    vars T T2 T3 : Time .
-    var TS : TimerSet .
-    var TR : Timer .
-    var AS : AttributeSet .
-    var O : Oid .
-    var C : Cid .
-    var A : Attribute .
-
-    eq T monus T2 = if (T - T2) < 0 then 0 else T - T2 fi .
-    eq reset([cur: T - base: T2]) = [cur: T2 - base: T2] .
-    eq decrease([cur: T - base: T2], T3) = [cur: T monus T3 - base: T2] .
-    eq expired([cur: 0 - base: T2]) = true .
-    eq expired(TR) = false [owise] .
-    eq minCur(none) = inf .
-    eq minCur([cur: T - base: T2] TS) = min(T, minCur(TS)) .
-endom

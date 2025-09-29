@@ -3,7 +3,7 @@ omod PHYSICAL-OBJ is
     protecting STRING .
     protecting LOCATABLE .
 
-    class PhysicalObj | handledTime : Bool .
+    class PhysicalObj | .
     subclass PhysicalObj < Locatable .
 
     subsort String < Oid .

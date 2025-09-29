@@ -29,19 +29,19 @@ omod FINAL-TESTS is
   eq I6 = < "I6" : Intersection | location : (60,-60)  , neighbors : "I5" "I7" "I2" > .
   eq I7 = < "I7" : Intersection | location : (90,-60)  , neighbors : "I6" "I8" "GL2" "GL4" > .
   eq I8 = < "I8" : Intersection | location : (120,-60)  , neighbors : "I7" "I3" > .
-  eq GL1 = < "GL1" : Field | location : (30, -50), neighbors : "I5", growingState : harvest, waterLevel : low, fertilizerLevel : good, 
+  eq GL1 = < "GL1" : Field | location : (30, -50), neighbors : "I5", state : harvest, waterLevel : low, fertilizerLevel : good, 
     waterTimer : [cur: 0 - base: 1000], fertilizerTimer : [cur: 10000 - base: 100], growTimer : [cur: 10000 - base: 100], taskNr : 1,
     growingArea : area((10,-10), (50,-10), (10,-50), (50,-50)), workers : "R1", transporters : none,
     auctions : noAuction > .
-  eq GL2 = < "GL2" : Field | location : (90, -50), neighbors : "I7", growingState : harvest, waterLevel : low, fertilizerLevel : good, 
+  eq GL2 = < "GL2" : Field | location : (90, -50), neighbors : "I7", state : harvest, waterLevel : low, fertilizerLevel : good, 
     waterTimer : [cur: 0 - base: 1000], fertilizerTimer : [cur: 10000 - base: 100], growTimer : [cur: 10000 - base: 100], taskNr : 1,
     growingArea : area((70,-10), (110,-10), (70, -50), (110,-50)), workers : "R1" "R2" "R3", transporters : none,
     auctions : noAuction > .
-  eq GL3 = < "GL3" : Field | location : (30, -70), neighbors : "I5", growingState : harvest, waterLevel : low, fertilizerLevel : good, 
+  eq GL3 = < "GL3" : Field | location : (30, -70), neighbors : "I5", state : harvest, waterLevel : low, fertilizerLevel : good, 
     waterTimer : [cur: 0 - base: 1000], fertilizerTimer : [cur: 10000 - base: 100], growTimer : [cur: 10000 - base: 100], taskNr : 1,
     growingArea : area((10,-70), (50,-70), (10,-110), (50,-110)), workers : "R1" "R2" "R3", transporters : none,
     auctions : noAuction > .
-  eq GL4 = < "GL4" : Field | location : (90, -70), neighbors : "I5", growingState : harvest, waterLevel : low, fertilizerLevel : good, 
+  eq GL4 = < "GL4" : Field | location : (90, -70), neighbors : "I5", state : harvest, waterLevel : low, fertilizerLevel : good, 
     waterTimer : [cur: 0 - base: 1000], fertilizerTimer : [cur: 10000 - base: 100], growTimer : [cur: 10000 - base: 100], taskNr : 1,
     growingArea : area((70,-70), (110,-70), (70,-110), (110,-110)), workers : "R1" "R2" "R3", transporters : none,
     auctions : noAuction > .
@@ -49,8 +49,8 @@ omod FINAL-TESTS is
   eq GLREP2 = < "GL2" : Field | location : (90, -50), neighbors : "I7" >  .
   eq GLREP3 = < "GL3" : Field | location : (30,-70), neighbors : "I5" > .
   eq GLREP4 = < "GL4" : Field | location : (90,-70), neighbors : "I7" > .
-  eq resupply = < "Resupply" : ResupplyStation | location : (120,40), neighbors : "I3" > .
-  eq cpoint = < "CPoint" : CollectionStation | location : (0,40), neighbors : "I1" > .
+  eq resupply = < "Resupply" : ResupplySite | location : (120,40), neighbors : "I3" > .
+  eq cpoint = < "CPoint" : CollectionSite | location : (0,40), neighbors : "I1" > .
   eq locations = I1 I2 I3 I4 I5 I6 I7 I8 GLREP1 GLREP2 GLREP3 GLREP4 resupply cpoint .
   eq obstacles = < "O1" : Obstacle | location : (1,0) > .
   eq map = < "Map" : Map | allIntersections : locations, paths : createPathSet(locations) > .
