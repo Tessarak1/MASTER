@@ -12,6 +12,9 @@ fmod TIME-INF is
     op _<=_ : TimeInf TimeInf -> Bool [ditto] .
     op _>_ : TimeInf TimeInf -> Bool [ditto] .
     op _>=_ : TimeInf TimeInf -> Bool [ditto] .
+    op _monus_ : Time Time -> Time .
+    ops min max : TimeInf TimeInf -> TimeInf [ditto] .
+
     vars TIME TIME' TIME2 TIME2' : Time .
     vars INF INF' : TimeInf .
 
@@ -24,41 +27,51 @@ fmod TIME-INF is
     eq ratInf >= INF = true .
     eq TIME >= ratInf = false .
 
-    ops min max : TimeInf TimeInf -> TimeInf [ditto] .
+    
     eq max(INF, ratInf) = ratInf .
     eq min(INF, ratInf) = INF .
 
+    eq TIME monus TIME2 = if (TIME - TIME2) < 0 then 0 else TIME - TIME2 fi .
 endfm 
 
 omod TIMER is
     protecting TIME-INF .
 
-    sorts Timer TimerSet .
-    subsort Timer < TimerSet .
+    sort Timer .
 
-    op noTimer : -> TimerSet [ctor] .
-    op __ : TimerSet TimerSet -> TimerSet [ctor assoc comm id: noTimer] .
     op [cur:_- base:_] : Time Time -> Timer [ctor] .
-    op _monus_ : Time Time -> Time .
     op reset : Timer -> Timer .
     op decrease : Timer Time -> Timer .
-    ***For a set as well
     op expired : Timer -> Bool .
-    op decreaseTimers : Object Time -> Object .
-    op minTimer : TimerSet -> Time .
 
     vars TIME TIME2 TIME3 : Time .
-    var TS : TimerSet .
     var TR : Timer .
-
-    eq TIME monus TIME2 = if (TIME - TIME2) < 0 then 0 else TIME - TIME2 fi .
 
     eq reset([cur: TIME - base: TIME2]) = [cur: TIME2 - base: TIME2] .
 
+    ***Is monus really necessary here? Time is never supposed to be above the remaining time of a timer.
     eq decrease([cur: TIME - base: TIME2], TIME3) = [cur: TIME monus TIME3 - base: TIME2] .
-    
-    eq expired([cur: TIME - base: TIME2]) = TIME == 0 .
 
-    eq minTimer(noTimer) = ratInf .
-    eq minTimer([cur: TIME - base: TIME2] TS) = min(TIME, minTimer(TS)) .
+    eq expired([cur: TIME - base: TIME2]) = TIME == 0 .
+endom
+
+view Timer from TRIV to TIMER is
+    sort Elt to Timer .
+endv
+
+omod TIMER-SET is
+    protecting SET{Timer} .
+
+    op minTimer : Set{Timer} -> Time .
+
+    ***Gettimers and decreasetimers should be moved to superclass of Field and Robot.
+    var STR : Set{Timer} .
+    vars TIME TIME2 : Time .
+
+
+    op getTimers : Object -> Set{Timer} .
+    op decreaseTimers : Object Time -> Object .
+
+    eq minTimer(empty) = ratInf .
+    eq minTimer(([cur: TIME - base: TIME2], STR)) = min(TIME, minTimer(STR)) .
 endom

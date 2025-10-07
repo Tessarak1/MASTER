@@ -1,7 +1,6 @@
 fmod COORDINATE is 
     protecting CONVERSION .
 
-    ***Sort Area denotes a rectangular area, the coordinateSet denotes the four corners of said area.
     sorts Coordinate CoordinateSet Area .
 
     subsort Coordinate < CoordinateSet .
@@ -57,17 +56,17 @@ fmod LIST-COORDINATE is
     op sharedLocation : List-Coordinate List-Coordinate -> List-Coordinate .
 
     vars LCO LCO2 LCO3 LCO4 : List-Coordinate .
-    vars L L2 : Coordinate .
+    var CO : Coordinate .
     vars X X2 X3 X4 Y Y2 Y3 Y4 : Rat .
 
     eq first(nil) = nil .
-    eq first(L LCO) = L .
+    eq first(CO LCO) = CO .
 
     eq last(nil) = nil .
-    eq last(LCO L) = L .
+    eq last(LCO CO) = CO .
 
-    eq between(L, nil) = nil .
-    eq between(L, (X,Y)) = nil .
+    eq between(CO, nil) = nil .
+    eq between(CO, (X,Y)) = nil .
     eq between((X, Y), (X2, Y2) (X3, Y3) LCO) =
         if ((X inInterval(X2,X3)) and (Y inInterval(Y2,Y3))) then
             (X2, Y2) (X3,Y3)

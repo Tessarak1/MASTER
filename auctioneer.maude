@@ -41,7 +41,6 @@ omod AUCTIONEER is
     var BS : BidSet .
     var TPT : TransporterTask .
     var WT : WorkerTask .
-    var OS : OidSet .
     var CONF : Configuration .
     vars COST : Cost .
 

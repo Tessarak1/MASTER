@@ -1,0 +1,16 @@
+***Parameterized multiset
+fmod MSET{X :: TRIV} is
+    sort MSet{X} .
+    subsort X$Elt < MSet{X} .
+
+    op none : -> MSet{X} [ctor] .
+    op _,_ : MSet{X} MSet{X} -> MSet{X} [ctor assoc comm id: none] .
+
+    op _in_ : X$Elt MSet{X} -> Bool .
+
+    var E : X$Elt .
+    var MS : MSet{X} .
+    
+    eq E in (E , MS) = true .
+    eq E in MS = false [owise] .
+endfm

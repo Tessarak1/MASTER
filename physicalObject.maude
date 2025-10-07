@@ -2,29 +2,29 @@ load locatable .
 omod PHYSICAL-OBJ is
     protecting STRING .
     protecting LOCATABLE .
+    protecting LIST-COORDINATE .
 
     class PhysicalObj .
     subclass PhysicalObj < Locatable .
 
     subsort String < Oid .
 
-    ***Takes in two locations, A and B, and the physical objects in the system.
-    ***Returns the object that is between A and B, and is closest to A.
     op objectInWay : Coordinate Coordinate Configuration -> Configuration .
     op objectSet : Coordinate Coordinate Configuration -> Configuration .
 
-    vars S S' : String .
-    vars L L' : Coordinate .
+    vars OID OID2 : String .
+    vars L L2 : Coordinate .
     vars X X2 X3 Y Y2 Y3 : Rat .
     var CONF : Configuration .
 
-    eq distance(< S : PhysicalObj | coordinate : L >, < S' : PhysicalObj | coordinate : L' >) = distance(L, L') .
+    eq distance(< OID : PhysicalObj | coordinate : L >, < OID2 : PhysicalObj | coordinate : L2 >) = distance(L, L2) .
 
-    eq objectSet((X,Y), (X2,Y2), none) = none .
-    ceq objectSet((X,Y), (X,Y2), < S : PhysicalObj | coordinate : (X,Y3) > CONF) = < S : PhysicalObj | > objectSet((X,Y), (X,Y2), CONF) if Y3 inInterval(Y, Y2).
-    ceq objectSet((X,Y), (X2,Y), < S : PhysicalObj | coordinate : (X3, Y) > CONF) = < S : PhysicalObj | > objectSet((X,Y), (X2,Y), CONF) if X3 inInterval(X,X2) .
+    ceq objectSet((X,Y), (X2,Y2), < OID : PhysicalObj | coordinate : (X3,Y3) > CONF) =
+        < OID : PhysicalObj | > objectSet((X,Y), (X2,Y2), CONF) 
+        if between((X3,Y3), (X,Y) (X2,Y2)) =/= nil .
     eq objectSet((X,Y), (X2,Y2), CONF) = none [owise] .
 
-    ceq objectInWay((X,Y), (X2,Y2), CONF) = minDistance(none, (X,Y), objectSet((X,Y), (X2,Y2), CONF)) if objectSet((X,Y), (X2,Y2), CONF) =/= none .
+    ceq objectInWay((X,Y), (X2,Y2), CONF) = minDistance(none, (X,Y), objectSet((X,Y), (X2,Y2), CONF)) 
+        if objectSet((X,Y), (X2,Y2), CONF) =/= none .
     eq objectInWay((X,Y), (X2,Y2), CONF) = none [owise] .
 endom

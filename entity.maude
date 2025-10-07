@@ -1,6 +1,7 @@
 load direction
 load physicalObject
 
+***Merge this into robot?
 omod ENTITY is
     protecting PHYSICAL-OBJ .
     protecting LIST-COORDINATE .

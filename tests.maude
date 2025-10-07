@@ -15,7 +15,7 @@ omod BASE is
   op map1 : -> Object .
   op base1 : -> ClockedConfiguration .
 
-  eq robotAttrs = broadcastRange : 200, maxSpeed : 1, detected : none, auctions : noAuction, curTask : noTask,
+  eq robotAttrs = broadcastRange : 200, maxSpeed : 1, detected : emptyRepresentationSet, auctions : noAuction, curTask : noTask,
     handledTime : false, workState : noWork, detectionRange : 10, obstructionPoints : nil, negotiations : none, yieldStatus : noYieldInformation, waitingStatus : noWaitingInformation .
   ***eq workerAttrs = cargoLevel : empty .
   eq transporterAttrs = cargoLevel : empty .
@@ -57,11 +57,11 @@ omod HIERARCHY-TESTS is
   op yieldFarm : -> Configuration .
   op yieldTest : -> ClockedConfiguration .
 
-  eq customAttrs = broadcastRange : 200, maxSpeed : 1, detected : none, auctions : noAuction,  handledTime : false, 
+  eq customAttrs = broadcastRange : 200, maxSpeed : 1, detected : emptyRepresentationSet, auctions : noAuction,  handledTime : false, 
     detectionRange : 10, obstructionPoints : nil .
   eq customFieldAttrs = waterLevel : low, waterTimer : [cur: 0 - base: 1000] .
 
-  eq yieldAttrs = broadcastRange : 200, maxSpeed : 1, detected : none, auctions : noAuction, handledTime : false,
+  eq yieldAttrs = broadcastRange : 200, maxSpeed : 1, detected : emptyRepresentationSet, auctions : noAuction, handledTime : false,
     detectionRange : 10, obstructionPoints : nil, cargoLevel : empty, workState : noWork, waitingStatus : noWaitingInformation,
     negotiations : none .
 
@@ -115,7 +115,7 @@ omod ROW-TESTS is
   op rowTest : -> ClockedConfiguration .
   op obstacle1 : -> Object .
 
-  eq rowAttrs = broadcastRange : 200, maxSpeed : 1, detected : none, auctions : noAuction, handledTime : false,
+  eq rowAttrs = broadcastRange : 200, maxSpeed : 1, detected : emptyRepresentationSet, auctions : noAuction, handledTime : false,
     detectionRange : 10, obstructionPoints : nil, cargoLevel : full, workState : noWork, waitingStatus : noWaitingInformation,
     negotiations : none .
 
@@ -136,6 +136,6 @@ omod ROW-TESTS is
 endom
 red mte(< "O" : Obstacle | coordinate : (21, 0) >
 < "R2" : Worker | coordinate : (20, 0), broadcastRange : 200, handledTime : false, auctions : noAuction, direction : east, speed : 1, maxSpeed : 1, remainingPath : ((100, 0) (100, -100) (150, -100)), state :
-    moving, detectionRange : 10, cargoLevel : full, curCargo : water, detected : none, obstructionPoints : nil, curTask : ["GL2", fertilizeTask], workState : noWork, negotiations : none, yieldStatus :
+    moving, detectionRange : 10, cargoLevel : full, curCargo : water, detected : emptyRepresentationSet, obstructionPoints : nil, curTask : ["GL2", fertilizeTask], workState : noWork, negotiations : none, yieldStatus :
     noYieldInformation, waitingStatus : noWaitingInformation > < "Resupply" : ResupplyStation | coordinate : (-50, -100), neighbors : "I3" >) .
 ***search [1] rowTest =>* < "R1" : Worker | coordinate : (150,100), AS:AttributeSet > C:Configuration @ T:Time .

@@ -10,8 +10,15 @@ omod FIELD is
     sort GrowingState .
     ***states if a field needs water or fertilizer.
     sort Level .
-    class Field | growingState : GrowingState, waterLevel : Level, fertilizerLevel : Level, 
-        waterTimer : Timer, fertilizerTimer : Timer, growTimer : Timer, growingArea : Area, reserved : Bool,
+    class Field | 
+        growingState : GrowingState, 
+        waterLevel : Level, 
+        fertilizerLevel : Level, 
+        waterTimer : Timer,
+        fertilizerTimer : Timer,
+        growTimer : Timer,
+        growingArea : Area,
+        reserved : Bool,
         activeTasks : TaskTypeSet .
 
     subclass Field < PassIntersection Auctioneer .
@@ -38,7 +45,6 @@ omod FIELD is
     var AUS : AuctionSet .
     var CONF : Configuration .
     var BS : BidSet .
-    var MC : MsgContent .
     var TTS : TaskTypeSet .
 
     eq taskComplete(< OID : Field | waterTimer : TR, reserved : true, activeTasks : wateringTask , TTS >, [OID, wateringTask]) = < OID : Field | waterLevel : good, waterTimer : reset(TR), reserved : false, activeTasks : TTS > .
@@ -94,10 +100,17 @@ omod FIELD is
 
     ***Creates the relevant auction if one does not already exist.
     crl [startWaterAuction] :
-        < OID : Field | waterLevel : low, growingState : growing, activeTasks : TTS >
+        < OID : Field | 
+            waterLevel : low, 
+            growingState : growing,
+            activeTasks : TTS >
         CONF
         =>
-        initiateAuction(< OID : Field | activeTasks : wateringTask , TTS >, [OID, wateringTask], CONF)
+        initiateAuction(
+            < OID : Field | 
+                activeTasks : (wateringTask , TTS) >,
+            [OID, wateringTask],
+            CONF)
         CONF
         if not inSet(wateringTask, TTS) .
 

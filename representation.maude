@@ -1,0 +1,22 @@
+load direction .
+load coordinate .
+
+***import state here, or do something else, moving, unmoving , broken?
+omod REPRESENTATION is
+    protecting COORDINATE .
+    protecting DIRECTION .
+
+    sorts Information InformationSet .
+    sorts Representation RepresentationSet .
+    subsorts Coordinate Direction State < Information < InformationSet .
+    subsort Representation < RepresentationSet .
+
+    op emptyInformationSet : -> InformationSet [ctor] .
+    op _;_ : InformationSet InformationSet -> InformationSet [ctor assoc comm id: emptyInformationSet] .
+    op detectedSpeed : Rat -> Information [ctor] . 
+
+    op emptyRepresentationSet : -> RepresentationSet [ctor] .
+    op __ : RepresentationSet RepresentationSet -> RepresentationSet [ctor assoc comm id: emptyRepresentationSet] .
+    op {_:_|_} : Oid Cid InformationSet -> Representation .
+    op _notIn_ : Oid RepresentationSet -> Bool .
+endom

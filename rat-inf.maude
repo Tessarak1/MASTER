@@ -40,9 +40,7 @@ fmod RAT-INF is
     --- eq R + -ratInf = -ratInf .
     --- eq R - -ratInf = ratInf .
     --- eq -ratInf - R = -ratInf .
-
-    ***maybe implement rest of ratinf operators for negative ratinf, but is never used.
-
+    
     eq max(INF, ratInf) = ratInf .
     eq min(INF, ratInf) = INF .
 endfm 
