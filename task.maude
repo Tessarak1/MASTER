@@ -88,9 +88,6 @@ omod AUCTION is
     ***returns the Oids of received bids.
     op bidders : BidSet -> OidSet .
 
-    ***returns minimum time until a timer in the auction set expires, ratInf if there are none.
-    op minTimeToClose : AuctionSet -> TimeInf .
-
     ***Returns the auctions' timers
     op getAuctionTimers : AuctionSet -> TimerSet .
 
@@ -127,9 +124,6 @@ omod AUCTION is
 
     eq bidders(noBid) = none .
     eq bidders([OID bids COST] BS) = OID bidders(BS) .
-
-    eq minTimeToClose(noAuction) = ratInf .
-    eq minTimeToClose([Task: TID [cur: TIME - base: TIME2] | BS] AUS) = min(TIME, minTimeToClose(AUS)) .
 
     eq getAuctionTimers(noAuction) = noTimer .
     eq getAuctionTimers([Task: TID TR | BS] AUS) = TR getAuctionTimers(AUS) .
