@@ -26,20 +26,6 @@ fmod RAT-INF is
     eq ratInf >= INF = true .
     eq R >= ratInf = false .
     eq R + ratInf = ratInf .
-    --- eq R - ratInf = -ratInf .
-    --- eq ratInf - R = ratInf .
-
-    --- eq -ratInf < R = true .
-    --- eq INF < -ratInf = false .
-    --- eq -ratInf <= INF = true .
-    --- eq R <= -ratInf = false .
-    --- eq -ratInf > INF = false .
-    --- eq R > -ratInf = true .
-    --- eq -ratInf >= R = false .
-    --- eq INF >= -ratInf = true .
-    --- eq R + -ratInf = -ratInf .
-    --- eq R - -ratInf = ratInf .
-    --- eq -ratInf - R = -ratInf .
     
     eq max(INF, ratInf) = ratInf .
     eq min(INF, ratInf) = INF .

@@ -18,8 +18,8 @@ endom
  
 omod MESSAGE is
   protecting MESSAGE-WRAPPER .
-  protecting LIST-COORDINATE .
-  protecting TASK .
+  protecting COORDINATE-LIST .
+  protecting TASK-MSET .
   protecting TIME-INF .
   protecting NEGOTIATION .
   
@@ -35,12 +35,12 @@ omod MESSAGE is
   ops requestPath noConflict completedYield noYield : -> MsgContent .
 
   ***Converts a set of tasks into msg content set.
-  op tidToMsgContent : TidSet -> MsgContentSet .
+  op tidToMsgContent : MSet{TidElt} -> MsgContentSet .
 
   var TID : Tid .
-  var TIDS : TidSet .
+  var TIDS : MSet{TidElt} .
 
-  eq tidToMsgContent(none) = noContent .
+  eq tidToMsgContent(empty) = noContent .
   eq tidToMsgContent(TID TIDS) = TID & tidToMsgContent(TIDS) .
 endom
 
@@ -55,29 +55,29 @@ omod MESSENGER is
   
   subclass Messenger < Locatable .
 
-  ***Creates a message from Oid to everyone in the OidSet.
-  op broadcast : Oid MsgContent OidSet -> Configuration .
+  ***Creates a message from Oid to everyone in the Set{OidElt}.
+  op broadcast : Oid MsgContent Set{OidElt} -> Configuration .
 
   ***Broadcasts messages from Object to each object in the configuration that is in range.
   op broadcastInRange : Object MsgContent Configuration -> Configuration .
-  op $broadcastInRange : Oid MsgContent OidSet -> Configuration .
+  op $broadcastInRange : Oid MsgContent Set{OidElt} -> Configuration .
 
   ***returns the oids of messengers.
-  op messengerOids : Configuration -> OidSet .
+  op messengerOids : Configuration -> Set{OidElt} .
 
   vars OID OID2 : Oid .
-  var OIDS : OidSet .
+  var OIDS : Set{OidElt} .
   var R : Rat .
   var MC : MsgContent .
   var MCS : MsgContentSet .
   var CONF : Configuration .
-  var TIDS : TidSet .
+  var TIDS : MSet{TidElt} .
 
-  eq messengerOids(< OID : Messenger | > CONF) = OID messengerOids(CONF) .
-  eq messengerOids(CONF) = none [owise] .
+  eq messengerOids(< OID : Messenger | > CONF) = (OID, messengerOids(CONF)) .
+  eq messengerOids(CONF) = empty [owise] .
 
-  eq broadcast(OID, MC, none) = none .
-  eq broadcast(OID, MC, OID2 OIDS) = dly((msg MC from OID to OID2), MSG-DELAY) broadcast(OID, MC, OIDS) .
+  eq broadcast(OID, MC, empty) = none .
+  eq broadcast(OID, MC, (OID2, OIDS)) = dly((msg MC from OID to OID2), MSG-DELAY) broadcast(OID, MC, OIDS) .
 
   eq broadcastInRange(< OID : Messenger | >, noContent, CONF) = none .
   eq broadcastInRange(< OID : Messenger | broadcastRange : R >, MCS, CONF) =

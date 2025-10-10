@@ -4,18 +4,18 @@
 
     Copyright 2017-2022 SRI International, Menlo Park, CA 94025, USA.
 
-    This program is free software; you can redistribute it and/or modify
+    This program is free software, you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
+    the Free Software Foundation, either version 2 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    but WITHOUT ANY WARRANTY, without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
+    along with this program, if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 )
@@ -351,7 +351,7 @@ fmod FM-SUBSTITUTION-HANDLING is
   op _<<_ : Term Substitution -> Term .
   eq TL << none = TL .
   eq C << Subst = C .
-  eq V << ((V <- T) ; Subst) = T .
+  eq V << ((V <- T) , Subst) = T .
   eq V << Subst = V [owise] .
   eq F[TL] << Subst = F[TL << Subst] .
 
@@ -369,14 +369,14 @@ fmod FM-SUBSTITUTION-HANDLING is
   op _<<_ : Substitution Substitution -> Substitution .
   eq S << (none).Substitution = S .
   eq (none).Substitution << S = (none).Substitution .
-  eq ((V' <- T) ; S') <<  S
+  eq ((V' <- T) , S') <<  S
    = (V' <- (T << S))
-     ;
+     ,
      (S' << S) .
 
   --- Combine Substitutions -------------------------------------------------
   op _.._ : Substitution Substitution -> Substitution .
-  eq S .. S' = (S << S') ; S' .
+  eq S .. S' = (S << S') , S' .
 
   --- Restrict Assignments to Variables in a Term ----------------------
   op _|>_ : Substitution TermList -> Substitution .
@@ -391,11 +391,11 @@ fmod FM-SUBSTITUTION-HANDLING is
                  Substitution -> Substitution .
   eq none |>** TL [Subst']
    = Subst' .
-  eq ((V <- V) ; Subst) |>** TL [Subst']
+  eq ((V <- V) , Subst) |>** TL [Subst']
    = Subst |>** TL [Subst'] .
-  eq ((V <- T') ; Subst) |>** TL [Subst']
+  eq ((V <- T') , Subst) |>** TL [Subst']
     = Subst |>** TL
-      [Subst' ; if any V in TL then (V <- T') else none fi] .
+      [Subst' , if any V in TL then (V <- T') else none fi] .
 
   --- Remove Variables from list ----------------------
   op _intersect_ : TermList TermList -> TermList .
@@ -460,14 +460,14 @@ fmod FM-SUBSTITUTION-HANDLING is
    = any Vars(TL:GTermList) in Vars(TL':GTermList) .
 
   op rangeVars : Substitution -> TermList .
-  eq rangeVars(V <- T ; Subst) = (Vars(T),rangeVars(Subst)) .
+  eq rangeVars(V <- T , Subst) = (Vars(T),rangeVars(Subst)) .
   eq rangeVars(none) = empty .
 
   op dom_inVars_ : Substitution TermList -> Bool .
   eq dom Subst inVars TL = dom Subst in Vars(TL) .
 
   op dom_in_ : Substitution TermList -> Bool .
-  eq dom (V <- T ; Subst) in (TL1,V,TL2) = true .
+  eq dom (V <- T , Subst) in (TL1,V,TL2) = true .
   eq dom Subst in TL = false [owise] .
 
   op dom_notInVars_ : Substitution TermList -> Bool .
@@ -475,14 +475,14 @@ fmod FM-SUBSTITUTION-HANDLING is
 
   op dom_notIn_ : Substitution TermList -> Bool .
   eq dom none notIn TL = true .
- ceq dom (V <- T ; Subst) notIn TL = true if not (V in TL) .
+ ceq dom (V <- T , Subst) notIn TL = true if not (V in TL) .
   eq dom Subst notIn TL = false [owise] .
 
   op range_inVars_ : Substitution TermList -> Bool .
   eq range Subst inVars TL = range Subst in Vars(TL) .
 
   op range_in_ : Substitution TermList -> Bool .
-  eq range (V <- T ; Subst) in TL
+  eq range (V <- T , Subst) in TL
    = any Vars(T) in TL or-else range Subst in TL .
   eq range none in TL
    = false .
@@ -493,14 +493,14 @@ fmod FM-SUBSTITUTION-HANDLING is
 
   op extract-bindings : Substitution -> TermList .
   eq extract-bindings(none) = empty .
-  eq extract-bindings(V <- T ; Subst) = (T,extract-bindings(Subst)) .
+  eq extract-bindings(V <- T , Subst) = (T,extract-bindings(Subst)) .
 
   op isRenaming : Substitution -> Bool .
   eq isRenaming(none)
    = true .
-  eq isRenaming((V <- V') ; Subst)
+  eq isRenaming((V <- V') , Subst)
    = isRenaming(Subst) .
-  eq isRenaming((V <- T) ; Subst)
+  eq isRenaming((V <- T) , Subst)
    = false [owise] .
 endfm
 
@@ -571,14 +571,14 @@ fmod FM-RENAMING is
   op _|>*_[_] : Substitution Nat Substitution -> Substitution .
   eq none |>* N [Subst']
    = Subst' .
-  eq ((V <- T') ; Subst) |>* N [Subst']
+  eq ((V <- T') , Subst) |>* N [Subst']
    = Subst |>* N
-     [Subst' ; if highestVar(V) < N then (V <- T') else none fi ] .
+     [Subst' , if highestVar(V) < N then (V <- T') else none fi ] .
 
   --- instantiatesAbove -----------------------------------
   op _instantiatesAbove_ : Substitution Nat -> Bool .
   eq none instantiatesAbove N = false .
-  eq ((V <- T') ; Subst) instantiatesAbove N
+  eq ((V <- T') , Subst) instantiatesAbove N
    = highestVar(V) >= N
      or-else
      Subst instantiatesAbove N .
@@ -647,7 +647,7 @@ fmod FM-RENAMING is
 
   op highestVar : Substitution Nat -> Nat .
   eq highestVar((none).Substitution,N) = N .
-  eq highestVar(V <- T ; Subst,N)
+  eq highestVar(V <- T , Subst,N)
    = highestVar(Subst,highestVar((T,V),N)) .
 
   --- Renaming ------------------------------------------------------
@@ -670,10 +670,10 @@ fmod FM-RENAMING is
   eq TL << {Subst,N} = TL << Subst .
 
   op _<<_ : TermList UnificationTriple -> TermList .
-  eq TL << {Subst,Subst',N} = TL << (Subst ; Subst') .
+  eq TL << {Subst,Subst',N} = TL << (Subst , Subst') .
 
   op _<<_ : Substitution UnificationTriple -> Substitution .
-  eq S:Substitution << {Subst,Subst',N} = S:Substitution << (Subst ; Subst') .
+  eq S:Substitution << {Subst,Subst',N} = S:Substitution << (Subst , Subst') .
 
   op _<<_< : TermList Nat -> TermList .
   eq TL << N < = TL << (TL << { none, N } <) .
@@ -683,7 +683,7 @@ fmod FM-RENAMING is
   eq F[TL] << {S,N} < = TL << {S,N} < .
   eq V << {S,N} <
    = if not (dom S inVars V)
-     then {S ; V <- newVar(N,getType(V)), N + 1}
+     then {S , V <- newVar(N,getType(V)), N + 1}
      else {S,N}
      fi .
 
@@ -754,12 +754,12 @@ fmod FM-SUBSTITUTIONSET is
 
   op _|>`(_,_`) : Substitution Nat Nat -> Substitution .
   eq none |> (N,N') = none .
-  eq ((V <- T') ; Subst) |> (N,N')
+  eq ((V <- T') , Subst) |> (N,N')
    = if N <= highestVar(V) and highestVar(V) <= N'
      then (V <- T')
      else none
      fi
-     ; (Subst |> (N,N')) .
+     , (Subst |> (N,N')) .
 
   op filter_by!InVars_ : SubstitutionSet TermList -> SubstitutionSet .
   eq filter (empty).SubstitutionSet by!InVars TL
@@ -923,7 +923,7 @@ fmod FM-UNIFICATIONTRIPLESET is
   --- convert  -----------------------------------------------------
   op split : UnificationPair Nat -> UnificationTriple .
   eq split({none,N},N') = {none,none,N} .
-  eq split({(V <- T') ; S,N},N')
+  eq split({(V <- T') , S,N},N')
    = if highestVar(V) < N'
      then {(V <- T'),none,N}
      else {none,(V <- T'),N}
@@ -983,7 +983,7 @@ fmod FM-UNIFICATIONTRIPLESET is
   eq toSubstitution*((empty).UnificationTripleSet,SS)
    = SS .
   eq toSubstitution*({S,S',N} | US,SS)
-   = toSubstitution*(US,SS | (S ; S')) .
+   = toSubstitution*(US,SS | (S , S')) .
 
   op _in_ : UnificationTriple UnificationTripleSet -> Bool .
   eq X:UnificationTriple
@@ -1056,7 +1056,7 @@ fmod FM-MODULE-HANDLING is
 
   op canonice : Module Substitution -> Substitution .
   eq canonice(M,(none).Substitution) = none .
-  eq canonice(M,V <- T ; S) = V <- canonice(M,T) ; canonice(M,S)  .
+  eq canonice(M,V <- T , S) = V <- canonice(M,T) , canonice(M,S)  .
 
   op canonice : Module UnificationTripleSet -> UnificationTripleSet .
   eq canonice(M,(empty).UnificationTripleSet) = (empty).UnificationTripleSet .
@@ -1068,7 +1068,7 @@ fmod FM-MODULE-HANDLING is
 
   op normalize : Module Substitution -> Substitution .
   eq normalize(M,(none).Substitution) = none .
-  eq normalize(M,V <- T ; S) = V <- normalize(M,T) ; normalize(M,S)  .
+  eq normalize(M,V <- T , S) = V <- normalize(M,T) , normalize(M,S)  .
 
   op normalize : Module SModule -> SModule .
   eq normalize(M,
@@ -1123,7 +1123,7 @@ fmod FM-MODULE-HANDLING is
 
   op normalizeRls : Module Substitution -> Substitution .
   eq normalizeRls(M,(none).Substitution) = none .
-  eq normalizeRls(M,V <- T ; S) = V <- normalizeRls(M,T) ; normalizeRls(M,S)  .
+  eq normalizeRls(M,V <- T , S) = V <- normalizeRls(M,T) , normalizeRls(M,S)  .
 
   *** typeLeq **************************************************
   op typeLeq : Module TypeList TypeList ~> Bool [memo] .
@@ -1272,7 +1272,7 @@ fmod FM-MODULE-HANDLING is
 
   eq getTypesOfQid(M,F,TPL) = getTypesOfQid(getOpsOfQid(M,F,TPL)) .
   eq getTypesOfQid((op F : TPL -> TP [AtS] .) OPDS)
-   = TP ; getTypesOfQid(OPDS) .
+   = TP , getTypesOfQid(OPDS) .
   eq getTypesOfQid((none).OpDeclSet) = (none).TypeSet .
 
   *** filterConstructorSymbols ************************************
@@ -1373,7 +1373,7 @@ fmod FM-MODULE-HANDLING is
   ****
   op anyIdSymbol : Module Substitution -> Bool .
   eq anyIdSymbol(M,(none).Substitution) = false .
-  eq anyIdSymbol(M,V:Variable <- T:Term ; S:Substitution)
+  eq anyIdSymbol(M,V:Variable <- T:Term , S:Substitution)
    = anyIdSymbol(M,T:Term)
      or-else
      anyIdSymbol(M,S:Substitution) .
@@ -2052,12 +2052,12 @@ fmod FM-MODULE-HANDLING is
   eq addSorts(X:SortSet,
        mod Q:Qid is IL:ImportList sorts S:SortSet .
        S:SubsortDeclSet O:OpDeclSet M:MembAxSet E:EquationSet R:RuleSet endm)
-   = mod Q:Qid is IL:ImportList sorts (X:SortSet ; S:SortSet) .
+   = mod Q:Qid is IL:ImportList sorts (X:SortSet , S:SortSet) .
        S:SubsortDeclSet O:OpDeclSet M:MembAxSet E:EquationSet R:RuleSet endm .
   eq addSorts(X:SortSet,
        fmod Q:Qid is IL:ImportList sorts S:SortSet .
        S:SubsortDeclSet O:OpDeclSet M:MembAxSet E:EquationSet endfm)
-   = fmod Q:Qid is IL:ImportList sorts (X:SortSet ; S:SortSet) .
+   = fmod Q:Qid is IL:ImportList sorts (X:SortSet , S:SortSet) .
        S:SubsortDeclSet O:OpDeclSet M:MembAxSet E:EquationSet endfm .
 
   *** putFrozen *******************************
@@ -2610,7 +2610,7 @@ fmod FM-META-MINIMIZE-BINDINGS is
   eq minimizeBindingsTerm**(M,TL',NOld,{S*,S'*,N},none,none)
    = {remDup(S*),remDup(S'*),N} .
 
- ceq minimizeBindingsTerm**(M,TL',NOld,{S*,V <- V' ; S'*,N},none,V <- V' ; S')
+ ceq minimizeBindingsTerm**(M,TL',NOld,{S*,V <- V' , S'*,N},none,V <- V' , S')
    = minimizeBindingsTerm**(M,TL',NOld,
          {  S* << (V' <- V),    S'* .. (V' <- V),  N},
          none,
@@ -2621,11 +2621,11 @@ fmod FM-META-MINIMIZE-BINDINGS is
      and-then highestVar(V') >= NOld
      and-then typeLeq(M,getTypes(M,V),getTypes(M,V')) .
 
-  eq minimizeBindingsTerm**(M,TL',NOld,{S*,V <- T' ; S'*,N},none,V <- T' ; S')
-   = minimizeBindingsTerm**(M,TL',NOld,{S*,V <- T' ; S'*,N},none,S')
+  eq minimizeBindingsTerm**(M,TL',NOld,{S*,V <- T' , S'*,N},none,V <- T' , S')
+   = minimizeBindingsTerm**(M,TL',NOld,{S*,V <- T' , S'*,N},none,S')
   [owise] .
 
- ceq minimizeBindingsTerm**(M,TL',NOld,{V <- V' ; S*,S'*,N},V <- V' ; S,S')
+ ceq minimizeBindingsTerm**(M,TL',NOld,{V <- V' , S*,S'*,N},V <- V' , S,S')
    = minimizeBindingsTerm**(M,TL',NOld,
          { S* << (V' <- V),   S'* .. (V' <- V),   N},
          S << (V' <- V),
@@ -2634,8 +2634,8 @@ fmod FM-META-MINIMIZE-BINDINGS is
   if V' =/= V and-then V in TL' and-then not (V' in TL')
      and-then typeLeq(M,getTypes(M,V),getTypes(M,V')) .
 
-  eq minimizeBindingsTerm**(M,TL',NOld,{V <- T' ; S*,S'*,N},V <- T' ; S,S')
-   = minimizeBindingsTerm**(M,TL',NOld,{V <- T' ; S*,S'*,N},S,S')
+  eq minimizeBindingsTerm**(M,TL',NOld,{V <- T' , S*,S'*,N},V <- T' , S,S')
+   = minimizeBindingsTerm**(M,TL',NOld,{V <- T' , S*,S'*,N},S,S')
   [owise] .
 
   --- minimizeBindings ---
@@ -2666,7 +2666,7 @@ fmod FM-META-MINIMIZE-BINDINGS is
   eq minimizeBindingsTerm**(M,TL',NOld,{T,S*,S'*,N},none,none)
    = {T,remDup(S*),remDup(S'*),N} .
 
- ceq minimizeBindingsTerm**(M,TL',NOld,{T,S*,V <- V' ; S'*,N},none,V <- V' ; S')
+ ceq minimizeBindingsTerm**(M,TL',NOld,{T,S*,V <- V' , S'*,N},none,V <- V' , S')
    = minimizeBindingsTerm**(M,TL',NOld,
          { T << (V' <- V), S* << (V' <- V),    S'* .. (V' <- V),  N},
          none,
@@ -2677,11 +2677,11 @@ fmod FM-META-MINIMIZE-BINDINGS is
      and-then highestVar(V') >= NOld
      and-then typeLeq(M,getTypes(M,V),getTypes(M,V')) .
 
-  eq minimizeBindingsTerm**(M,TL',NOld,{T,S*,V <- T' ; S'*,N},none,V <- T' ; S')
-   = minimizeBindingsTerm**(M,TL',NOld,{T,S*,V <- T' ; S'*,N},none,S')
+  eq minimizeBindingsTerm**(M,TL',NOld,{T,S*,V <- T' , S'*,N},none,V <- T' , S')
+   = minimizeBindingsTerm**(M,TL',NOld,{T,S*,V <- T' , S'*,N},none,S')
   [owise] .
 
- ceq minimizeBindingsTerm**(M,TL',NOld,{T,V <- V' ; S*,S'*,N},V <- V' ; S,S')
+ ceq minimizeBindingsTerm**(M,TL',NOld,{T,V <- V' , S*,S'*,N},V <- V' , S,S')
    = minimizeBindingsTerm**(M,TL',NOld,
          { T << (V' <- V), S* << (V' <- V),   S'* .. (V' <- V),   N},
          S << (V' <- V),
@@ -2690,13 +2690,13 @@ fmod FM-META-MINIMIZE-BINDINGS is
   if V' =/= V and-then V in TL' and-then not (V' in TL')
      and-then typeLeq(M,getTypes(M,V),getTypes(M,V')) .
 
-  eq minimizeBindingsTerm**(M,TL',NOld,{T,V <- T' ; S*,S'*,N},V <- T' ; S,S')
-   = minimizeBindingsTerm**(M,TL',NOld,{T,V <- T' ; S*,S'*,N},S,S')
+  eq minimizeBindingsTerm**(M,TL',NOld,{T,V <- T' , S*,S'*,N},V <- T' , S,S')
+   = minimizeBindingsTerm**(M,TL',NOld,{T,V <- T' , S*,S'*,N},S,S')
   [owise] .
 
   ****
   op remDup : Substitution -> Substitution .
-  eq remDup(V <- V ; S) = remDup(S) .
+  eq remDup(V <- V , S) = remDup(S) .
   eq remDup(S) = S [owise] .
 endfm
 
@@ -2947,9 +2947,9 @@ fmod FM-RESULT-CONTEXT-SET is
       TP,
       (S .. Subst) << Subst', (S' .. Subst') << Subst,
       Ct:Context,
-      CtS:Context << (Subst ; Subst'),
-      TS:Term << (Subst ; Subst'),
-      CtTS:Term << (Subst ; Subst'),
+      CtS:Context << (Subst , Subst'),
+      TS:Term << (Subst , Subst'),
+      CtTS:Term << (Subst , Subst'),
       max(NextVar,N + 1),
       (Tr:TraceNarrow << T TP <) << {Subst,Subst',N},
       B:Flags}
@@ -2971,7 +2971,7 @@ fmod FM-RESULT-CONTEXT-SET is
    = (nil).TraceNarrow .
   eq (Tr:TraceNarrow {T$:Term,S:Substitution,TP$:Type,R:Rule}) --- Subst none here is special
      << {Subst,Subst',N}
-   = (Tr:TraceNarrow {T$:Term << (Subst ; Subst'),S:Substitution .. (Subst ; Subst'),TP$:Type,R:Rule}) .
+   = (Tr:TraceNarrow {T$:Term << (Subst , Subst'),S:Substitution .. (Subst , Subst'),TP$:Type,R:Rule}) .
 
   op canonice : Module TraceNarrow -> TraceNarrow .
   eq canonice(M, (nil).TraceNarrow) = nil .
@@ -3275,8 +3275,8 @@ fmod FM-RIGIDIFE is
 
   op unrigidife : Qid Substitution -> Substitution .
   eq unrigidife(Q,(none).Substitution) = none .
-  eq unrigidife(Q,V <- T ; S)
-   = unrigidife(Q,V) <- unrigidife(Q,T) ; unrigidife(Q,S) .
+  eq unrigidife(Q,V <- T , S)
+   = unrigidife(Q,V) <- unrigidife(Q,T) , unrigidife(Q,S) .
 
   op unrigidife : Qid SubstitutionSet -> SubstitutionSet .
   eq unrigidife(Q,(empty).SubstitutionSet) = empty .
@@ -3347,8 +3347,8 @@ fmod FM-RIGIDIFE is
 
   op unrigidLabel : Substitution -> Substitution .
   eq unrigidLabel((none).Substitution) = none .
-  eq unrigidLabel(V <- T ; S)
-   = unrigidLabel(V) <- unrigidLabel(T) ; unrigidLabel(S) .
+  eq unrigidLabel(V <- T , S)
+   = unrigidLabel(V) <- unrigidLabel(T) , unrigidLabel(S) .
 
   op unrigidLabel : SubstitutionSet -> SubstitutionSet .
   eq unrigidLabel((empty).SubstitutionSet) = empty .
@@ -4119,15 +4119,15 @@ fmod FM-ORDERS-TERM-SUBSTITUTION is
    = {{(V,1st(gen(TL,none,none))),
        (V,2nd(gen(TL,none,none))),
        (getType(V) 3rd(gen(TL,none,none)))}} .
-  eq gen(TL,none,V <- T ; S')
+  eq gen(TL,none,V <- T , S')
    = {{(V,1st(gen(TL \\ V,none,S'))),
        (T,2nd(gen(TL \\ V,none,S'))),
        (getType(V) 3rd(gen(TL \\ V,none,S')))}} .
-  eq gen(TL,V <- T ; S,V <- T' ; S')
+  eq gen(TL,V <- T , S,V <- T' , S')
    = {{(T,1st(gen(TL \\ V,S,S'))),
        (T',2nd(gen(TL \\ V,S,S'))),
        (getType(V) 3rd(gen(TL \\ V,S,S')))}} .
-  eq gen(TL,V <- T ; S,S')
+  eq gen(TL,V <- T , S,S')
    = {{(T,1st(gen(TL \\ V,S,S'))),
        (V,2nd(gen(TL \\ V,S,S'))),
        (getType(V) 3rd(gen(TL \\ V,S,S')))}}
@@ -4233,13 +4233,13 @@ fmod FM-ORDERS-TERM-SUBSTITUTION is
      onlyRenamingAny(M,SS) .
 
   op onlyRenaming* : Module Substitution -> Bool .
-  eq onlyRenaming*(M,(V <- T) ; (V' <- T) ; S)
+  eq onlyRenaming*(M,(V <- T) , (V' <- T) , S)
    = false .
   eq onlyRenaming*(M,S)
    = onlyRenaming**(M,S) [owise] .
 
   op onlyRenaming** : Module Substitution -> Bool .
- ceq onlyRenaming**(M,(V <- F[TL]) ; S)
+ ceq onlyRenaming**(M,(V <- F[TL]) , S)
    = onlyRenaming*(M,
         canonice(M, S << (V1 <- getIdSymbol(M,F[TL])))
      )
@@ -4257,7 +4257,7 @@ fmod FM-ORDERS-TERM-SUBSTITUTION is
   op onlyRenaming*** : Substitution -> Bool .
   eq onlyRenaming***(none)
    = true .
-  eq onlyRenaming***((V <- T) ; S)
+  eq onlyRenaming***((V <- T) , S)
    = T :: Variable
      and-then
      getType(V) == getType(T)
@@ -4304,7 +4304,7 @@ fmod FM-ORDERS-TERM-SUBSTITUTION is
   op normalizedSubstitution?* : Module Substitution -> Bool . ---[memo] .
   eq normalizedSubstitution?*(M, none)
    = true .
-  eq normalizedSubstitution?*(M, V <- T ; S:Substitution)
+  eq normalizedSubstitution?*(M, V <- T , S:Substitution)
    = isNF$(clearAllFrozen(M),T)
      and-then
      normalizedSubstitution?*(M, S:Substitution) .
@@ -4323,9 +4323,9 @@ fmod FM-ORDERS-TERM-SUBSTITUTION is
   op eqNormalizeSubstitution* : Module Substitution -> Substitution .
   eq eqNormalizeSubstitution*(M, none)
    = none .
-  eq eqNormalizeSubstitution*(M, V <- T ; S:Substitution)
+  eq eqNormalizeSubstitution*(M, V <- T , S:Substitution)
    = V <- getTerm(metaReduce(eraseRls(M),T))
-     ; eqNormalizeSubstitution*(M, S:Substitution) .
+     , eqNormalizeSubstitution*(M, S:Substitution) .
 
 endfm
 fmod META-NORMALIZE is
@@ -4422,7 +4422,7 @@ fmod META-NORMALIZE is
   op isNF$ : Module Substitution ~> Bool .
   eq isNF$(M, (none).Substitution)
    = true .
-  eq isNF$(M, V:Variable <- T:Term ; S:Substitution)
+  eq isNF$(M, V:Variable <- T:Term , S:Substitution)
    = isNF$(M,T) and-then isNF$(M, S:Substitution) .
 
   op isNF$ : Module Term ~> Bool .
@@ -5071,11 +5071,11 @@ fmod FM-META-E-NARROWING is
          and-then
          (Subst == none
           or-else
-          (not anyIdSymbol(M,Subst ; Subst')
+          (not anyIdSymbol(M,Subst , Subst')
            and-then
-           normalizedSubstitution?(M,Subst ; Subst'))
+           normalizedSubstitution?(M,Subst , Subst'))
           or-else
-          anyIdSymbol(M,Subst ; Subst')
+          anyIdSymbol(M,Subst , Subst')
          )
         )
         or-else
@@ -5091,7 +5091,7 @@ fmod FM-META-E-NARROWING is
          and-then
          not computed-normalized-subs in ON)
      then {T,TP,S,S',Ct:Context,CtS:Context,TS:Term,CtTS:Term,NextVar,Tr:TraceNarrow,B:Flags}
-           << if anyIdSymbol(M,Subst ; Subst')
+           << if anyIdSymbol(M,Subst , Subst')
               ---then {normalizeRls(M,Subst),normalizeRls(M,Subst'),N}
               then {canonice(M,Subst),canonice(M,Subst'),N}
               else {Subst,Subst',N}
@@ -5166,7 +5166,7 @@ fmod FM-META-E-NARROWING is
      then empty
      else {T,leastSort(M,T),S,S',
            Ct[F[TL',[],TL]],
-           CtS[F[TL' << (S ; S'),[],TL << (S ; S')]],T << (S ; S'),
+           CtS[F[TL' << (S , S'),[],TL << (S , S')]],T << (S , S'),
            CtTS,NextVar,Tr:TraceNarrow,B:Flags}
      fi
      | splitTerm(M,F,
@@ -5230,7 +5230,7 @@ fmod FM-META-E-NARROWING is
 
   op |_| : Substitution -> Nat .
   eq | (none).Substitution | = 0 .
-  eq | V <- T ; S | = s(| S |) .
+  eq | V <- T , S | = s(| S |) .
 
 endfm
 
@@ -5434,9 +5434,9 @@ fmod FM-META-NARROWING-SEARCH is
         {T',TP',S',S'*,Ct',CtS',TS',CtTS',NextVar',Tr':TraceNarrow,B':Flags} | RTS,
         {T,TP,S,S*,Ct,CtS,TS,CtTS,NextVar,Tr:TraceNarrow,B:Flags})
     = not (
-       (S' |> N ; (newVar(N + 1,TP') <- CtTS'))
+       (S' |> N , (newVar(N + 1,TP') <- CtTS'))
            <=[M]
-       (S |> N ; (newVar(N + 1,TP) <- CtTS))
+       (S |> N , (newVar(N + 1,TP) <- CtTS))
       )
       and-then
       isVariant(M,N,RTS,{T,TP,S,S*,Ct,CtS,TS,CtTS,NextVar,Tr:TraceNarrow,B:Flags}) .
@@ -5530,8 +5530,8 @@ fmod FM-META-NARROWING-SEARCH is
   op upDown# : Module Substitution Substitution -> Substitution .
   eq upDown#(M,S':Substitution,none)
    = S':Substitution .
-  eq upDown#(M,S':Substitution,V <- T ; S:Substitution)
-   = upDown#(M,S':Substitution ; V <- getTerm(metaReduce(M,T)),S:Substitution) .
+  eq upDown#(M,S':Substitution,V <- T , S:Substitution)
+   = upDown#(M,S':Substitution , V <- getTerm(metaReduce(M,T)),S:Substitution) .
 
 endfm
 *************************************
@@ -6221,7 +6221,7 @@ fmod FM-STRATEGY-GRAMMAR is
     op xmatch_s.t._ : @StBubble@ @StCondBubble@ -> @Strategy@ [prec 21] .
     op amatch_s.t._ : @StBubble@ @StCondBubble@ -> @Strategy@ [prec 21] .
 ----    op _|_ : Strategy Strategy -> Strategy [ctor assoc comm id: fail prec 41 gather (e E)] .
-----    op _;_ : Strategy Strategy -> Strategy [ctor assoc id: idle prec 39 gather (e E)] .
+----    op _,_ : Strategy Strategy -> Strategy [ctor assoc id: idle prec 39 gather (e E)] .
 ----    op _or-else_ : Strategy Strategy -> Strategy [ctor assoc prec 43 gather (e E)] .
 ----    op _+ : Strategy -> Strategy [ctor] .
 ----    op _?_:_ : Strategy Strategy Strategy -> Strategy [ctor prec 55] .
@@ -6455,11 +6455,11 @@ endfm
 *** A view expression is given by a single quoted identifier, by a sequence of
 *** view expressions (at the user level, separated by commas), or by the
 *** composition of view expressions. In the current version, the composition
-*** of view expressions is only used internally; we plan to make it available
-*** to the user with syntax \verb~_;_~ in the future. View expressions are
+*** of view expressions is only used internally, we plan to make it available
+*** to the user with syntax \verb~_,_~ in the future. View expressions are
 *** used in the instantiation of parameterized modules and in parameterized
 *** sorts.  We plan to support parameterized views in the future as well. We
-*** use operators \verb~_|_~ and \verb~_;;_~ to represent, respectively,
+*** use operators \verb~_|_~ and \verb~_,,_~ to represent, respectively,
 *** sequences and composition of view expressions.
 
 -------------------------------------------------------------------------------
@@ -6474,8 +6474,8 @@ fmod FM-VIEW-EXPR is
 
   op mtViewExpression : -> ViewExpression .
 ----@  op _{_} : Sort ParameterList -> ViewExpression [ctor prec 37].
-  op _;;_ : ViewExpression ViewExpression -> ViewExpression
-       [assoc id: mtViewExpression] .     *** view composition  _;_
+  op _,,_ : ViewExpression ViewExpression -> ViewExpression
+       [assoc id: mtViewExpression] .     *** view composition  _,_
 
 endfm
 
@@ -6528,8 +6528,8 @@ fmod FM-VIEW-EXPR-TO-QID is
 
   eq viewExp2QidList(V{PL})
     = (viewExp2QidList(V) '`{ parameterList2QidList(PL) '`}) .
-  ceq viewExp2QidList(VE ;; VE')
-    = (viewExp2QidList(VE) '; viewExp2QidList(VE'))
+  ceq viewExp2QidList(VE ,, VE')
+    = (viewExp2QidList(VE) ', viewExp2QidList(VE'))
     if VE =/= mtViewExpression /\ VE' =/= mtViewExpression .
   eq viewExp2QidList(V) = V .
 
@@ -6556,7 +6556,7 @@ endfm
 *** sorts.
 
 *** As for lists and sTS of quoted identifiers, we declare \verb~__~ and
-*** \verb~_;_~ as constructors for sorts \texttt{SortList} and
+*** \verb~_,_~ as constructors for sorts \texttt{SortList} and
 *** \texttt{SortList}, and \texttt{SortSet}, respectively.
 
 -------------------------------------------------------------------------------
@@ -6605,11 +6605,11 @@ fmod FM-EXT-SORT is
   eq sameKind(M, nil, nil) = true .
   eq sameKind(M, TpL, TpL') = false [owise] .
 
-  eq sameKind(M, cc(S:Sort ; SS:SortSet), Tp)
+  eq sameKind(M, cc(S:Sort , SS:SortSet), Tp)
     = sameKind(M, S:Sort, Tp) .
-  eq sameKind(M, Tp, cc(S:Sort ; SS:SortSet))
+  eq sameKind(M, Tp, cc(S:Sort , SS:SortSet))
     = sameKind(M, Tp, S:Sort) .
-  eq sameKind(M, cc(S:Sort ; SS:SortSet), cc(S':Sort ; SS':SortSet))
+  eq sameKind(M, cc(S:Sort , SS:SortSet), cc(S':Sort , SS':SortSet))
     = sameKind(M, S:Sort, S':Sort) .
 
   op sameKindAll : Module Type TypeList -> Bool .
@@ -6624,7 +6624,7 @@ fmod FM-EXT-SORT is
 
   op eLeastSort : Module TermSet ~> TypeSet .
   eq eLeastSort(M, (T:Term | TS:TermSet))
-    = (leastSort(M, T:Term) ; eLeastSort(M, TS:TermSet)) .
+    = (leastSort(M, T:Term) , eLeastSort(M, TS:TermSet)) .
   eq eLeastSort(M, emptyTermSet) = none .
   eq eLeastSort(M, qidError(QIL)) = qidError(QIL) .
 
@@ -6645,7 +6645,7 @@ fmod FM-EXT-SORT is
   eq kind(nil) = nil .
 
   op kind : SortSet -> Type .
-  eq kind(S:Sort ; SS:SortSet) = qid("[" + string(S:Sort) + "]") .
+  eq kind(S:Sort , SS:SortSet) = qid("[" + string(S:Sort) + "]") .
 
   op cc : SortSet -> Type .
 
@@ -6669,7 +6669,7 @@ fmod FM-EXT-SORT is
       else qid(substr(string(K:Kind),
                       2,
                       sd(findOut(string(K:Kind), "`,", "{", "}", 0), 2)))
-           ;
+           ,
            getSorts(qid("[" + substr(string(K:Kind),
                                      sd(findOut(string(K:Kind), "`,", "{", "}", 0), 1),
                                      length(string(K:Kind)))))
@@ -6816,10 +6816,10 @@ fmod FM-EXT-SORT is
   eq makeSort(S, (P, PL), PL', PL'') = makeSort(S, PL, (PL', P), PL'') .
   eq makeSort(S, (P{PL}, PL'), PL'', PL3)
     = makeSort(S, PL', (PL'', makeSort(P, PL)), PL3) .
-  ----eq makeSort(S, (P ;; VE), PL, PL')
+  ----eq makeSort(S, (P ,, VE), PL, PL')
   ----  = makeSort(S, empty, (PL, P), (PL', VE))
   ----  [owise] .
-  eq makeSort(S, ((P ;; VE), PL), PL', PL'')
+  eq makeSort(S, ((P ,, VE), PL), PL', PL'')
     = makeSort(S, PL, (PL', P), (PL'', VE))
     [owise] .
   eq makeSort(S, empty, PL, PL')
@@ -6839,7 +6839,7 @@ fmod FM-EXT-SORT is
   eq makePars(empty) = "}" .
 
   op list2set : TypeList -> TypeSet .
-  eq list2set(Tp TpL) = Tp ; list2set(TpL) .
+  eq list2set(Tp TpL) = Tp , list2set(TpL) .
   eq list2set(nil) = none .
 
   op type2qid : Type -> Qid .
@@ -7080,7 +7080,7 @@ fmod FM-EXT-TERM is
   eq vars(C) = none .
   eq vars(F[TL]) = vars(TL) .
   eq vars(empty) = none .
-  eq vars((T, TL)) = (vars(T) ; vars(TL)) .
+  eq vars((T, TL)) = (vars(T) , vars(TL)) .
 
   **** varlist returns the list of variables in a term
   op varlist : Term -> QidList .
@@ -7145,12 +7145,12 @@ fmod FM-EXT-TERM is
   op substitute : Module TermList Substitution -> TermList .
 
   eq substitute(M, T, none) = T .
-  eq substitute(M, V, ((W <- T) ; Subst))
+  eq substitute(M, V, ((W <- T) , Subst))
     = if getName(V) == getName(W) and-then sameKind(M, getType(V), getType(W))
       then T
       else substitute(M, V, Subst)
       fi .
-  eq substitute(M, C, ((W <- T); Subst)) = C .
+  eq substitute(M, C, ((W <- T), Subst)) = C .
   eq substitute(M, F[TL], Subst) = F[substitute(M, TL, Subst)] .
   eq substitute(M, (T, TL), Subst)
     = (substitute(M, T, Subst), substitute(M, TL, Subst)) .
@@ -7252,7 +7252,7 @@ fmod FM-O-O-DECL is
   op classSet : ClassDeclSet -> SortSet .
 
   eq classSet((class S:Sort | ADS:AttrDeclSet .) CDS:ClassDeclSet)
-    = (S:Sort ; classSet(CDS:ClassDeclSet)) .
+    = (S:Sort , classSet(CDS:ClassDeclSet)) .
   eq classSet(none) = none .
 endfm
 
@@ -8365,7 +8365,7 @@ fmod FM-UNIT is
 
 *** Add functions
 
-  eq addSorts(SS, U) = setSorts(U, (SS ; getSorts(U))) .
+  eq addSorts(SS, U) = setSorts(U, (SS , getSorts(U))) .
   eq addSorts(SS, unitError(QIL)) = unitError(QIL) .
 
   eq addSubsorts(SSDS, U) = setSubsorts(U, (SSDS getSubsorts(U))) .
@@ -9455,7 +9455,7 @@ fmod PRE-VIEW is
     = preview VH from ME to ME' is VDS SMS OMS (TMS TMS') endpv .
 
   eq addVars(VDS, preview VH from ME to ME' is VDS' SMS OMS TMS endpv)
-    = preview VH from ME to ME' is (VDS ; VDS') SMS OMS TMS endpv .
+    = preview VH from ME to ME' is (VDS , VDS') SMS OMS TMS endpv .
 
   op setPars : PreView ParameterDeclList -> PreView .
   eq setPars(preview VE from ME to ME' is VDS SMS OMS TMS endpv, PDL)
@@ -9511,9 +9511,9 @@ endfm
 *** removed, all those units and/or views depending on it will also be
 *** removed. This dependency does not only mean direct importation. For
 *** example, the module resulting from the renaming of some module also
-*** depends on the module being renamed; the instantiation of a parameterized
+*** depends on the module being renamed, the instantiation of a parameterized
 *** module also depends on the parameterized module and on all the views used
-*** in its instantiation; a view depends on its source and target units, etc.
+*** in its instantiation, a view depends on its source and target units, etc.
 *** This dependency is transitive: if a module, theory, or view has to be
 *** removed, all the units and/or views depending on them will be removed as
 *** well. The dependencies derived from the module expressions themselves are
@@ -9587,12 +9587,12 @@ fmod INFO is
   eq remove(MNS, MN) = MNS [owise] .
 
   sort ModuleInfo .
-  op <_;_;_;_;_;_;_;_> : ModuleName Default{Term} Module Module Module
+  op <_,_,_,_,_,_,_,_> : ModuleName Default{Term} Module Module Module
        VariableSet Set{ModuleName} Set{ViewExpression} -> ModuleInfo
      [ctor
       format
         (nig o g n+++io g nio g nio g nio g nio g nio g nio n---ig o)] .
-  op <_;_;_;_;_;_;_;_> : ModuleName Module Module Module Module
+  op <_,_,_,_,_,_,_,_> : ModuleName Module Module Module Module
        VariableSet Set{ModuleName} Set{ViewExpression} -> ModuleInfo
      [ctor
       format
@@ -9614,10 +9614,10 @@ fmod INFO is
   ***   module.
 
   sort ViewInfo .
-  op <_;_;_;_;_> : ViewExpression Default{Term} View Set{ModuleName}
+  op <_,_,_,_,_> : ViewExpression Default{Term} View Set{ModuleName}
        Set{ViewExpression} -> ViewInfo
        [ctor format (nig o g n+++io g nio g nio g nio n---ig o)] .
-  op <_;_;_;_;_> :
+  op <_,_,_,_,_> :
        ViewExpression View View Set{ModuleName} Set{ViewExpression} -> ViewInfo
        [ctor format (nig o g n+++io g nio g nio g nio n---ig o)] .
 
@@ -9676,7 +9676,7 @@ view ModuleExpression from TRIV to META-MODULE is
 endv
 
 fmod DATABASE is
-  pr (2TUPLE * (op `(_`,_`) to <_;_>,
+  pr (2TUPLE * (op `(_`,_`) to <_,_>,
                 op p1_ to database,
                 op p2_ to modExp)) {Database, ModuleExpression} .
   pr PRE-VIEW .
@@ -9813,23 +9813,23 @@ fmod DATABASE is
   op delViews : Set{ViewExpression} Database -> Database .
 
   eq delModules((MN . MNS),
-       db(< MN ; T ; U ; U' ; U'' ; VDS ; MNS' ; VES > MIS,
+       db(< MN , T , U , U' , U'' , VDS , MNS' , VES > MIS,
           MN . MNS'', VIS, VES', MNS3, MNS4, MNS5, QIL))
     = delModules((MNS . MNS'),
           delViews(VES,
-            db(< MN ; T ; noModule ; noModule ; noModule ; VDS ;
-                 emptyModuleNameSet ; emptyViewExpressionSet > MIS,
+            db(< MN , T , noModule , noModule , noModule , VDS ,
+                 emptyModuleNameSet , emptyViewExpressionSet > MIS,
                MN . MNS'', VIS, VES', MNS3, MNS4, MNS5, QIL))) .
   eq delModules((MN . MNS),
-       db(< MN ; U ; U' ; U'' ; U3 ; VDS ; MNS' ; VES > MIS,
+       db(< MN , U , U' , U'' , U3 , VDS , MNS' , VES > MIS,
           MN . MNS'', VIS, VES', MNS3, MNS4, MNS5, QIL))
     = delModules((MNS . MNS'),
           delViews(VES,
-            db(< MN ; U ; noModule ; noModule ; noModule ; VDS ;
-                 emptyModuleNameSet ; emptyViewExpressionSet > MIS,
+            db(< MN , U , noModule , noModule , noModule , VDS ,
+                 emptyModuleNameSet , emptyViewExpressionSet > MIS,
                MN . MNS'', VIS, VES', MNS3, MNS4, MNS5, QIL))) .
   eq delModules((MN . MNS),
-       db(< MN ; null ; U ; U' ; U'' ; VDS ; MNS' ; VES > MIS,
+       db(< MN , null , U , U' , U'' , VDS , MNS' , VES > MIS,
           MN . MNS'', VIS, VES', MNS3, MNS4, MNS5, QIL))
     = delModules((MNS . MNS'),
         delViews(VES,
@@ -9838,27 +9838,27 @@ fmod DATABASE is
   eq delModules((MN . MNS), DB) = delModules(MNS, DB) [owise] .
 
   eq delViews(VE # VES,
-       db(MIS, MNS, < VE ; T ; VI ; MNS' ; VES' > VIS, VE # VES'',
+       db(MIS, MNS, < VE , T , VI , MNS' , VES' > VIS, VE # VES'',
           MNS'', MNS3, MNS4, QIL))
     = delViews(VES # VES',
         delModules(MNS',
           db(MIS, MNS,
-             < VE ; T ; null ; emptyModuleNameSet ; emptyViewExpressionSet > VIS,
+             < VE , T , null , emptyModuleNameSet , emptyViewExpressionSet > VIS,
              VE # VES'', MNS'', MNS3, MNS4, QIL))) .
   eq delViews(VE # VES,
        db(MIS, MNS,
-          < VE ; (null).Default{Term} ; VI ; MNS' ; VES' > VIS, VE # VES'',
+          < VE , (null).Default{Term} , VI , MNS' , VES' > VIS, VE # VES'',
           MNS'', MNS3, MNS4, QIL))
     = delViews(VES # VES',
         delModules(MNS',
           db(MIS, MNS, VIS, VES'', MNS'', MNS3, MNS4, QIL))) .
   eq delViews(VE # VES,
-       db(MIS, MNS, < VE ; VI ; VI' ; MNS' ; VES' > VIS, VE # VES'',
+       db(MIS, MNS, < VE , VI , VI' , MNS' , VES' > VIS, VE # VES'',
           MNS'', MNS3, MNS4, QIL))
     = delViews(VES # VES',
         delModules(MNS',
           db(MIS, MNS,
-             < VE ; VI ; null ; emptyModuleNameSet ; emptyViewExpressionSet > VIS,
+             < VE , VI , null , emptyModuleNameSet , emptyViewExpressionSet > VIS,
              VE # VES'', MNS'', MNS3, MNS4, QIL))) .
   eq delViews(emptyViewExpressionSet, DB) = DB .
   eq delViews(VE # VES, DB) = delViews(VES, DB) [owise] .
@@ -9880,11 +9880,11 @@ fmod DATABASE is
 
 *** Core Maude built-in modules are handled in a special way in the current
 *** version of the system. They are not explicitly defined in the Full Maude
-*** database; their importation is directly handled by Core Maude. This has
-*** some drawbacks: Core Maude built-in modules cannot be renamed; they cannot
+*** database, their importation is directly handled by Core Maude. This has
+*** some drawbacks: Core Maude built-in modules cannot be renamed, they cannot
 *** be directly used with built-in functions, such as \texttt{metaReduce} or
 *** \texttt{sameComponent}, although they can be imported in modules being
-*** used in the calls to these functions; and, in general, any function taking
+*** used in the calls to these functions, and, in general, any function taking
 *** as argument or returning as result the metarepresentation of a module
 *** cannot take one of these built-in modules as argument. This is the case,
 *** for example, for the \texttt{up} function presented in
@@ -9926,14 +9926,14 @@ fmod DATABASE is
   eq setUpModExpDeps(QI, DB) = DB .
 
   eq setUpModExpDeps(pd(X :: ME),
-       db(< ME ; DT ; U ; U' ; U'' ; VDS ; MNS ; VES > MIS,
+       db(< ME , DT , U , U' , U'' , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(< ME ; DT ; U ; U' ; U'' ; VDS ; (MNS . pd(X :: ME)) ; VES > MIS,
+    = db(< ME , DT , U , U' , U'' , VDS , (MNS . pd(X :: ME)) , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
   eq setUpModExpDeps(pd(X :: ME),
-       db(< ME ; U ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS,
+       db(< ME , U , U' , U'' , U3 , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(< ME ; U ; U' ; U'' ; U3 ; VDS ; (MNS . pd(X :: ME)) ; VES > MIS,
+    = db(< ME , U , U' , U'' , U3 , VDS , (MNS . pd(X :: ME)) , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
   eq setUpModExpDeps(pd(X :: ME), DB)
     = warning(DB, ('\r 'Error: '\o 'Module header2QidList(ME) 'not 'in 'database. '\n))
@@ -9942,36 +9942,36 @@ fmod DATABASE is
 ---- This could be a bug in Core Maude.
 ---- It should work if the next 6 equations are replaced by this single equation.
 ----  ceq setUpImportDeps(MN, (I IL),
-----       db((< MN' ; U ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS),
+----       db((< MN' , U , U' , U'' , U3 , VDS , MNS , VES > MIS),
 ----          MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
 ----    = setUpImportDeps(MN, IL,
-----        db((< MN' ; U ; U' ; U'' ; U3 ; VDS ; MN . MNS ; VES > MIS),
+----        db((< MN' , U , U' , U'' , U3 , VDS , MN . MNS , VES > MIS),
 ----           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
 ----    if MN' := moduleName(I) .
   eq setUpImportDeps(MN, ((including MN' .) IL),
-       db((< MN' ; DT ; U ; U' ; U'' ; VDS ; MNS ; VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db((< MN' , DT , U , U' , U'' , VDS , MNS , VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpImportDeps(MN, IL,
-        db((< MN' ; DT ; U ; U' ; U'' ; VDS ; MN . MNS ; VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
+        db((< MN' , DT , U , U' , U'' , VDS , MN . MNS , VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq setUpImportDeps(MN, ((including MN' .) IL),
-       db((< MN' ; U ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db((< MN' , U , U' , U'' , U3 , VDS , MNS , VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpImportDeps(MN, IL,
-        db((< MN' ; U ; U' ; U'' ; U3 ; VDS ; MN . MNS ; VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
+        db((< MN' , U , U' , U'' , U3 , VDS , MN . MNS , VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq setUpImportDeps(MN, ((extending MN' .) IL),
-       db((< MN' ; DT ; U ; U' ; U'' ; VDS ; MNS ; VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db((< MN' , DT , U , U' , U'' , VDS , MNS , VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpImportDeps(MN, IL,
-        db((< MN' ; DT ; U ; U' ; U'' ; VDS ; MN . MNS ; VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
+        db((< MN' , DT , U , U' , U'' , VDS , MN . MNS , VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq setUpImportDeps(MN, ((extending MN' .) IL),
-       db((< MN' ; U ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db((< MN' , U , U' , U'' , U3 , VDS , MNS , VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpImportDeps(MN, IL,
-        db((< MN' ; U ; U' ; U'' ; U3 ; VDS ; MN . MNS ; VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
+        db((< MN' , U , U' , U'' , U3 , VDS , MN . MNS , VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq setUpImportDeps(MN, ((protecting MN' .) IL),
-       db((< MN' ; DT ; U ; U' ; U'' ; VDS ; MNS ; VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db((< MN' , DT , U , U' , U'' , VDS , MNS , VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpImportDeps(MN, IL,
-        db((< MN' ; DT ; U ; U' ; U'' ; VDS ; MN . MNS ; VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
+        db((< MN' , DT , U , U' , U'' , VDS , MN . MNS , VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq setUpImportDeps(MN, ((protecting MN' .) IL),
-       db((< MN' ; U ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db((< MN' , U , U' , U'' , U3 , VDS , MNS , VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpImportDeps(MN, IL,
-        db((< MN' ; U ; U' ; U'' ; U3 ; VDS ; MN . MNS ; VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
+        db((< MN' , U , U' , U'' , U3 , VDS , MN . MNS , VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq setUpImportDeps(MN, I IL, DB)
     = warning(DB, '\r 'Error: '\o 'Module header2QidList(moduleName(I)) 'not 'in 'database. '\n)
     [owise] .
@@ -9982,11 +9982,11 @@ fmod DATABASE is
   op setUpViewExpressionDeps : ViewExpression ParameterList Database -> Database .
 
   eq setUpViewDeps(ME, VE,
-       db((< ME ; DT ; U ; U' ; U'' ; VDS ; MNS ; VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db((< ME ; DT ; U ; U' ; U'' ; VDS ; MNS ; VE # VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
+       db((< ME , DT , U , U' , U'' , VDS , MNS , VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
+    = db((< ME , DT , U , U' , U'' , VDS , MNS , VE # VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
   eq setUpViewDeps(ME, VE,
-       db((< ME ; U ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db((< ME ; U ; U' ; U'' ; U3 ; VDS ; MNS ; VE # VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
+       db((< ME , U , U' , U'' , U3 , VDS , MNS , VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
+    = db((< ME , U , U' , U'' , U3 , VDS , MNS , VE # VES > MIS), MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
   eq setUpViewDeps(ME, VE, DB)
     = warning(DB, '\r 'Error: '\o 'Module header2QidList(ME) 'not 'in 'database. '\n)
     [owise] .
@@ -9995,30 +9995,30 @@ fmod DATABASE is
   eq setUpViewExpressionDeps(QI{PL}, DB) = setUpViewExpressionDeps(QI{PL}, PL, DB) .
 
   eq setUpViewExpressionDeps(VE, (QI, PL),
-       db(MIS, MNS, < QI ; DT ; VI ; MNS' ; VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db(MIS, MNS, < QI , DT , VI , MNS' , VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpViewExpressionDeps(VE, PL,
-        db(MIS, MNS, < QI ; DT ; VI ; MNS' ; VE # VES > VIS, VES', MNS'', MNS3, MNS4, QIL)) .
+        db(MIS, MNS, < QI , DT , VI , MNS' , VE # VES > VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq setUpViewExpressionDeps(VE, (QI, PL),
-       db(MIS, MNS, < QI ; VI ; VI' ; MNS' ; VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db(MIS, MNS, < QI , VI , VI' , MNS' , VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpViewExpressionDeps(VE, PL,
-        db(MIS, MNS, < QI ; VI ; VI' ; MNS' ; VE # VES > VIS, VES', MNS'', MNS3, MNS4, QIL)) .
+        db(MIS, MNS, < QI , VI , VI' , MNS' , VE # VES > VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq setUpViewExpressionDeps(QI{PL}, PL',
-       db(MIS, MNS, < QI ; DT ; VI ; MNS' ; VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(MIS, MNS, < QI ; DT ; VI ; MNS' ; QI{PL} # VES > VIS, VES', MNS'', MNS3, MNS4, QIL)
+       db(MIS, MNS, < QI , DT , VI , MNS' , VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
+    = db(MIS, MNS, < QI , DT , VI , MNS' , QI{PL} # VES > VIS, VES', MNS'', MNS3, MNS4, QIL)
     [owise] .
   eq setUpViewExpressionDeps(QI{PL}, PL',
-       db(MIS, MNS, < QI ; VI ; VI' ; MNS' ; VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(MIS, MNS, < QI ; VI ; VI' ; MNS' ; QI{PL} # VES > VIS, VES', MNS'', MNS3, MNS4, QIL)
+       db(MIS, MNS, < QI , VI , VI' , MNS' , VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
+    = db(MIS, MNS, < QI , VI , VI' , MNS' , QI{PL} # VES > VIS, VES', MNS'', MNS3, MNS4, QIL)
     [owise] .
 
   eq setUpViewExpressionDeps(VE, (QI{PL}, PL'),
-       db(MIS, MNS, < QI{PL} ; DT ; VI ; MNS' ; VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db(MIS, MNS, < QI{PL} , DT , VI , MNS' , VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpViewExpressionDeps(VE, PL',
-        db(MIS, MNS, < QI{PL} ; DT ; VI ; MNS' ; VE # VES > VIS, VES', MNS'', MNS3, MNS4, QIL)) .
+        db(MIS, MNS, < QI{PL} , DT , VI , MNS' , VE # VES > VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq setUpViewExpressionDeps(VE, (QI{PL}, PL'),
-       db(MIS, MNS, < QI{PL} ; VI ; VI' ; MNS' ; VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db(MIS, MNS, < QI{PL} , VI , VI' , MNS' , VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpViewExpressionDeps(VE, PL',
-        db(MIS, MNS, < QI{PL} ; VI ; VI' ; MNS' ; VE # VES > VIS, VES', MNS'', MNS3, MNS4, QIL)) .
+        db(MIS, MNS, < QI{PL} , VI , VI' , MNS' , VE # VES > VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq setUpViewExpressionDeps(VE, (QI{PL}, PL'), DB)
     = setUpViewExpressionDeps(VE, PL', DB)
     [owise] .
@@ -10029,16 +10029,16 @@ fmod DATABASE is
   op compiledView : ViewExpression Database -> Bool .
 
   eq compiledView(VE,
-       db(MIS, MNS, < VE ; DT ; VI ; MNS' ; VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db(MIS, MNS, < VE , DT , VI , MNS' , VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
     = VI =/= null .
   eq compiledView(ME, DB) = false [owise] .
 
   eq compiledModule(MN,
-       db(< MN ; DT ; U ; U' ; U'' ; VDS ; MNS ; VES > MIS, MNS',
+       db(< MN , DT , U , U' , U'' , VDS , MNS , VES > MIS, MNS',
           VIS, VES', MNS'', MNS3, MNS4, QIL))
     = U'' =/= noModule .
   eq compiledModule(MN,
-       db(< MN ; U ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS, MNS',
+       db(< MN , U , U' , U'' , U3 , VDS , MNS , VES > MIS, MNS',
           VIS, VES', MNS'', MNS3, MNS4, QIL))
     = U3 =/= noModule .
   eq compiledModule(MN, DB) = false [owise] .
@@ -10049,41 +10049,41 @@ fmod DATABASE is
   op getView : ViewExpression Database -> View .
 
   eq insertTermView(VE, T,
-       db(MIS, MNS, < VE ; DT ; VI ; MNS' ; VES > VIS, VES',
+       db(MIS, MNS, < VE , DT , VI , MNS' , VES > VIS, VES',
           MNS'', MNS3, MNS4, QIL))
     = delViews(VES,
         delModules(MNS',
           db(MIS, MNS,
-            < VE ; T ; null ; emptyModuleNameSet ; emptyViewExpressionSet > VIS, VES',
+            < VE , T , null , emptyModuleNameSet , emptyViewExpressionSet > VIS, VES',
             MNS'', MNS3, MNS4,
             QIL
             '\g 'Advisory: '\o 'View viewExp2QidList(VE) 'redefined. '\n))) .
   eq insertTermView(VE, T,
        db(MIS, MNS, VIS, VES, MNS', MNS'', MNS3, QIL))
     = db(MIS, MNS,
-         < VE ; T ; null ; emptyModuleNameSet ; emptyViewExpressionSet > VIS,
+         < VE , T , null , emptyModuleNameSet , emptyViewExpressionSet > VIS,
          (VE # VES), MNS', MNS'', MNS3, QIL)
     [owise] .
 
   eq insertView(view VE from ME to ME' is SMS OMS TMS endv,
-       db(MIS, MNS, < VE ; DT ; VI ; MNS' ; VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db(MIS, MNS, < VE , DT , VI , MNS' , VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpViewExpressionDeps(VE,
         setUpViewDeps(ME, VE,
           setUpViewDeps(ME', VE,
             db(MIS, MNS,
-               < VE ; DT ;
-                 view VE from ME to ME' is SMS OMS TMS endv ;
-                 MNS' ; VES > VIS,
+               < VE , DT ,
+                 view VE from ME to ME' is SMS OMS TMS endv ,
+                 MNS' , VES > VIS,
                  VES', MNS'', MNS3, MNS4, QIL)))) .
   eq insertView(view VE{PDL} from ME to ME' is SMS OMS TMS endv,
-       db(MIS, MNS, < VE ; DT ; VI ; MNS' ; VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db(MIS, MNS, < VE , DT , VI , MNS' , VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpViewExpressionDeps(VE,
         setUpViewDeps(ME, VE,
           setUpViewDeps(ME', VE,
             db(MIS, MNS,
-               < VE ; DT ;
-                 view VE{PDL} from ME to ME' is SMS OMS TMS endv ;
-                 MNS' ; VES > VIS,
+               < VE , DT ,
+                 view VE{PDL} from ME to ME' is SMS OMS TMS endv ,
+                 MNS' , VES > VIS,
                  VES', MNS'', MNS3, MNS4, QIL)))) .
   eq insertView(view VE from ME to ME' is SMS OMS TMS endv,
        db(MIS, MNS, VIS, VES', MNS'', MNS3, MNS4, QIL))
@@ -10091,9 +10091,9 @@ fmod DATABASE is
         setUpViewDeps(ME, VE,
           setUpViewDeps(ME', VE,
             db(MIS, MNS,
-               < VE ; (null).Default{Term} ;
-                 view VE from ME to ME' is SMS OMS TMS endv ;
-                 emptyModuleNameSet ; emptyViewExpressionSet > VIS,
+               < VE , (null).Default{Term} ,
+                 view VE from ME to ME' is SMS OMS TMS endv ,
+                 emptyModuleNameSet , emptyViewExpressionSet > VIS,
                  VE # VES', MNS'', MNS3, MNS4, QIL))))
     [owise] .
   eq insertView(view VE{PDL} from ME to ME' is SMS OMS TMS endv, db(MIS, MNS, VIS, VES', MNS'', MNS3, MNS4, QIL))
@@ -10101,9 +10101,9 @@ fmod DATABASE is
         setUpViewDeps(ME, VE,
           setUpViewDeps(ME', VE,
             db(MIS, MNS,
-               < VE ; (null).Default{Term} ;
-                 view VE{PDL} from ME to ME' is SMS OMS TMS endv ;
-                 emptyModuleNameSet ; emptyViewExpressionSet > VIS,
+               < VE , (null).Default{Term} ,
+                 view VE{PDL} from ME to ME' is SMS OMS TMS endv ,
+                 emptyModuleNameSet , emptyViewExpressionSet > VIS,
                  VE # VES', MNS'', MNS3, MNS4, QIL))))
     [owise] .
   eq insertView(viewError(QIL), DB) = warning(DB, QIL) .
@@ -10119,17 +10119,17 @@ fmod DATABASE is
     [owise] .
 
   eq getTermView(VE,
-       db(MIS, MNS, (< VE ; DT ; VI ; MNS' ; VES > VIS), VES', MNS'', MNS3, MNS4, QIL))
+       db(MIS, MNS, (< VE , DT , VI , MNS' , VES > VIS), VES', MNS'', MNS3, MNS4, QIL))
     = DT .
   eq getTermView(VE, db(MIS, MNS, VIS, VES, MNS', MNS'', MNS3, QIL))
     = qidError('\r 'Error: '\o 'View viewExp2QidList(VE) 'not 'in 'database. '\n)
     [owise] .
 
   eq getView(VE,
-       db(MIS, MNS, < VE ; DT ; VI ; MNS' ; VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db(MIS, MNS, < VE , DT , VI , MNS' , VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
     = VI .
   eq getView(VE,
-       db(MIS, MNS, < VE ; VI ; VI' ; MNS' ; VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db(MIS, MNS, < VE , VI , VI' , MNS' , VES > VIS, VES', MNS'', MNS3, MNS4, QIL))
     = VI' .
   eq getView(VE, db(MIS, MNS, VIS, VES, MNS', MNS'', MNS3, QIL))
     = viewError('\r 'Error: '\o 'View viewExp2QidList(VE) 'not 'in 'database. '\n)
@@ -10142,7 +10142,7 @@ fmod DATABASE is
 *** the flat version of a module is entered in the database, its corresponding
 *** top module is already present in it.
 
-  pr 3TUPLE{Term,VariableSet,Module} * (op ((_,_,_)) to <_;_;_>) .
+  pr 3TUPLE{Term,VariableSet,Module} * (op ((_,_,_)) to <_,_,_>) .
 
 *** extended variable set
   op variableSetError : QidList -> [VariableSet] [ctor format (r o)] .
@@ -10150,7 +10150,7 @@ fmod DATABASE is
 
 
 ----  sort Tuple{Term,OpDeclSet,Module} .
-----  op <_;_;_> : Default{Term} OpDeclSet Module -> Tuple{Term,OpDeclSet,Module} .
+----  op <_,_,_> : Default{Term} OpDeclSet Module -> Tuple{Term,OpDeclSet,Module} .
   op error : QidList -> [Tuple{Term,VariableSet,Module}] .
 
   op insTermModule : ModuleName Module Database -> Database .
@@ -10177,152 +10177,152 @@ fmod DATABASE is
   op getVars : ParameterDecl Database -> [VariableSet] .
 
   eq insTermModule(MN, T,
-       db(< MN ; DT ; U ; U' ; U'' ; VDS ; MNS ; VES > MIS, MNS',
+       db(< MN , DT , U , U' , U'' , VDS , MNS , VES > MIS, MNS',
           VIS, VES', MNS'', MNS3, MNS4, QIL))
     = delModules(MNS,
           delViews(VES,
-            db(< MN ; T ; noModule ; noModule ; noModule ; none ;
-                 emptyModuleNameSet ; emptyViewExpressionSet > MIS,
+            db(< MN , T , noModule , noModule , noModule , none ,
+                 emptyModuleNameSet , emptyViewExpressionSet > MIS,
                MNS', VIS, VES', MNS'', MNS3, MNS4,
                QIL
                '\g 'Advisory: '\o 'Module header2QidList(MN) 'redefined. '\n))).
   eq insTermModule(MN, T,
-       db(< MN ; U ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS, MNS',
+       db(< MN , U , U' , U'' , U3 , VDS , MNS , VES > MIS, MNS',
           VIS, VES', MNS'', MNS3, MNS4, QIL))
     = delModules(MNS,
           delViews(VES,
-            db(< MN ; T ; noModule ; noModule ; noModule ; none ;
-                 emptyModuleNameSet ; emptyViewExpressionSet > MIS,
+            db(< MN , T , noModule , noModule , noModule , none ,
+                 emptyModuleNameSet , emptyViewExpressionSet > MIS,
                MNS', VIS, VES', MNS'', MNS3, MNS4,
                QIL
                '\g 'Advisory: '\o 'Module header2QidList(MN) 'redefined. '\n))).
   eq insTermModule(MN, T,
        db(MIS, MNS, VIS, VES, MNS', MNS'', MNS3, QIL))
-    = db(< MN ; T ; noModule ; noModule ; noModule ; none ;
-           emptyModuleNameSet ; emptyViewExpressionSet > MIS,
+    = db(< MN , T , noModule , noModule , noModule , none ,
+           emptyModuleNameSet , emptyViewExpressionSet > MIS,
          MN . MNS, VIS, VES, MNS', MNS'', MNS3, QIL)
     [owise] .
   eq insTermModule(MN, qidError(QIL), DB) = warning(DB, QIL) .
   eq insTermModule(MN, unitError(QIL), DB) = warning(DB, QIL) .
 
   eq insTermModule(MN, U,
-       db(< MN ; DT ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS, MNS',
+       db(< MN , DT , U' , U'' , U3 , VDS , MNS , VES > MIS, MNS',
           VIS, VES', MNS'', MNS3, MNS4, QIL))
     = delModules(MNS,
           delViews(VES,
-            db(< MN ; U ; noModule ; noModule ; noModule ; none ;
-                 emptyModuleNameSet ; emptyViewExpressionSet > MIS,
+            db(< MN , U , noModule , noModule , noModule , none ,
+                 emptyModuleNameSet , emptyViewExpressionSet > MIS,
                MNS', VIS, VES', MNS'', MNS3, MNS4,
                QIL
                '\g 'Advisory:
                '\o 'Module header2QidList(MN) 'redefined. '\n))).
   eq insTermModule(MN, U,
-       db(< MN ; U' ; U'' ; U3 ; U4 ; VDS ; MNS ; VES > MIS, MNS',
+       db(< MN , U' , U'' , U3 , U4 , VDS , MNS , VES > MIS, MNS',
           VIS, VES', MNS'', MNS3, MNS4, QIL))
     = delModules(MNS,
           delViews(VES,
-            db(< MN ; U ; noModule ; noModule ; noModule ; none ;
-                 emptyModuleNameSet ; emptyViewExpressionSet > MIS,
+            db(< MN , U , noModule , noModule , noModule , none ,
+                 emptyModuleNameSet , emptyViewExpressionSet > MIS,
                MNS', VIS, VES', MNS'', MNS3, MNS4,
                QIL
                '\g 'Advisory:
                '\o 'Module header2QidList(MN) 'redefined. '\n))).
   eq insTermModule(MN, U,
        db(MIS, MNS, VIS, VES, MNS', MNS'', MNS3, QIL))
-    = db(< MN ; U ; noModule ; noModule ; noModule ; none ;
-           emptyModuleNameSet ; emptyViewExpressionSet > MIS,
+    = db(< MN , U , noModule , noModule , noModule , none ,
+           emptyModuleNameSet , emptyViewExpressionSet > MIS,
          MN . MNS, VIS, VES, MNS', MNS'', MNS3, QIL)
     [owise] .
   eq insTermModule(MN, qidError(QIL), DB) = warning(DB, QIL) .
   eq insTermModule(MN, unitError(QIL), DB) = warning(DB, QIL) .
 
   eq insertTopModule(MN, U,
-       db(< MN ; null ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS,
+       db(< MN , null , U' , U'' , U3 , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(< MN ; null ; U ; noModule ; noModule ; VDS ; MNS ; VES > MIS,
+    = db(< MN , null , U , noModule , noModule , VDS , MNS , VES > MIS,
          MNS', VIS, VES', MNS'', MNS3, MNS4,
          QIL
          '\r 'Advisory: '\o
          'Internally 'generated 'module header2QidList(MN) 'redefined. '\n) .
   eq insertTopModule(MN, U,
-       db(< MN ; T ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS,
+       db(< MN , T , U' , U'' , U3 , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpModuleDeps(U,
-        db(< MN ; T ; U ; noModule ; noModule ; VDS ; MNS ; VES > MIS,
+        db(< MN , T , U , noModule , noModule , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq insertTopModule(MN, U,
-       db(< MN ; U' ; U'' ; U3 ; U4 ; VDS ; MNS ; VES > MIS,
+       db(< MN , U' , U'' , U3 , U4 , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpModuleDeps(U,
-        db(< MN ; U' ; U ; noModule ; noModule ; VDS ; MNS ; VES > MIS,
+        db(< MN , U' , U , noModule , noModule , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq insertTopModule(MN, U,
        db(MIS, MNS, VIS, VES, MNS', MNS'', MNS3, QIL))
     = setUpModuleDeps(U,
-        db(< MN ; null ; U ; noModule ; noModule ;
-              none ; emptyModuleNameSet ; emptyViewExpressionSet > MIS,
+        db(< MN , null , U , noModule , noModule ,
+              none , emptyModuleNameSet , emptyViewExpressionSet > MIS,
            MN . MNS, VIS, VES, MNS', MNS'', MNS3, QIL))
     [owise] .
   eq insertTopModule(MN, unitError(QIL), DB) = warning(DB, QIL) .
 
   eq insertInternalModule(MN, U,
-       db(< MN ; DT ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS,
+       db(< MN , DT , U' , U'' , U3 , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(< MN ; DT ; U' ; U ; U3 ; VDS ; MNS ; VES > MIS,
+    = db(< MN , DT , U' , U , U3 , VDS , MNS , VES > MIS,
          MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
   eq insertInternalModule(MN, U,
-       db(< MN ; U' ; U'' ; U3 ; U4 ; VDS ; MNS ; VES > MIS,
+       db(< MN , U' , U'' , U3 , U4 , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(< MN ; U' ; U'' ; U ; U4 ; VDS ; MNS ; VES > MIS,
+    = db(< MN , U' , U'' , U , U4 , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
   eq insertInternalModule(MN, unitError(QIL), DB) = warning(DB, QIL) .
 
   eq insertFlatModule(MN, U,
-       db(< MN ; DT ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS,
+       db(< MN , DT , U' , U'' , U3 , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(< MN ; DT ; U' ; U'' ; U ; VDS ; MNS ; VES > MIS,
+    = db(< MN , DT , U' , U'' , U , VDS , MNS , VES > MIS,
          MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
   eq insertFlatModule(MN, U,
-       db(< MN ; U' ; U'' ; U3 ; U4 ; VDS ; MNS ; VES > MIS,
+       db(< MN , U' , U'' , U3 , U4 , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(< MN ; U' ; U'' ; U3 ; U ; VDS ; MNS ; VES > MIS,
+    = db(< MN , U' , U'' , U3 , U , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
   eq insertFlatModule(MN, unitError(QIL), DB) = warning(DB, QIL) .
 
   eq insertVars(MN, VDS,
-       db(< MN ; DT ; U' ; U'' ; U3 ; VDS' ; MNS ; VES > MIS,
+       db(< MN , DT , U' , U'' , U3 , VDS' , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(< MN ; DT ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS,
+    = db(< MN , DT , U' , U'' , U3 , VDS , MNS , VES > MIS,
          MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
   eq insertVars(MN, VDS,
-       db(< MN ; U' ; U'' ; U3 ; U4 ; VDS' ; MNS ; VES > MIS,
+       db(< MN , U' , U'' , U3 , U4 , VDS' , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(< MN ; U' ; U'' ; U3 ; U4 ; VDS ; MNS ; VES > MIS,
+    = db(< MN , U' , U'' , U3 , U4 , VDS , MNS , VES > MIS,
          MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
   eq insertVars(MN, variableSetError(QIL), DB) = warning(DB, QIL) .
 
   eq getTermModule(MN,
-       db(< MN ; null ; U ; U' ; U'' ; VDS ; MNS ; VES > MIS,
+       db(< MN , null , U , U' , U'' , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = error('\r 'Error: '\o header2QidList(MN) 'is 'an 'internal 'module. '\n) .
   eq getTermModule(MN,
-       db(< MN ; DT ; U ; U' ; U'' ; VDS ; MNS ; VES > MIS,
+       db(< MN , DT , U , U' , U'' , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = < DT ; none ; noModule > .
+    = < DT , none , noModule > .
   eq getTermModule(MN,
-       db(< MN ; U ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS,
+       db(< MN , U , U' , U'' , U3 , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = < null ; VDS ; U > .
+    = < null , VDS , U > .
   eq getTermModule(MN, DB)
     = error('\r 'Error: '\o 'Module header2QidList(MN)  '\n)
     [owise] .
 
   eq getTopModule(MN,
-      db(< MN ; DT ; U ; U' ; U'' ; VDS ; MNS ; VES > MIS,
+      db(< MN , DT , U , U' , U'' , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = U .
   eq getTopModule(MN,
-       db(< MN ; U ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS,
+       db(< MN , U , U' , U'' , U3 , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = U' .
   eq getTopModule(MN, DB)
@@ -10330,11 +10330,11 @@ fmod DATABASE is
     [owise] .
 
   eq getInternalModule(MN,
-       db(< MN ; DT ; U ; U' ; U'' ; VDS ; MNS ; VES > MIS,
+       db(< MN , DT , U , U' , U'' , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = U' .
   eq getInternalModule(MN,
-       db(< MN ; U ; U' ; U'' ; U3 ; VDS ; MNS ; VES > MIS,
+       db(< MN , U , U' , U'' , U3 , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = U'' .
   eq getInternalModule(MN, DB)
@@ -10342,11 +10342,11 @@ fmod DATABASE is
     [owise] .
 
   eq getVars(MN,
-       db(< MN ; DT ; U ; U' ; M ; VDS ; MNS ; VES > MIS,
+       db(< MN , DT , U , U' , M , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = VDS .
   eq getVars(MN,
-       db(< MN ; U ; U' ; U'' ; M ; VDS ; MNS ; VES > MIS,
+       db(< MN , U , U' , U'' , M , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = VDS .
   eq getVars(MN, DB) = none [owise] .
@@ -10356,13 +10356,13 @@ fmod DATABASE is
 *** converting it into a quoted identifier.
 
   eq getFlatModule(MN,
-       db(< MN ; DT ; U ; U' ; M ; VDS ; MNS ; VES > MIS, MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db(< MN , DT , U , U' , M , VDS , MNS , VES > MIS, MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = if M == noModule
       then unitError('\r 'Error: '\o 'Module header2QidList(MN) 'not 'compiled. '\n)
       else remNegAnns(M)
       fi .
   eq getFlatModule(MN,
-       db(< MN ; U ; U' ; U'' ; M ; VDS ; MNS ; VES > MIS, MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
+       db(< MN , U , U' , U'' , M , VDS , MNS , VES > MIS, MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = if M == noModule
       then unitError('\r 'Error: '\o 'Module header2QidList(MN) 'not 'compiled. '\n)
       else remNegAnns(M)
@@ -10374,20 +10374,20 @@ fmod DATABASE is
   *** Handling of negative annotations (by Santiago Escobar)
 
   eq getFlatModuleNeg(MN,
-       db(< MN ; DT ; U ; U' ; M ; VDS ; MNS ; VES > MIS,
+       db(< MN , DT , U , U' , M , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = M .
   eq getFlatModuleNeg(MN,
-       db(< MN ; U ; U' ; U'' ; M ; VDS ; MNS ; VES > MIS,
+       db(< MN , U , U' , U'' , M , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = M .
   eq getFlatModuleNeg(MN,
-       db(< MN ; DT ; U ; U' ; noModule ; VDS ; MNS ; VES > MIS,
+       db(< MN , DT , U , U' , noModule , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = unitError('\r 'Error: '\o
                 'Module header2QidList(MN) 'not 'compiled. '\n) .
   eq getFlatModuleNeg(MN,
-      db(< MN ; U ; U' ; U'' ; noModule ; VDS ; MNS ; VES > MIS,
+      db(< MN , U , U' , U'' , noModule , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
     = unitError('\r 'Error: '\o
                 'Module header2QidList(MN) 'not 'compiled. '\n) .
@@ -10727,8 +10727,8 @@ fmod MOVE-DOWN is
   eq downRls((NTL, NTL')) = (downRls(NTL) downRls(NTL')) .
 
   eq downSorts('none.EmptyTypeSet) = none .
-  eq downSorts(('_;_[TL], TL')) = (downSorts(TL) ; downSorts(TL')) .
-  eq downSorts((QI, TL)) = (downSort(QI) ; downSorts(TL)) .
+  eq downSorts(('_,_[TL], TL')) = (downSorts(TL) , downSorts(TL')) .
+  eq downSorts((QI, TL)) = (downSort(QI) , downSorts(TL)) .
   eq downSorts(empty) = none .
 
   eq downSort(Ct) = downQid(Ct) .
@@ -10821,7 +10821,7 @@ fmod MOVE-DOWN is
   eq downStrategy('xmatch_s.t._[T, T']) = xmatch downTerm(T) s.t. downCond(T') .
   eq downStrategy('amatch_s.t._[T, T']) = amatch downTerm(T) s.t. downCond(T') .
   eq downStrategy('_|_[T, T']) = downStrategy(T) | downStrategy(T') .
-  eq downStrategy('_;_[T, T']) = downStrategy(T) ; downStrategy(T') .
+  eq downStrategy('_,_[T, T']) = downStrategy(T) , downStrategy(T') .
   eq downStrategy('_or-else_[T, T']) = downStrategy(T) or-else downStrategy(T') .
   eq downStrategy('_+[T]) = downStrategy(T) + .
   eq downStrategy('_?_:_[T, T', T'']) = downStrategy(T) ? downStrategy(T') : downStrategy(T'') .
@@ -10850,9 +10850,9 @@ fmod MOVE-DOWN is
 
   op downSubstitution : TermList -> Substitution .
   eq downSubstitution('none.Substitution) = none .
-  eq downSubstitution('_;_[T, T']) = downSubstitution(T) ; downSubstitution(T') .
+  eq downSubstitution('_,_[T, T']) = downSubstitution(T) , downSubstitution(T') .
  ceq downSubstitution((TL, TL'))
-    = (downSubstitution(TL) ; downSubstitution(TL'))
+    = (downSubstitution(TL) , downSubstitution(TL'))
     if TL =/= empty /\ TL' =/= empty .
   eq downSubstitution('_<-_[T, T']) = downQid(T) <- downTerm(T') .
 endfm
@@ -10937,7 +10937,7 @@ fmod FM-MOD-EXP-PARSING is
     = qid("[" + string(parseSort(T)) + "]") .
   eq parseType(T) = parseSort(T) [owise] .
 
-  eq parseSortSet('__[T, T']) = (parseSort(T) ; parseSortSet(T')) .
+  eq parseSortSet('__[T, T']) = (parseSort(T) , parseSortSet(T')) .
   eq parseSortSet(T) = parseSort(T) [owise].
 
   eq parseTypeList('__[T, T']) = (parseType(T) parseTypeList(T')) .
@@ -11267,7 +11267,7 @@ fmod BUBBLE-PARSING is
 
   ceq solveUpsModExp('upModule[T], DB)
     = up(getFlatModule(MN, DB'))
-    if < DB' ; MN > := evalModExp(parseModExp(T), DB)
+    if < DB' , MN > := evalModExp(parseModExp(T), DB)
     /\ unitInDb(MN, DB') .
   ceq solveUpsModExp('upModule[T], DB)
     = qidError('\r 'Error: '\o 'Module header2QidList(MN) 'not 'in 'database. '\n)
@@ -11310,7 +11310,7 @@ fmod BUBBLE-PARSING is
                   '\n)
            fi
       fi
-    if < DB' ; MN > := evalModExp(parseModExp(T), DB)
+    if < DB' , MN > := evalModExp(parseModExp(T), DB)
     /\ U := getFlatModule(MN, DB')
     /\ VDS := getVars(MN, DB')
     /\ QIL := downQidList(T').
@@ -11401,7 +11401,7 @@ fmod UNIT-BUBBLE-PARSING is
 *** In the parsing of bubbles themselves, we consider three different cases:
 *** The case of having one single bubble in which no context is
 *** considered (used to parse bubbles in term maps in views and in the
-*** special attributes of operators); the case of two bubbles to be parsed in
+*** special attributes of operators), the case of two bubbles to be parsed in
 *** the same connected component (used for bubbles in equations and rules),
 *** and the case of one bubble to be parsed in a specific sort (used for the
 *** bubbles appearing in the identity element attributes in the declarations
@@ -11514,16 +11514,16 @@ fmod UNIT-BUBBLE-PARSING is
 
   eq addInfoConds(M) = addInfoConds(M, getAllSorts(M)) .
 
-  eq addInfoConds(M, '@Token@ ; SS) = addInfoConds(M, SS) .
-  eq addInfoConds(M, '@Bubble@ ; SS) = addInfoConds(M, SS) .
-  eq addInfoConds(M, '@UBubble@ ; SS) = addInfoConds(M, SS) .
-  eq addInfoConds(M, '@StBubble@ ; SS) = addInfoConds(M, SS) .
-  eq addInfoConds(M, '@EqLBubble@ ; SS) = addInfoConds(M, SS) .
-  eq addInfoConds(M, '@RlLBubble@ ; SS) = addInfoConds(M, SS) .
-  eq addInfoConds(M, '@SdLBubble@ ; SS) = addInfoConds(M, SS) .
-  eq addInfoConds(M, '@RCBubble@ ; SS) = addInfoConds(M, SS) .
-  eq addInfoConds(M, '@RBubble@ ; SS) = addInfoConds(M, SS) .
-  eq addInfoConds(M, S ; SS)
+  eq addInfoConds(M, '@Token@ , SS) = addInfoConds(M, SS) .
+  eq addInfoConds(M, '@Bubble@ , SS) = addInfoConds(M, SS) .
+  eq addInfoConds(M, '@UBubble@ , SS) = addInfoConds(M, SS) .
+  eq addInfoConds(M, '@StBubble@ , SS) = addInfoConds(M, SS) .
+  eq addInfoConds(M, '@EqLBubble@ , SS) = addInfoConds(M, SS) .
+  eq addInfoConds(M, '@RlLBubble@ , SS) = addInfoConds(M, SS) .
+  eq addInfoConds(M, '@SdLBubble@ , SS) = addInfoConds(M, SS) .
+  eq addInfoConds(M, '@RCBubble@ , SS) = addInfoConds(M, SS) .
+  eq addInfoConds(M, '@RBubble@ , SS) = addInfoConds(M, SS) .
+  eq addInfoConds(M, S , SS)
     = addInfoConds(
         addOps(op qid(string(S)) : nil -> '@Sort@ [ctor] .
                op '_:_ : S '@Sort@ -> '@Condition@ [ctor prec(71)] ., M),
@@ -11538,7 +11538,7 @@ fmod UNIT-BUBBLE-PARSING is
                                [ctor poly(1 2) gather('& '&) prec(71)] .
              op '_=>_ : 'Universal 'Universal -> '@Condition@
                                [ctor poly(1 2) gather('& '&) prec(71)] .,
-        addSorts('@Condition@ ; '@Sort@,
+        addSorts('@Condition@ , '@Sort@,
           if 'Bool in getSorts(M)
           then addSubsorts(subsort 'Bool < '@Condition@ ., M)
           else M
@@ -11726,7 +11726,7 @@ fmod UNIT-BUBBLE-PARSING is
   eq pullStmtAttrOutAux(T, TL, AtS, VDS) = {T, none} [owise] .
 
   op printArg : TermList VariableSet ~> QidList .
-  ceq printArg((T, TL), V ; VDS)
+  ceq printArg((T, TL), V , VDS)
     = qid(string(downQid(T)) + ":" + string(getType(V))) printArg(TL, VDS)
     if getName(V) = downQid(T) .
   ceq printArg((T, TL), VDS)
@@ -11967,7 +11967,7 @@ endfm
 *** produce the evaluation of other module expressions contained in the
 *** modules involved in the process. This is the case, for example, for the
 *** renaming of modules, in which not only the top module is renamed but,
-*** perhaps, some of its submodules as well; it is also the case for the
+*** perhaps, some of its submodules as well, it is also the case for the
 *** instantiation of parameterized modules, where the module being
 *** instantiated may contain submodules which are parameterized by some of
 *** the parameter theories of the parameterized module in which are imported.
@@ -12005,17 +12005,17 @@ fmod MOD-EXPR-EVAL is
 
   eq evalModExp(ME, DB) = evalModExp(ME, nil, DB) .
 
-  eq evalModExp(ME, PDL, DB) = < DB ; ME > [owise] .
+  eq evalModExp(ME, PDL, DB) = < DB , ME > [owise] .
 
   eq evalModExp(QI, PDL, DB)
     = if unitInDb(QI, DB)
       then if compiledModule(QI, DB)
-           then < DB ; QI >
-           else < procModule(QI, DB) ; QI >
+           then < DB , QI >
+           else < procModule(QI, DB) , QI >
            fi
       else if upModule(QI, false) :: Module
-           then < procModule(QI, insTermModule(QI, upModule(QI, false), DB)) ; QI >
-           else < warning(DB, '\r 'Error: '\o 'Module QI 'not 'in 'database. '\n) ; QI >
+           then < procModule(QI, insTermModule(QI, upModule(QI, false), DB)) , QI >
+           else < warning(DB, '\r 'Error: '\o 'Module QI 'not 'in 'database. '\n) , QI >
            fi
       fi .
 
@@ -12038,7 +12038,7 @@ fmod MOD-EXPR-EVAL is
       then DB
       else viewInst(S, PL, PDL, evalViewExpression(S, PDL, evalViewExpression(PL, PDL, DB)))
       fi .
-  ceq evalViewExpression(VE ;; VE', PDL, DB)
+  ceq evalViewExpression(VE ,, VE', PDL, DB)
     = evalViewExpression(VE, PDL, evalViewExpression(VE', PDL, DB))
     if VE =/= mtViewExpression /\ VE' =/= mtViewExpression .
   eq evalViewExpression((S, PL), PDL, DB)
@@ -12127,7 +12127,7 @@ endfm
 *** and membership constraints as indicated there. In fact, these declarations
 *** were added in an initial version and were then removed because they were
 *** computationally expensive. However, there are examples in which it would
-*** be interesting to have them; when needed, these declarations can be
+*** be interesting to have them, when needed, these declarations can be
 *** explicitly added by the user in the current version.
 
 -------------------------------------------------------------------------------
@@ -12257,12 +12257,12 @@ fmod O-O-TO-SYSTEM-MOD-TRANSF is
   eq buildHierarchy(((class C | ADS .) CDS), SCDS, SS, CH)
     = if C in SS
       then buildHierarchy(CDS, SCDS, SS, CH)
-      else buildHierarchy(CDS, SCDS, C ; SS, [(class C | ADS .), none] CH)
+      else buildHierarchy(CDS, SCDS, C , SS, [(class C | ADS .), none] CH)
       fi .
   eq buildHierarchy(none, (subclass C < C' .) SCDS, SS,
        [(class C | ADS .), SS'] [(class C' | ADS' .), SS''] CH)
     = buildHierarchy(none, SCDS, SS,
-        [(class C | ADS .), C' ; SS'] [(class C' | ADS' .), SS''] CH) .
+        [(class C | ADS .), C' , SS'] [(class C' | ADS' .), SS''] CH) .
   eq buildHierarchy(none, none, SS, CH) = CH .
 
   eq addAttrs([(class C | ADS .), none] CH, SCDS)
@@ -12270,7 +12270,7 @@ fmod O-O-TO-SYSTEM-MOD-TRANSF is
       addAttrs(addAttrsToItsSons((class C | ADS .), CH, SCDS), SCDS) .
   eq addAttrs(empty, SCDS) = none .
 
-  eq addAttrsToItsSons((class C | ADS .), [(class C' | ADS' .), C ; SS] CH,
+  eq addAttrsToItsSons((class C | ADS .), [(class C' | ADS' .), C , SS] CH,
        (subclass C' < C .) SCDS)
     = addAttrsToItsSons((class C | ADS .), [(class C' | ADS, ADS' .), SS] CH,
         SCDS) .
@@ -12337,7 +12337,7 @@ fmod O-O-TO-SYSTEM-MOD-TRANSF is
 
   pr 4TUPLE{TermList, TermSet, Nat, QidList}
        * (op p1_ to term, op p2_ to objects, op p3_ to index, op p4_ to messages,
-          op ((_,_,_,_)) : TermList TermSet Nat QidList -> Tuple{TermList,TermSet,Nat,QidList} to <_;_;_;_>) .
+          op ((_,_,_,_)) : TermList TermSet Nat QidList -> Tuple{TermList,TermSet,Nat,QidList} to <_,_,_,_>) .
 
   op prepLHS : TermList ClassDeclSet Nat -> Tuple{TermList, TermSet, Nat, QidList} .
 
@@ -12345,9 +12345,9 @@ fmod O-O-TO-SYSTEM-MOD-TRANSF is
   op crtObject2 : Term Variable TermList TermList AttrDeclSet TermSet Nat QidList -> Tuple{TermList, TermSet, Nat, QidList} .
   op crtObject3 : Term Qid TermList AttrDeclSet TermSet Nat QidList -> Tuple{TermList, TermSet, Nat, QidList} .
 
-  eq prepLHS(qidError(QIL), CDS, I) = < qidError(QIL) ; emptyTermSet ; I ; nil > .
-  eq prepLHS(F, CDS, I) = < F ; emptyTermSet ; I ; nil > .
-  eq prepLHS(Ct, CDS, I) = < Ct ; emptyTermSet ; I ; nil > .
+  eq prepLHS(qidError(QIL), CDS, I) = < qidError(QIL) , emptyTermSet , I , nil > .
+  eq prepLHS(F, CDS, I) = < F , emptyTermSet , I , nil > .
+  eq prepLHS(Ct, CDS, I) = < Ct , emptyTermSet , I , nil > .
 
 *** \texttt{prepLHS} on a list of terms $\texttt{(}T\texttt{,\ }TL\texttt{)}$,
 *** with $T$ a term and $TL$ a list of terms, has to make a call to itself with
@@ -12356,17 +12356,17 @@ fmod O-O-TO-SYSTEM-MOD-TRANSF is
 
   ceq prepLHS((T, TL), CDS, I)
     = < (term(prepLHS(T, CDS, I)),
-         term(prepLHS(TL, CDS, index(prepLHS(T, CDS, I))))) ;
+         term(prepLHS(TL, CDS, index(prepLHS(T, CDS, I))))) ,
         _|_(objects(prepLHS(T, CDS, I)),
-                objects(prepLHS(TL, CDS, index(prepLHS(T, CDS, I))))) ;
-        index(prepLHS(TL, CDS, index(prepLHS(T, CDS, I)))) ;
+                objects(prepLHS(TL, CDS, index(prepLHS(T, CDS, I))))) ,
+        index(prepLHS(TL, CDS, index(prepLHS(T, CDS, I)))) ,
         (messages(prepLHS(T, CDS, I))
          messages(prepLHS(TL, CDS, index(prepLHS(T, CDS, I))))) >
     if TL =/= empty .
   ceq prepLHS(F[TL], CDS, I)
-    = < F[term(prepLHS(TL, CDS, I))] ;
-        objects(prepLHS(TL, CDS, I)) ;
-        index(prepLHS(TL, CDS, I)) ;
+    = < F[term(prepLHS(TL, CDS, I))] ,
+        objects(prepLHS(TL, CDS, I)) ,
+        index(prepLHS(TL, CDS, I)) ,
         messages(prepLHS(TL, CDS, I)) >
       if (F =/= '<_:_|_>) /\ (F =/= '<_:_|`>) .
 
@@ -12378,15 +12378,15 @@ fmod O-O-TO-SYSTEM-MOD-TRANSF is
         prepLHS('none.AttributeSet, ((class C | ADS .) CDS), I))
     if getName(Ct) == C .
   eq prepLHS('<_:_|_>[O, V, T], CDS, I)
-    = < '<_:_|_>[O, V, T] ; emptyTermSet ; I ; nil > .
+    = < '<_:_|_>[O, V, T] , emptyTermSet , I , nil > .
                                                       *** is this eq necessary?
   eq prepLHS('<_:_|`>[O, T], CDS, I)
     = prepLHS('<_:_|_>[O, T, 'none.AttributeSet], CDS, I) .
 
   eq prepLHS('<_:_|_>[O, T, T'], none, I)
-    = < qidError('Error: 'undefined 'class T '\n) ; emptyTermSet ; I ; nil > .
+    = < qidError('Error: 'undefined 'class T '\n) , emptyTermSet , I , nil > .
 
-  eq crtObject(O, C, ADS, < T ; TS ; I ; QIL >)
+  eq crtObject(O, C, ADS, < T , TS , I , QIL >)
     = crtObject2(O, newVar(C, I), T, 'none.AttributeSet, ADS, TS, (I + 1), QIL) .
 
 *** The function \texttt{crtObject2} is called with the metarepresentation of
@@ -12456,9 +12456,9 @@ fmod O-O-TO-SYSTEM-MOD-TRANSF is
         ADS, TS, (I + 1), QIL) .
 
   eq crtObject3(O, V, TL, none, TS, I, QIL)
-    = < '<_:_|_>[O, V, '_`,_[TL, newVar('AttributeSet, I)]] ;
-        _|_('<_:_|_>[O, V, '_`,_[TL, newVar('AttributeSet, I)]], TS) ;
-        (I + 1) ;
+    = < '<_:_|_>[O, V, '_`,_[TL, newVar('AttributeSet, I)]] ,
+        _|_('<_:_|_>[O, V, '_`,_[TL, newVar('AttributeSet, I)]], TS) ,
+        (I + 1) ,
         QIL > .
 
 *** Once the lefthand side of a rule or equation has been `prepared', the
@@ -12664,7 +12664,7 @@ fmod O-O-TO-SYSTEM-MOD-TRANSF is
        CDS')
     = omod2modAux(
         omod H is
-           IL sorts (SS ; C) .
+           IL sorts (SS , C) .
            (subsort C < 'Cid . SSDS)
            CDS SCDS
            ((op C : nil -> C [none] .)
@@ -12710,7 +12710,7 @@ fmod O-O-TO-SYSTEM-MOD-TRANSF is
        CDS')
     = omod2modAux(
         oth H is
-           IL sorts (SS ; C) .
+           IL sorts (SS , C) .
            (subsort C < 'Cid . SSDS)
            CDS SCDS
            ((op C : nil -> C [none] .)
@@ -12893,21 +12893,21 @@ fmod FM-EVALUATION is
 *** folded out when analyzing the interface of a module.
 
   pr 3TUPLE{ImportList,ParameterDeclList,Database}
-       * (op ((_,_,_)) to <_;_;_>,
+       * (op ((_,_,_)) to <_,_,_>,
           op p1_ to importList,
           op p2_ to parameterDeclList,
           op p3_ to database) .
 
 ----  sort Tuple{ImportList,ParameterDeclList,Database} .
-----  op <_;_;_> : ImportList ParameterDeclList Database
+----  op <_,_,_> : ImportList ParameterDeclList Database
 ----       -> Tuple{ImportList,ParameterDeclList,Database} .
 ----  op importList : Tuple{ImportList,ParameterDeclList,Database} -> ImportList .
 ----  op parameterDeclList :
 ----       Tuple{ImportList,ParameterDeclList,Database} -> ParameterDeclList .
 ----  op database : Tuple{ImportList,ParameterDeclList,Database} -> Database .
-----  eq importList(< IL ; PDL ; DB >) = IL .
-----  eq parameterDeclList(< IL ; PDL ; DB >) = PDL .
-----  eq database(< IL ; PDL ; DB >) = DB .
+----  eq importList(< IL , PDL , DB >) = IL .
+----  eq parameterDeclList(< IL , PDL , DB >) = PDL .
+----  eq database(< IL , PDL , DB >) = DB .
 
   op normalize : ImportList ParameterDeclList Database
        -> Tuple{ImportList,ParameterDeclList,Database} .
@@ -12935,7 +12935,7 @@ fmod FM-EVALUATION is
   eq normalize(IL, I IL', PDL, PDL', DB)
     = normalize(IL I, IL', PDL, PDL', DB)
     [owise] .
-  eq normalize(IL, nil, PDL, nil, DB) = < IL ; PDL ; DB > .
+  eq normalize(IL, nil, PDL, nil, DB) = < IL , PDL , DB > .
 
 *** \texttt{checkSortClashes} checks whether the intersection of the two sTS
 *** of sorts given as arguments is empty or not. If it is nonempty, then there
@@ -12947,12 +12947,12 @@ fmod FM-EVALUATION is
 ***
 ***   op checkSortClashes : Header SortSet SortSet Database -> Database .
 ***
-***   eq checkSortClashes(ME, (S ; SS), (S ; SS'), DB)
+***   eq checkSortClashes(ME, (S , SS), (S , SS'), DB)
 ***     = checkSortClashes(ME, SS, SS',
 ***         warning(DB,
 ***           '\g 'Advisory: '\o
 ***           'Clash 'of 'sort eSortToSort(S) 'from header2Qid(ME) '\n)) .
-***   ceq checkSortClashes(ME, (S ; SS), SS', DB)
+***   ceq checkSortClashes(ME, (S , SS), SS', DB)
 ***     = checkSortClashes(ME, SS, SS', DB)
 ***     if not (S in SS') .
 ***   eq check(ME, none, SS, DB) = DB .
@@ -13134,7 +13134,7 @@ fmod FM-EVALUATION is
   ceq evalModule(U, VDS, DB)
     = evalModule1(setPars(setImports(U, IL), PDL), empty(U),
         getModules(IL', DB'), VDS, DB')
-    if < IL ; PDL ; DB' > := normalize(getImports(U), getPars(U), DB)
+    if < IL , PDL , DB' > := normalize(getImports(U), getPars(U), DB)
     /\ IL' := subunitImports(PDL, IL, DB') .
    eq evalModule(U, VDS, DB) = DB [owise] .
 
@@ -13161,7 +13161,7 @@ fmod FM-EVALUATION is
 
 *** The \texttt{evalPreModule} function takes as arguments two copies of the
 *** module and a database. We shall see in Section~\ref{unit-processing} how
-*** these two modules are generated; the one passed as first argument has
+*** these two modules are generated, the one passed as first argument has
 *** still bubbles in it, while the other one, which will be used to build the
 *** signature, does not contain any bubbles. This module without bubbles is
 *** the result of removing the bubbles from the declarations in it, or of
@@ -13214,12 +13214,12 @@ fmod FM-EVALUATION is
         DB')
     if IL := getImports(PU)
     /\ PDL := getPars(PU)
-    /\ < IL' ; PDL' ; DB' > := normalize(defImports(PU, DB) IL, PDL, DB)
+    /\ < IL' , PDL' , DB' > := normalize(defImports(PU, DB) IL, PDL, DB)
     /\ IL'' := subunitImports(PDL, IL', DB') .
   eq evalPreModule(PU, U, VDS, DB) = DB [owise] .
 
   *** evalPreModule1 joins all the units in the structure into a single unit,
-  *** the one given as second argument; recall that the fourth one is the
+  *** the one given as second argument, recall that the fourth one is the
   *** top module without bubbles but with the complete list of subunits
   *** being imported explicitly
 
@@ -13273,7 +13273,7 @@ endfm
 *** associated with views---almost none of these checks are performed, and
 *** none of these proof obligations is generated in the current version---the
 *** way of applying a renaming map and a view map on a module is the same.
-*** Internally, they are treated in the same way; the only difference between
+*** Internally, they are treated in the same way, the only difference between
 *** them consists in the way of calling the function to accomplish this
 *** application.
 
@@ -13359,8 +13359,8 @@ fmod FM-RENAMING-SET-APPL-ON-TERM is
   eq applyMapsToSort(none, S) = S .
 
   op applyMapsToSortSet : RenamingSet SortSet -> SortSet .
-  eq applyMapsToSortSet(SRS, (S ; SS))
-    = (applyMapsToType(SRS, S) ; applyMapsToSortSet(SRS, SS)) .
+  eq applyMapsToSortSet(SRS, (S , SS))
+    = (applyMapsToType(SRS, S) , applyMapsToSortSet(SRS, SS)) .
   eq applyMapsToSortSet(SRS, none) = none .
 
   op applyMapsToType : RenamingSet Type -> Type .
@@ -13633,7 +13633,7 @@ fmod FM-RENAMING-SET-APPL-ON-TERM is
 
   op applySubst : TermList Substitution -> TermList .
   eq applySubst(T, none) = T .
-  eq applySubst(V, ((V' <- T) ; Subst))
+  eq applySubst(V, ((V' <- T) , Subst))
     = if getName(V) == getName(V')
       then T
       else applySubst(V, Subst)
@@ -13658,8 +13658,8 @@ fmod FM-RENAMING-SET-APPL-ON-TERM is
 *** Application of a Substitution to a Substitution
 
   op applySubst : Substitution Substitution -> Substitution .
-  eq applySubst((V <- T ; Subst), Subst')
-    = (applySubst(V, Subst) <- applySubst(T, Subst')) ; applySubst(Subst, Subst') .
+  eq applySubst((V <- T , Subst), Subst')
+    = (applySubst(V, Subst) <- applySubst(T, Subst')) , applySubst(Subst, Subst') .
   eq applySubst((none).Substitution, Subst) = none .
 
 *** PseudoMatch
@@ -13675,18 +13675,18 @@ fmod FM-RENAMING-SET-APPL-ON-TERM is
       fi .
   eq pseudoMatch2((V, TL), (T, TL'), M, Subst)
     = if sameKind(M, getType(V), leastSort(M, T))
-      then pseudoMatch2(TL, TL', M, (V <- T ; Subst))
+      then pseudoMatch2(TL, TL', M, (V <- T , Subst))
       else none
       fi .
   eq pseudoMatch2(V, T, M, Subst)
     = if sameKind(M, getType(V), leastSort(M, T))
-      then (V <- T ; Subst)
+      then (V <- T , Subst)
       else none
       fi .
 
   eq pseudoMatch2((V, TL), (T, TL'), M, Subst)
     = if sameKind(M, getType(V), leastSort(M, T))
-      then pseudoMatch2(TL, TL', M, (V <- T ; Subst))
+      then pseudoMatch2(TL, TL', M, (V <- T , Subst))
       else none
       fi .
   eq pseudoMatch2((Ct, TL), (Ct', TL'), M, Subst)
@@ -13696,33 +13696,33 @@ fmod FM-RENAMING-SET-APPL-ON-TERM is
       fi .
   eq pseudoMatch2((F[TL], TL'), (F'[TL''], TL3), M, Subst)
     = if F == F'
-      then pseudoMatch2(TL', TL3, M, pseudoMatch2(TL, TL'', M, none) ; Subst)
+      then pseudoMatch2(TL', TL3, M, pseudoMatch2(TL, TL'', M, none) , Subst)
       else none
       fi .
   eq pseudoMatch2(empty, empty, M, Subst) = Subst .
 
   *** pseudoMatchResult detects conflicts and eliminates duplicates
 
-  eq pseudoMatchResult((V <- T) ; Subst)
+  eq pseudoMatchResult((V <- T) , Subst)
     = pseudoMatchResult(none, (V <- T), none, Subst) .
   eq pseudoMatchResult(none) = none .
 
-  eq pseudoMatchResult(Subst, (V <- T), Subst', (V' <- T') ; Subst'')
+  eq pseudoMatchResult(Subst, (V <- T), Subst', (V' <- T') , Subst'')
     = if V == V'
       then if T == T'
            then pseudoMatchResult(Subst, (V <- T), Subst', Subst'')
            else none
            fi
-      else pseudoMatchResult(Subst, (V <- T), Subst' ; (V' <- T'), Subst'')
+      else pseudoMatchResult(Subst, (V <- T), Subst' , (V' <- T'), Subst'')
       fi .
-  eq pseudoMatchResult(Subst, (V <- T), (V' <- T') ; Subst', none)
-    = pseudoMatchResult(Subst ; (V <- T), (V' <- T'), none, Subst') .
-  eq pseudoMatchResult(Subst, (V <- T), none, none) = (Subst ; (V <- T)) .
+  eq pseudoMatchResult(Subst, (V <- T), (V' <- T') , Subst', none)
+    = pseudoMatchResult(Subst , (V <- T), (V' <- T'), none, Subst') .
+  eq pseudoMatchResult(Subst, (V <- T), none, none) = (Subst , (V <- T)) .
 
 *** Application of a set of maps to a substitution
 
-  eq applyMapsToSubst(RS, RS', ((V <- T) ; Subst), M)
-    = ((applyMapsToTerm2(RS, RS', V, M) <- applyMapsToTerm2(RS, RS', T, M)) ;
+  eq applyMapsToSubst(RS, RS', ((V <- T) , Subst), M)
+    = ((applyMapsToTerm2(RS, RS', V, M) <- applyMapsToTerm2(RS, RS', T, M)) ,
        applyMapsToSubst(RS, RS', Subst, M)) .
   eq applyMapsToSubst(RS, RS', none, M) = none .
 
@@ -13886,17 +13886,17 @@ fmod FM-RENAMING-SET-APPL-ON-UNIT is
   vars Strat Strat' Strat'' : Strategy .
   var  UPS : UsingPairSet .
 
-  pr (3TUPLE * (op `(_`,_`,_`) to <_;_;_>,
+  pr (3TUPLE * (op `(_`,_`,_`) to <_,_,_>,
                 op p1_ to sortMaps,
                 op p2_ to opMaps,
                 op p3_ to stratMaps)) { RenamingSet,RenamingSet,RenamingSet } .
 
 ---(
   sort Tuple{RenamingSet,RenamingSet} .
-  op <_;_> : RenamingSet RenamingSet -> Tuple{RenamingSet, RenamingSet} .
+  op <_,_> : RenamingSet RenamingSet -> Tuple{RenamingSet, RenamingSet} .
   ops sortMaps otherMaps : Tuple{RenamingSet, RenamingSet} -> RenamingSet .
-  eq sortMaps(< RS ; RS' >) = RS .
-  eq otherMaps(< RS ; RS' >) = RS' .
+  eq sortMaps(< RS , RS' >) = RS .
+  eq otherMaps(< RS , RS' >) = RS' .
 )
 
   eq splitMaps(RS) = splitMapsAux(RS, none, none, none) .
@@ -13920,14 +13920,14 @@ fmod FM-RENAMING-SET-APPL-ON-UNIT is
     = splitMapsAux(none, RS', RS'', (strat F : TyL @ Ty to F', RS3)) .
   eq splitMapsAux(((strat F : TyL @ Ty to F'), RS), RS', RS'', RS3)
     = splitMapsAux(RS, RS', RS'', (strat F : TyL @ Ty to F', RS3)) .
-  eq splitMapsAux(none, RS, RS', RS3) = < RS ; RS' ; RS3 > .
+  eq splitMapsAux(none, RS, RS', RS3) = < RS , RS' , RS3 > .
 
 *** To avoid the interference between the sort and class maps with other maps, the map
 *** set is divided in two sets.
 
   ceq applyMapsToModule(RS, U, M)
     = applyMapsToModuleAux(SRS, ORS, TRS, U, M)
-    if < SRS ; ORS ; TRS > := splitMaps(RS) .
+    if < SRS , ORS , TRS > := splitMaps(RS) .
   eq applyMapsToModule(RS, U, unitError(QIL)) = unitError(QIL) .
 
   eq applyMapsToModuleAux(SRS, ORS, TRS, mod H is IL sorts SS . SSDS OPDS MAS EqS RlS endm, M)
@@ -14372,8 +14372,8 @@ fmod FM-RENAMING-SET-APPL-ON-UNIT is
   ceq applyMapsToStrategy(SRS, ORS, TRS, Strat | Strat', M)
      = applyMapsToStrategy(SRS, ORS, TRS, Strat, M) | applyMapsToStrategy(SRS, ORS, TRS, Strat', M)
      if Strat =/= fail /\ Strat' =/= fail .
-  ceq applyMapsToStrategy(SRS, ORS, TRS, Strat ; Strat', M)
-     = applyMapsToStrategy(SRS, ORS, TRS, Strat, M) ; applyMapsToStrategy(SRS, ORS, TRS, Strat', M)
+  ceq applyMapsToStrategy(SRS, ORS, TRS, Strat , Strat', M)
+     = applyMapsToStrategy(SRS, ORS, TRS, Strat, M) , applyMapsToStrategy(SRS, ORS, TRS, Strat', M)
      if Strat =/= idle /\ Strat' =/= idle .
 
   eq applyMapsToStrategies(SRS, ORS, TRS, (Strat, Strats), M)
@@ -14397,7 +14397,7 @@ fmod FM-RENAMING-SET-APPL-ON-UNIT is
   eq applySubst(xmatch T s.t. Cond, Subst) = xmatch applySubst(T, Subst) s.t. applySubst(Cond, Subst) .
   eq applySubst(amatch T s.t. Cond, Subst) = amatch applySubst(T, Subst) s.t. applySubst(Cond, Subst) .
   eq applySubst(Strat | Strat', Subst) = applySubst(Strat, Subst) | applySubst(Strat', Subst) .
-  eq applySubst(Strat ; Strat', Subst) = applySubst(Strat, Subst) ; applySubst(Strat', Subst) .
+  eq applySubst(Strat , Strat', Subst) = applySubst(Strat, Subst) , applySubst(Strat', Subst) .
   eq applySubst(Strat or-else Strat', Subst) = applySubst(Strat, Subst) or-else applySubst(Strat', Subst) .
   eq applySubst(Strat +, Subst) = applySubst(Strat, Subst) + .
   eq applySubst(Strat ? Strat' : Strat'', Subst)
@@ -14594,14 +14594,14 @@ fmod FM-INST-EXPR-EVALUATION is
 
   eq evalModExp(ME{PL}, PDL, DB)
     = if unitInDb(ME{PL}, DB)
-      then < DB ; ME{PL} >
+      then < DB , ME{PL} >
       else if ME == 'META-LEVEL
-           then < prepMetalevel(PL, DB) ; ME{PL} >
+           then < prepMetalevel(PL, DB) , ME{PL} >
            else < unitInst(
                     modExp(evalModExp(ME, PDL, evalViewExpression(PL, PDL, DB))),
                     PL, PDL,
                     database(evalModExp(ME, PDL, evalViewExpression(PL, PDL, DB))))
-                  ;
+                  ,
                   modExp(evalModExp(ME, PDL, evalViewExpression(PL, PDL, DB))){PL} >
            fi
       fi .
@@ -14645,7 +14645,7 @@ fmod FM-INST-EXPR-EVALUATION is
   op getClassNames : ClassDeclSet -> SortSet .
 
   eq getClassNames(((class S | ADS .) CDS))
-    = (S ; getClassNames(CDS)) .
+    = (S , getClassNames(CDS)) .
   eq getClassNames(none) = none .
 
 *** The following `getTh' functions return the corresponding elements in the
@@ -14661,33 +14661,33 @@ fmod FM-INST-EXPR-EVALUATION is
 
   eq getThSorts(ME, DB)
     = if theory(getTopModule(ME, DB))
-      then (getThSortsAux(getImports(getTopModule(ME, DB)), DB) ;
+      then (getThSortsAux(getImports(getTopModule(ME, DB)), DB) ,
             getSorts(getTopModule(ME, DB)))
       else none
       fi .
 
   eq getThSortsAux(((including MN .) IL), DB)
-    = (getThSorts(MN, DB) ; getThSortsAux(IL, DB)) .
+    = (getThSorts(MN, DB) , getThSortsAux(IL, DB)) .
   eq getThSortsAux(((extending MN .) IL), DB)
-    = (getThSorts(MN, DB) ; getThSortsAux(IL, DB)) .
+    = (getThSorts(MN, DB) , getThSortsAux(IL, DB)) .
   eq getThSortsAux(((protecting MN .) IL), DB)
-    = (getThSorts(MN, DB) ; getThSortsAux(IL, DB)) .
+    = (getThSorts(MN, DB) , getThSortsAux(IL, DB)) .
   eq getThSortsAux(nil, DB) = none .
 
   eq getThClasses(ME, DB)
     = if getTopModule(ME, DB) :: OTheory
          and-then not getTopModule(ME, DB) :: STheory
-      then (getThClassesAux(getImports(getTopModule(ME, DB)), DB) ;
+      then (getThClassesAux(getImports(getTopModule(ME, DB)), DB) ,
             getClassNames(getClasses(getTopModule(ME, DB))))
       else none
       fi .
 
   eq getThClassesAux(((including MN .) IL), DB)
-    = (getThClasses(MN, DB) ; getThClassesAux(IL, DB)) .
+    = (getThClasses(MN, DB) , getThClassesAux(IL, DB)) .
   eq getThClassesAux(((extending MN .) IL), DB)
-    = (getThClasses(MN, DB) ; getThClassesAux(IL, DB)) .
+    = (getThClasses(MN, DB) , getThClassesAux(IL, DB)) .
   eq getThClassesAux(((protecting MN .) IL), DB)
-    = (getThClasses(MN, DB) ; getThClassesAux(IL, DB)) .
+    = (getThClasses(MN, DB) , getThClassesAux(IL, DB)) .
   eq getThClassesAux(nil, DB) = none .
 
 *** The `get' functions return the corresponding elements in the structure of
@@ -14702,27 +14702,27 @@ fmod FM-INST-EXPR-EVALUATION is
   op getClassSetAux : ImportList Database -> SortSet .
 
   eq getSortSet(MN, DB)
-    = (getSortSetAux(getImports(getTopModule(MN, DB)), DB) ;
+    = (getSortSetAux(getImports(getTopModule(MN, DB)), DB) ,
        getSorts(getTopModule(MN, DB))) .
 
   eq getSortSetAux(((including MN .) IL), DB)
-    = (getSortSet(MN, DB) ; getSortSetAux(IL, DB)) .
+    = (getSortSet(MN, DB) , getSortSetAux(IL, DB)) .
   eq getSortSetAux(((extending MN .) IL), DB)
-    = (getSortSet(MN, DB) ; getSortSetAux(IL, DB)) .
+    = (getSortSet(MN, DB) , getSortSetAux(IL, DB)) .
   eq getSortSetAux(((protecting MN .) IL), DB)
-    = (getSortSet(MN, DB) ; getSortSetAux(IL, DB)) .
+    = (getSortSet(MN, DB) , getSortSetAux(IL, DB)) .
   eq getSortSetAux(nil, DB) = none .
 
   eq getClassSet(MN, DB)
-    = (getClassSetAux(getImports(getTopModule(MN, DB)), DB) ;
+    = (getClassSetAux(getImports(getTopModule(MN, DB)), DB) ,
        getClassNames(getClasses(getTopModule(MN, DB)))) .
 
   eq getClassSetAux(((including MN .) IL), DB)
-    = (getClassSet(MN, DB) ; getClassSetAux(IL, DB)) .
+    = (getClassSet(MN, DB) , getClassSetAux(IL, DB)) .
   eq getClassSetAux(((extending MN .) IL), DB)
-    = (getClassSet(MN, DB) ; getClassSetAux(IL, DB)) .
+    = (getClassSet(MN, DB) , getClassSetAux(IL, DB)) .
   eq getClassSetAux(((protecting MN .) IL), DB)
-    = (getClassSet(MN, DB) ; getClassSetAux(IL, DB)) .
+    = (getClassSet(MN, DB) , getClassSetAux(IL, DB)) .
   eq getClassSetAux(nil, DB) = none .
 
 *** As pointed out in Section~\ref{parameterized-modules}, in a parameterized
@@ -14751,7 +14751,7 @@ fmod FM-INST-EXPR-EVALUATION is
 
   pr SET{Tuple{ViewExpression,ViewExpression}}
        * (op `(_`,_`) : ViewExpression ViewExpression
-            -> Tuple{ViewExpression,ViewExpression} to <_;_>,
+            -> Tuple{ViewExpression,ViewExpression} to <_,_>,
           op p1_ : Tuple{ViewExpression,ViewExpression} -> ViewExpression to 1st,
           op p2_ : Tuple{ViewExpression,ViewExpression} -> ViewExpression to 2nd,
           op empty : -> Set{Tuple{ViewExpression,ViewExpression}} to none,
@@ -14760,7 +14760,7 @@ fmod FM-INST-EXPR-EVALUATION is
                    Set{Tuple{ViewExpression,ViewExpression}} to __) .
 
 ----  pr 2TUPLE{ViewExpression,ViewExpression}
-----       * (op ((_,_)) to <_;_>,
+----       * (op ((_,_)) to <_,_>,
 ----          op p1_ to 1st,
 ----          op p2_ to 2nd).
 
@@ -14769,7 +14769,7 @@ fmod FM-INST-EXPR-EVALUATION is
 ----  sort PrepParResult  .
 ----  subsort Tuple{ViewExpression,ViewExpression}
 ----          < Set{Tuple{ViewExpression,ViewExpression}} .
-----  op <_;_> : ViewExpression ViewExpression -> Tuple{ViewExpression, ViewExpression} .
+----  op <_,_> : ViewExpression ViewExpression -> Tuple{ViewExpression, ViewExpression} .
 ----  ops 1st 2nd : Tuple{ViewExpression,ViewExpression} -> ViewExpression .
 ----  op none : -> Set{Tuple{ViewExpression,ViewExpression}} .
 ----  op __ : Set{Tuple{ViewExpression,ViewExpression}}
@@ -14778,8 +14778,8 @@ fmod FM-INST-EXPR-EVALUATION is
 
   vars VEPS VEPS' : Set{Tuple{ViewExpression,ViewExpression}} .
 
-----  eq 1st(< VE ; VE' >) = VE .
-----  eq 2nd(< VE ; VE' >) = VE' .
+----  eq 1st(< VE , VE' >) = VE .
+----  eq 2nd(< VE , VE' >) = VE' .
 
   op prepPar : Qid Qid ModuleExpression Database -> PrepParResult .
   op prepParImports : ImportList ImportList Qid Qid SortMappingSet OpMappingSet
@@ -14793,7 +14793,7 @@ fmod FM-INST-EXPR-EVALUATION is
                      ViewExpression, ViewExpression,
                      Set{Tuple{ViewExpression,ViewExpression}}, Bool, ImportList}
                      to PrepParResult,
-          op ((_,_,_,_,_,_,_,_,_)) to <_;_;_;_;_;_;_;_;_>,
+          op ((_,_,_,_,_,_,_,_,_)) to <_,_,_,_,_,_,_,_,_>,
           op p1_ to sortMappingSet,
           op p2_ to opMappingSet,
           op p3_ to stratMappingSet,
@@ -14804,7 +14804,7 @@ fmod FM-INST-EXPR-EVALUATION is
           op p8_ to theoryFlag,
           op p9_ to getImports) .
 ---(
-  op <_;_;_;_;_;_;_;_> : SortMappingSet OpMappingSet Database ViewExpression ViewExpression Set{Tuple{ViewExpression,ViewExpression}} Bool ImportList -> PrepParResult .
+  op <_,_,_,_,_,_,_,_> : SortMappingSet OpMappingSet Database ViewExpression ViewExpression Set{Tuple{ViewExpression,ViewExpression}} Bool ImportList -> PrepParResult .
   op sortMappingSet : PrepParResult -> SortMappingSet .
   op opMappingSet : PrepParResult -> OpMappingSet .
   op database : PrepParResult -> Database .
@@ -14813,14 +14813,14 @@ fmod FM-INST-EXPR-EVALUATION is
   op viewExpPairSet : PrepParResult -> Set{Tuple{ViewExpression,ViewExpression}} .
   op theoryFlag : PrepParResult -> Bool .
   op getImports : PrepParResult -> ImportList .
-  eq opMappingSet(< SMS ; OMS ; DB ; VE ; VE' ; VEPS ; B ; IL >) = OMS .
-  eq sortMappingSet(< SMS ; OMS ; DB ; VE ; VE' ; VEPS ; B ; IL >) = SMS .
-  eq database(< SMS ; OMS ; DB ; VE ; VE' ; VEPS ; B ; IL >) = DB .
-  eq sourceViewExpression(< SMS ; OMS ; DB ; VE ; VE' ; VEPS ; B ; IL >) = VE .
-  eq targetViewExpression(< SMS ; OMS ; DB ; VE ; VE' ; VEPS ; B ; IL >) = VE' .
-  eq viewExpPairSet(< SMS ; OMS ; DB ; VE ; VE' ; VEPS ; B ; IL >) = VEPS .
-  eq theoryFlag(< SMS ; OMS ; DB ; VE ; VE' ; VEPS ; B ; IL >) = B .
-  eq getImports(< SMS ; OMS ; DB ; VE ; VE' ; VEPS ; B ; IL >) = IL .
+  eq opMappingSet(< SMS , OMS , DB , VE , VE' , VEPS , B , IL >) = OMS .
+  eq sortMappingSet(< SMS , OMS , DB , VE , VE' , VEPS , B , IL >) = SMS .
+  eq database(< SMS , OMS , DB , VE , VE' , VEPS , B , IL >) = DB .
+  eq sourceViewExpression(< SMS , OMS , DB , VE , VE' , VEPS , B , IL >) = VE .
+  eq targetViewExpression(< SMS , OMS , DB , VE , VE' , VEPS , B , IL >) = VE' .
+  eq viewExpPairSet(< SMS , OMS , DB , VE , VE' , VEPS , B , IL >) = VEPS .
+  eq theoryFlag(< SMS , OMS , DB , VE , VE' , VEPS , B , IL >) = B .
+  eq getImports(< SMS , OMS , DB , VE , VE' , VEPS , B , IL >) = IL .
 ---)
 
   ----op createCopy : ParameterDecl Database -> Database .
@@ -14836,9 +14836,9 @@ fmod FM-INST-EXPR-EVALUATION is
       fi .
 
   ceq prepPar(X, ME, DB)
-    = < SMS' ;
-        OMS ;
-        TMS ;
+    = < SMS' ,
+        OMS ,
+        TMS ,
         (if unitInDb(pd(X :: ME), DB)
          then DB
          else evalModule(
@@ -14849,18 +14849,18 @@ fmod FM-INST-EXPR-EVALUATION is
                   IL),
                 applyMapsToVars(maps2rens(SMS'), maps2rens(OMS), getVars(ME, DB)),
                 DB')
-         fi) ;
-        mtViewExpression ; mtViewExpression ; none ; true ; nil >
+         fi) ,
+        mtViewExpression , mtViewExpression , none , true , nil >
     if Th := getTopModule(ME, DB)
-       /\ < SMS ; OMS ; TMS ; DB' ; VE ; VE' ; VEPS ; B ; IL >
+       /\ < SMS , OMS , TMS , DB' , VE , VE' , VEPS , B , IL >
             := prepParImports(getImports(Th), nil, X,
                  none, none, none, none, X :: ME, DB)
        /\ SMS' := (SMS
                    sortMapsPar(X, getSorts(Th), none)
                    classMapsPar(X, classSet(getClasses(Th)), none)) .
   eq prepPar(X, ME, DB)
-    = < none ; none ; none ; warning(DB, '\r 'Error: '\o 'Incorrect 'parameter '\n) ;
-        mtViewExpression ; mtViewExpression ; none ; false ; nil >
+    = < none , none , none , warning(DB, '\r 'Error: '\o 'Incorrect 'parameter '\n) ,
+        mtViewExpression , mtViewExpression , none , false , nil >
       [owise] .
 
   ceq prepParImports(((including ME .) IL), IL', X, SMS, OMS, TMS, VEPS, PDL, DB)
@@ -14871,7 +14871,7 @@ fmod FM-INST-EXPR-EVALUATION is
              SMS, OMS, TMS, VEPS, PDL, DB)
       fi
     if ME' := prepModExp(ME, VEPS)
-    /\ < SMS' ; OMS' ; TMS' ; DB' ; VE ; VE' ; VEPS' ; B ; IL'' >
+    /\ < SMS' , OMS' , TMS' , DB' , VE , VE' , VEPS' , B , IL'' >
          := prepPar(X, ME', database(evalModExp(ME', PDL, DB))) .
   ceq prepParImports(((extending ME .) IL), IL', X, SMS, OMS, TMS, VEPS, PDL, DB)
     = if B
@@ -14882,7 +14882,7 @@ fmod FM-INST-EXPR-EVALUATION is
              SMS, OMS, TMS, VEPS, PDL, DB)
       fi
     if ME' := prepModExp(ME, VEPS)
-    /\ < SMS' ; OMS' ; TMS' ; DB' ; VE ; VE' ; VEPS' ; B ; IL'' >
+    /\ < SMS' , OMS' , TMS' , DB' , VE , VE' , VEPS' , B , IL'' >
          := prepPar(X, ME', database(evalModExp(ME', PDL, DB))) .
   ceq prepParImports(((protecting ME .) IL), IL', X, SMS, OMS, TMS, VEPS, PDL, DB)
     = if B
@@ -14893,35 +14893,35 @@ fmod FM-INST-EXPR-EVALUATION is
               SMS, OMS, TMS, VEPS, PDL, DB)
       fi
     if ME' := prepModExp(ME, VEPS)
-    /\ < SMS' ; OMS' ; TMS' ; DB' ; VE ; VE' ; VEPS' ; B ; IL'' >
+    /\ < SMS' , OMS' , TMS' , DB' , VE , VE' , VEPS' , B , IL'' >
          := prepPar(X, ME', database(evalModExp(ME', PDL, DB))) .
   ceq prepParImports(((including pd(X :: ME) .) IL), IL', Y,
-        SMS, OMS, TMS, (< X ; Z > VEPS), PDL, DB)
+        SMS, OMS, TMS, (< X , Z > VEPS), PDL, DB)
     = prepParImports(IL, (IL' (including pd(Z :: ME') .)), Y,
-        (SMS SMS'), (OMS OMS'), (TMS TMS'), (< X ; Z > VEPS), PDL, DB')
+        (SMS SMS'), (OMS OMS'), (TMS TMS'), (< X , Z > VEPS), PDL, DB')
     if ME' := prepModExp(ME, VEPS)
-    /\ < SMS' ; OMS' ; TMS' ; DB' ; VE ; VE' ; VEPS' ; B ; IL'' >
+    /\ < SMS' , OMS' , TMS' , DB' , VE , VE' , VEPS' , B , IL'' >
          := prepPar(X, ME', database(evalModExp(ME', PDL, DB))) .
   ceq prepParImports(((extending pd(X :: ME) .) IL), IL', Y,
-        SMS, OMS, TMS, (< X ; Z > VEPS), PDL, DB)
+        SMS, OMS, TMS, (< X , Z > VEPS), PDL, DB)
     = prepParImports(IL, (IL' (extending pd(Z :: ME') .)), Y,
-        (SMS SMS'), (OMS OMS'), (TMS TMS'), (< X ; Z > VEPS), PDL, DB')
+        (SMS SMS'), (OMS OMS'), (TMS TMS'), (< X , Z > VEPS), PDL, DB')
     if ME' := prepModExp(ME, VEPS)
-    /\ < SMS' ; OMS' ; TMS' ; DB' ; VE ; VE' ; VEPS' ; B ; IL'' >
+    /\ < SMS' , OMS' , TMS' , DB' , VE , VE' , VEPS' , B , IL'' >
          := prepPar(X, ME', database(evalModExp(ME', PDL, DB))) .
   ceq prepParImports(((protecting pd(X :: ME) .) IL), IL', Y,
-        SMS, OMS, TMS, (< X ; Z > VEPS), PDL, DB)
+        SMS, OMS, TMS, (< X , Z > VEPS), PDL, DB)
     = prepParImports(IL, (IL' (protecting pd(Z :: ME') .)), Y,
-        (SMS SMS'), (OMS OMS'), (TMS TMS'), (< X ; Z > VEPS), PDL, DB')
+        (SMS SMS'), (OMS OMS'), (TMS TMS'), (< X , Z > VEPS), PDL, DB')
     if ME' := prepModExp(ME, VEPS)
-    /\ < SMS' ; OMS' ; TMS' ; DB' ; VE ; VE' ; VEPS' ; B ; IL'' >
+    /\ < SMS' , OMS' , TMS' , DB' , VE , VE' , VEPS' , B , IL'' >
          := prepPar(X, ME', database(evalModExp(ME', PDL, DB))) .
   eq prepParImports(nil, IL, X, SMS, OMS, TMS, VEPS, PDL, DB)
-    = < SMS ; OMS ; TMS ; DB ; mtViewExpression ; mtViewExpression ; none ;
-        false ; IL > .
+    = < SMS , OMS , TMS , DB , mtViewExpression , mtViewExpression , none ,
+        false , IL > .
 
   ceq prepPar(X, Y, ME, DB)
-    = (< SMS' ; OMS ; TMS ;
+    = (< SMS' , OMS , TMS ,
         (if unitInDb(pd(Y :: ME), DB)
          then DB
          else evalModule(
@@ -14932,12 +14932,12 @@ fmod FM-INST-EXPR-EVALUATION is
                   IL),
                 applyMapsToVars(maps2rens(SMS'), maps2rens(OMS), getVars(pd(X :: ME), DB)),
                 DB')
-         fi) ;
-        X ; Y ; < X ; Y > ; true ; nil >)
+         fi) ,
+        X , Y , < X , Y > , true , nil >)
     if Th := getTopModule(ME, DB)
-    /\ (< SMS ; OMS ; TMS ; DB' ; VE ; VE' ; VEPS ; B ; IL >)
+    /\ (< SMS , OMS , TMS , DB' , VE , VE' , VEPS , B , IL >)
           := prepParImports(getImports(Th), nil, X, Y, none, none, none,
-               < X ; Y >, X :: ME, DB)
+               < X , Y >, X :: ME, DB)
     /\ SMS' := (SMS
                 genMapsQualSorts(X, Y, getSorts(Th), none)
                 genMapsQualClasses(X, Y, classSet(getClasses(Th)), none)) .
@@ -14952,23 +14952,23 @@ fmod FM-INST-EXPR-EVALUATION is
     = prepParImports(IL, IL' including pd(X :: ME') ., Y, Z,
         (SMS SMS'), (OMS OMS'), (TMS TMS'), VEPS, PDL, DB')
     if ME' := prepModExp(ME, VEPS)
-    /\ < SMS' ; OMS' ; TMS' ; DB' ; VE ; VE' ; VEPS' ; B ; IL'' >
+    /\ < SMS' , OMS' , TMS' , DB' , VE , VE' , VEPS' , B , IL'' >
          := prepPar(Y, Z, ME', database(evalModExp(ME', PDL, DB))) .
   ceq prepParImports(extending pd(X :: ME) . IL, IL', Y, Z, SMS, OMS, TMS, VEPS, PDL, DB)
     = prepParImports(IL, IL' extending pd(X :: ME') ., Y, Z,
         (SMS SMS'), (OMS OMS'), (TMS TMS'), VEPS, PDL, DB')
     if ME' := prepModExp(ME, VEPS)
-    /\ < SMS' ; OMS' ; TMS' ; DB' ; VE ; VE' ; VEPS' ; B ; IL'' >
+    /\ < SMS' , OMS' , TMS' , DB' , VE , VE' , VEPS' , B , IL'' >
          := prepPar(Y, Z, ME', database(evalModExp(ME', PDL, DB))) .
   ceq prepParImports(protecting pd(X :: ME) . IL, IL', Y, Z,
         SMS, OMS, TMS, VEPS, PDL, DB)
     = prepParImports(IL, IL' protecting pd(X :: ME') ., Y, Z,
         (SMS SMS'), (OMS OMS'), (TMS TMS'), VEPS, PDL, DB')
     if ME' := prepModExp(ME, VEPS)
-    /\ < SMS' ; OMS' ; TMS' ; DB' ; VE ; VE' ; VEPS' ; B ; IL'' >
+    /\ < SMS' , OMS' , TMS' , DB' , VE , VE' , VEPS' , B , IL'' >
          := prepPar(Y, Z, ME', database(evalModExp(ME', PDL, DB))) .
   eq prepParImports(nil, IL, X, Y, SMS, OMS, TMS, VEPS, PDL, DB)
-    = < SMS ; OMS ; TMS ; DB ; mtViewExpression ; mtViewExpression ; none ; false ; IL > .
+    = < SMS , OMS , TMS , DB , mtViewExpression , mtViewExpression , none , false , IL > .
 
   op sortMapsPar : Qid SortSet Set{Tuple{ViewExpression,ViewExpression}} -> SortMappingSet .
   op classMapsPar : Qid SortSet Set{Tuple{ViewExpression,ViewExpression}} -> SortMappingSet .
@@ -14981,19 +14981,19 @@ fmod FM-INST-EXPR-EVALUATION is
 
   eq qualify(X, S, VEPS) = qualify(X, getName(S), getPars(S), empty, VEPS) .
 
-  eq qualify(X, S, (P, PL), PL', < P ; P' > VEPS)
-    = qualify(X, S, PL, PL' P', < P ; P' > VEPS) .
+  eq qualify(X, S, (P, PL), PL', < P , P' > VEPS)
+    = qualify(X, S, PL, PL' P', < P , P' > VEPS) .
   eq qualify(X, S, (P, PL), PL', VEPS)
     = qualify(X, S, PL, PL' P, VEPS)
     [owise] .
   eq qualify(X, S, empty, PL, VEPS)
     = qid(string(X) + "$" + string(makeSort(S, PL))) .
 
-  eq sortMapsPar(X, (S ; SS), VEPS)
+  eq sortMapsPar(X, (S , SS), VEPS)
     = (sort S to qualify(X, S, VEPS) . sortMapsPar(X, SS, VEPS)) .
   eq sortMapsPar(X, none, VEPS) = none .
 
-  eq classMapsPar(X, (S ; SS), VEPS)
+  eq classMapsPar(X, (S , SS), VEPS)
     = (class S to qualify(X, S, VEPS) . classMapsPar(X, SS, VEPS)) .
   eq classMapsPar(X, none, VEPS) = none .
 
@@ -15011,12 +15011,12 @@ fmod FM-INST-EXPR-EVALUATION is
   op genMapsQualSorts : Qid Qid SortSet Set{Tuple{ViewExpression,ViewExpression}} -> SortMappingSet .
   op genMapsQualClasses : Qid Qid SortSet Set{Tuple{ViewExpression,ViewExpression}} -> SortMappingSet .
 
-  eq genMapsQualSorts(X, Y, (S ; SS), VEPS)
+  eq genMapsQualSorts(X, Y, (S , SS), VEPS)
     = (sort qualify(X, S, VEPS) to qualify(Y, S, VEPS) .
        genMapsQualSorts(X, Y, SS, VEPS)) .
   eq genMapsQualSorts(X, Y, none, VEPS) = none .
 
-  eq genMapsQualClasses(X, Y, (S ; SS), VEPS)
+  eq genMapsQualClasses(X, Y, (S , SS), VEPS)
     = (class qualify(X, S, VEPS) to qualify(Y, S, VEPS) .
        genMapsQualClasses(X, Y, SS, VEPS)) .
   eq genMapsQualClasses(X, Y, none, VEPS) = none .
@@ -15095,7 +15095,7 @@ fmod FM-INST-EXPR-EVALUATION is
        prepare(TMS, X, SS, SS', SS'')) .
   eq prepare((none).StratMappingSet, X, SS, SS', SS'') = none .
 
-  eq prepare((S TyL), X, (S ; SS)) = (qualify(X, S) prepare(TyL, X, (S ; SS))) .
+  eq prepare((S TyL), X, (S , SS)) = (qualify(X, S) prepare(TyL, X, (S , SS))) .
   eq prepare((K TyL), X, SS) = prepare((getSort(K) TyL), X, SS) .
   eq prepare((S TyL), X, SS) = (S prepare(TyL, X, SS)) [owise] .
   eq prepare(nil, X, SS) = nil .
@@ -15132,7 +15132,7 @@ fmod FM-INST-EXPR-EVALUATION is
   op prepSort : Sort Set{Tuple{ViewExpression,ViewExpression}} -> Sort .
   op prepSort : Sort ParameterList ParameterList Set{Tuple{ViewExpression,ViewExpression}} -> Sort .
 
-  eq genMapsSorts((S ; SS), VEPS)
+  eq genMapsSorts((S , SS), VEPS)
     = (if prepSort(S, VEPS) == S
        then none
        else (sort S to prepSort(S, VEPS) .)
@@ -15140,7 +15140,7 @@ fmod FM-INST-EXPR-EVALUATION is
       genMapsSorts(SS, VEPS) .
   eq genMapsSorts(none, VEPS) = none .
 
-  eq genMapsClasses((S ; SS), VEPS)
+  eq genMapsClasses((S , SS), VEPS)
     = (if prepSort(S, VEPS) == S
        then none
        else (class S to prepSort(S, VEPS) .)
@@ -15151,10 +15151,10 @@ fmod FM-INST-EXPR-EVALUATION is
   eq prepSort(S, VEPS) = prepSort(getName(S), empty, getPars(S), VEPS) .
   eq prepSort(Ty, VEPS) = Ty [owise] .
 
-  eq prepSort(S, PL, P, < P ; VE > VEPS)
-    = prepSort(S, (PL, VE), empty, < P ; VE > VEPS) .
-  eq prepSort(S, PL, (P, PL'), < P ; VE > VEPS)
-    = prepSort(S, (PL, VE), PL', < P ; VE > VEPS) .
+  eq prepSort(S, PL, P, < P , VE > VEPS)
+    = prepSort(S, (PL, VE), empty, < P , VE > VEPS) .
+  eq prepSort(S, PL, (P, PL'), < P , VE > VEPS)
+    = prepSort(S, (PL, VE), PL', < P , VE > VEPS) .
   eq prepSort(S, PL, P, VEPS)
     = prepSort(S, (PL, prepSort(P, VEPS)), empty, VEPS)
     [owise] .
@@ -15211,12 +15211,12 @@ fmod FM-INST-EXPR-EVALUATION is
     = prepModExp(ME, VEPS) + prepModExp(ME', VEPS) .
   eq prepModExp(ME, VEPS) = ME [owise] .
 
-  eq prepModExp(ME, PL, PL', (P, PL''), < P ; S > VEPS)
-    = prepModExp(ME, (PL, S), PL', PL'', < P ; S > VEPS) .
-  eq prepModExp(ME, PL, PL', (P, PL''), < P ; S{PL3} > VEPS)
-    = prepModExp(ME, (PL, S{PL3}), PL', PL'', < P ; S{PL3} > VEPS) .
-  ceq prepModExp(ME, PL, PL', (P, PL''), < P ; P' ;; VE > VEPS)
-    = prepModExp(ME, (PL, P'), (PL', VE), PL'', < P ; P' ;; VE > VEPS)
+  eq prepModExp(ME, PL, PL', (P, PL''), < P , S > VEPS)
+    = prepModExp(ME, (PL, S), PL', PL'', < P , S > VEPS) .
+  eq prepModExp(ME, PL, PL', (P, PL''), < P , S{PL3} > VEPS)
+    = prepModExp(ME, (PL, S{PL3}), PL', PL'', < P , S{PL3} > VEPS) .
+  ceq prepModExp(ME, PL, PL', (P, PL''), < P , P' ,, VE > VEPS)
+    = prepModExp(ME, (PL, P'), (PL', VE), PL'', < P , P' ,, VE > VEPS)
     if VE =/= mtViewExpression .
   eq prepModExp(ME, PL, PL', (P, PL''), VEPS)
     = prepModExp(ME, (PL, P), PL', PL'', VEPS)
@@ -15226,14 +15226,14 @@ fmod FM-INST-EXPR-EVALUATION is
   eq prepModExp(ME, PL, empty, empty, VEPS) = ME{PL} .
   eq prepModExp(ME, PL, PL', empty, VEPS) = ME{PL}{PL'} [owise] .
 
-  eq prepParameterDecl(X :: ME, < Y ; Z > VEPS)
+  eq prepParameterDecl(X :: ME, < Y , Z > VEPS)
     = if X == Y
       then (Z :: ME)
       else prepParameterDecl(X :: ME, VEPS)
       fi .
   eq prepParameterDecl(X :: ME, none) = X :: ME .
 
-  eq prepViewExpression(VE, < VE ; VE' > VEPS) = VE' .
+  eq prepViewExpression(VE, < VE , VE' > VEPS) = VE' .
   eq prepViewExpression(QI, VEPS) = QI [owise] .
   eq prepViewExpression(X{PL}, VEPS) = X{prepViewExpression(PL, VEPS)} [owise] .
   ceq prepViewExpression((VE, PL), VEPS)
@@ -15263,7 +15263,7 @@ fmod FM-INST-EXPR-EVALUATION is
        * (sort Tuple{SortMappingSet, OpMappingSet, StratMappingSet,
             ParameterDeclList, ImportList, Set{Tuple{ViewExpression,ViewExpression}},
             Database} to TreatParResult,
-          op ((_,_,_,_,_,_,_)) to <_;_;_;_;_;_;_>,
+          op ((_,_,_,_,_,_,_)) to <_,_,_,_,_,_,_>,
           op p1_ to getSortMappings,
           op p2_ to getOpMappings,
           op p3_ to getStratMappings,
@@ -15275,7 +15275,7 @@ fmod FM-INST-EXPR-EVALUATION is
 ---(
   sort TreatParResult .
 
-  op <_;_;_;_;_;_;_> : SortMappingSet OpMappingSet StratMappingSet ParameterDeclList
+  op <_,_,_,_,_,_,_> : SortMappingSet OpMappingSet StratMappingSet ParameterDeclList
        ImportList Set{Tuple{ViewExpression,ViewExpression}} Database ->
        TreatParResult .
   op getSortMappings : TreatParResult -> SortMappingSet .
@@ -15286,13 +15286,13 @@ fmod FM-INST-EXPR-EVALUATION is
   op viewExpPairSet : TreatParResult -> Set{Tuple{ViewExpression,ViewExpression}} .
   op db : TreatParResult -> Database .
 
-  eq getSortMappings(< SMS ; OMS ; TMS ; PDL ; IL ; VEPS ; DB >) = SMS .
-  eq getOpMappings(< SMS ; OMS ; TMS ; PDL ; IL ; VEPS ; DB >) = OMS .
-  eq getStratMappings(< SMS ; OMS ; TMS ; PDL ; IL ; VEPS ; DB >) = TMS .
-  eq getPars(< SMS ; OMS ; TMS ; PDL ; IL ; VEPS ; DB >) = PDL .
-  eq getImports(< SMS ; OMS ; TMS ; PDL ; IL ; VEPS ; DB >) = IL .
-  eq viewExpPairSet(< SMS ; OMS ; TMS ; PDL ; IL ; VEPS ; DB >) = VEPS .
-  eq db(< SMS ; OMS ; TMS ; PDL ; IL ; VEPS ; DB >) = DB .
+  eq getSortMappings(< SMS , OMS , TMS , PDL , IL , VEPS , DB >) = SMS .
+  eq getOpMappings(< SMS , OMS , TMS , PDL , IL , VEPS , DB >) = OMS .
+  eq getStratMappings(< SMS , OMS , TMS , PDL , IL , VEPS , DB >) = TMS .
+  eq getPars(< SMS , OMS , TMS , PDL , IL , VEPS , DB >) = PDL .
+  eq getImports(< SMS , OMS , TMS , PDL , IL , VEPS , DB >) = IL .
+  eq viewExpPairSet(< SMS , OMS , TMS , PDL , IL , VEPS , DB >) = VEPS .
+  eq db(< SMS , OMS , TMS , PDL , IL , VEPS , DB >) = DB .
 ---)
 
   op unitInstAux : Module Module VariableSet SortMappingSet OpMappingSet
@@ -15323,11 +15323,11 @@ fmod FM-INST-EXPR-EVALUATION is
   ceq unitInstAux(U, M, VDS, SMS, OMS, TMS, (X :: ME, PDL), PDL', IL, IL'', (QI, PL), VEPS, PDL'', DB)
     = unitInstAux(U, M, VDS, (SMS SMS'), (OMS OMS'), (TMS TMS'),
         PDL, (PDL', PDL3), IL, (IL'' IL3), PL, (VEPS VEPS'), PDL'', DB')
-    if < SMS' ; OMS' ; TMS' ; PDL3 ; IL3 ; VEPS' ; DB' >
+    if < SMS' , OMS' , TMS' , PDL3 , IL3 , VEPS' , DB' >
          := treatPar(X :: ME, QI, VEPS, PDL'', DB) .
   ceq unitInstAux(U, M, VDS, SMS, OMS, TMS, (X :: ME, PDL), PDL', IL, IL'', (QI{PL}, PL'), VEPS, PDL'', DB)
     = unitInstAux(U, M, VDS, (SMS SMS'), (OMS OMS'), (TMS TMS'), PDL, (PDL', PDL3), IL, (IL'' IL3), PL', (VEPS VEPS'), PDL'', DB')
-    if < SMS' ; OMS' ; TMS' ; PDL3 ; IL3 ; VEPS' ; DB' >
+    if < SMS' , OMS' , TMS' , PDL3 , IL3 , VEPS' , DB' >
          := treatPar(X :: ME, QI{PL}, VEPS, PDL'', DB) .
   ceq unitInstAux(U, M, VDS, SMS, OMS, TMS, nil, PDL, IL, IL', empty, VEPS, PDL', DB)
     = evalModule(
@@ -15336,8 +15336,8 @@ fmod FM-INST-EXPR-EVALUATION is
         applyMapsToVars(maps2rens(SMS'), maps2rens(OMS), VDS),
         DB)
     if SMS' := (SMS
-                genMapsSorts((getSorts(U) ; getSortSetAux(getImports(U), DB)), VEPS)
-                genMapsClasses((getClassNames(getClasses(U)) ; getClassSetAux(getImports(U), DB)), VEPS)) .
+                genMapsSorts((getSorts(U) , getSortSetAux(getImports(U), DB)), VEPS)
+                genMapsClasses((getClassNames(getClasses(U)) , getClassSetAux(getImports(U), DB)), VEPS)) .
   eq unitInstAux(unitError(QIL), UK:[Module], SDV:[VariableSet], SMS, OMS, TMS, PDL, PDL', IL, IL', PL, VEPS, PDL'', DB)
     = warning(DB, QIL) .
   eq unitInstAux(noModule, unitError(QIL), VDS, SMS, OMS, TMS, PDL, PDL', IL, IL', VE, VEPS, PDL'', DB)
@@ -15353,12 +15353,12 @@ fmod FM-INST-EXPR-EVALUATION is
   eq treatParView(X :: ME, VE, ME', VEPS, PDL, DB)
     = if labelInModExp(X, ME')
       then treatPar(X :: ME, VE, VEPS, PDL, DB)
-      else < none ;
-             none ;
-             none ;
-             getPars(treatPar(X :: ME, VE, VEPS, PDL, DB)) ;
-             getImports(treatPar(X :: ME, VE, VEPS, PDL, DB)) ;
-             viewExpPairSet(treatPar(X :: ME, VE, VEPS, PDL, DB)) ;
+      else < none ,
+             none ,
+             none ,
+             getPars(treatPar(X :: ME, VE, VEPS, PDL, DB)) ,
+             getImports(treatPar(X :: ME, VE, VEPS, PDL, DB)) ,
+             viewExpPairSet(treatPar(X :: ME, VE, VEPS, PDL, DB)) ,
              db(treatPar(X :: ME, VE, VEPS, PDL, DB)) >
       fi .
 
@@ -15378,12 +15378,12 @@ fmod FM-INST-EXPR-EVALUATION is
   eq treatPar(X :: ME, VE, VEPS, PDL, DB)
     = if VE :: Qid and-then labelInParameterDeclList(VE, PDL)
       then < (genMapsQualSorts(X, VE, getThSorts(ME, DB), VEPS)
-              genMapsQualClasses(X, VE, getThClasses(ME, DB), VEPS)) ;
-             none ;
-             none ;
-             VE :: ME ;
-             nil ;
-             < X ; VE > ;
+              genMapsQualClasses(X, VE, getThClasses(ME, DB), VEPS)) ,
+             none ,
+             none ,
+             VE :: ME ,
+             nil ,
+             < X , VE > ,
              createCopy((VE :: ME), DB) >
       else if viewInDb(VE, DB)
            then if theory(getTopModule(getTo(getView(VE, DB)), DB))
@@ -15392,36 +15392,36 @@ fmod FM-INST-EXPR-EVALUATION is
                          X,
                          getThSorts(ME, DB),
                          getThSorts(getTo(getView(VE, DB)), DB),
-                         getThClasses(getTo(getView(VE, DB)), DB)) ;
+                         getThClasses(getTo(getView(VE, DB)), DB)) ,
                        prepare(
                          getOpMappings(getView(VE, DB)),
                          X,
                          getThSorts(ME, DB),
                          getThSorts(getTo(getView(VE, DB)), DB),
-                         getThClasses(getTo(getView(VE, DB)), DB)) ;
-                       none ; ---- do something with strat maps
-                       X :: getTo(getView(VE, DB)) ;
-                       nil ;
-                       < X ; (VE ;; X) > ;
+                         getThClasses(getTo(getView(VE, DB)), DB)) ,
+                       none , ---- do something with strat maps
+                       X :: getTo(getView(VE, DB)) ,
+                       nil ,
+                       < X , (VE ,, X) > ,
                        createCopy((X :: getTo(getView(VE, DB))), DB) >
                 else < prepare(
                          getSortMappings(getView(VE, DB)),
                          X,
-                         getThSorts(ME, DB), none, none) ;
+                         getThSorts(ME, DB), none, none) ,
                        prepare(
                          getOpMappings(getView(VE, DB)),
                          X,
-                         getThSorts(ME, DB), none, none) ;
+                         getThSorts(ME, DB), none, none) ,
                        prepare(
                          getStratMappings(getView(VE, DB)),
                          X,
-                         getThSorts(ME, DB), none, none) ;
-                       getPars(getTopModule(getTo(getView(VE, DB)), DB)) ;
-                       (protecting getTo(getView(VE, DB)) .) ;
-                       < X ; VE > ;
+                         getThSorts(ME, DB), none, none) ,
+                       getPars(getTopModule(getTo(getView(VE, DB)), DB)) ,
+                       (protecting getTo(getView(VE, DB)) .) ,
+                       < X , VE > ,
                        DB >
                 fi
-           else < none ; none ; none ; nil ; nil ; none ;
+           else < none , none , none , nil , nil , none ,
                   warning(DB, '\r 'Error: '\o 'View VE 'not 'in 'database. '\n) >
            fi
       fi .
@@ -15442,11 +15442,11 @@ fmod FM-INST-EXPR-EVALUATION is
 
   ceq viewInstAux(VI, SMS, OMS, TMS, (X :: ME, PDL), PDL', (QI, PL), VEPS, PDL'', DB)
     = viewInstAux(VI, (SMS SMS'), (OMS OMS'), (TMS TMS'), PDL, (PDL', PDL3), PL, (VEPS VEPS'), PDL'', DB')
-    if < SMS' ; OMS' ; TMS' ; PDL3 ; IL ; VEPS' ; DB' >
+    if < SMS' , OMS' , TMS' , PDL3 , IL , VEPS' , DB' >
          := treatParView(X :: ME, QI, getFrom(VI), VEPS, PDL'', DB) .
   ceq viewInstAux(VI, SMS, OMS, TMS, (X :: ME, PDL), PDL', (QI{PL}, PL'), VEPS, PDL'', DB)
     = viewInstAux(VI, SMS SMS', OMS OMS', TMS TMS', PDL, (PDL', PDL3), PL', VEPS VEPS', PDL'', DB')
-    if < SMS' ; OMS' ; TMS' ; PDL3 ; IL ; VEPS' ; DB' > := treatParView(X :: ME, QI{PL}, getFrom(VI), VEPS, PDL'', DB) .
+    if < SMS' , OMS' , TMS' , PDL3 , IL , VEPS' , DB' > := treatParView(X :: ME, QI{PL}, getFrom(VI), VEPS, PDL'', DB) .
   ceq viewInstAux(VI, SMS, OMS, TMS, nil, PDL, empty, VEPS, PDL', DB)
     = insertView(
         setPars(
@@ -15472,9 +15472,9 @@ fmod FM-INST-EXPR-EVALUATION is
             prepModExp(getFrom(VI), VEPS)),
           PDL),
         DB''')
-    if < DB'  ; ME'  >   := evalModExp(getFrom(VI), PDL', DB)
-    /\ < DB'' ; ME'' >   := evalModExp(getTo(VI), (getPars(VI), PDL'), DB')
-    /\ < DB''' ; ME''' > := evalModExp(prepModExp(getTo(VI), VEPS), (getPars(VI), PDL'), DB'') .
+    if < DB'  , ME'  >   := evalModExp(getFrom(VI), PDL', DB)
+    /\ < DB'' , ME'' >   := evalModExp(getTo(VI), (getPars(VI), PDL'), DB')
+    /\ < DB''' , ME''' > := evalModExp(prepModExp(getTo(VI), VEPS), (getPars(VI), PDL'), DB'') .
   eq viewInstAux(viewError(QIL), SMS, OMS, TMS, PDL0:[ParameterDeclList], PDL, PL, VEPS, PDL', DB)
     = warning(DB, QIL) .
   eq viewInstAux(VI, SMS, OMS, TMS, (X :: ME, PDL), PDL', empty, VEPS, PDL'', DB)
@@ -15511,8 +15511,8 @@ fmod FM-INST-EXPR-EVALUATION is
        applyMapsToMaps(SRS, SRS', OMS)) .
   eq applyMapsToMaps(SRS, SRS', OMS) = OMS [owise] .
 
-  eq applyMapsToVars(SRS, V ; VDS)
-    = qid(string(getName(V)) + ":" + string(applyMapsToType(SRS, getType(V)))) ;
+  eq applyMapsToVars(SRS, V , VDS)
+    = qid(string(getName(V)) + ":" + string(applyMapsToType(SRS, getType(V)))) ,
       applyMapsToVars(SRS, VDS).
   eq applyMapsToVars(SRS, none) = none .
 
@@ -15571,44 +15571,44 @@ fmod FM-INST-EXPR-EVALUATION is
 *** database,  \verb~ME{VE}~ will be removed as well.
 
   eq setUpModExpDeps(ME{PL},
-      db(< ME ; DT ; U ; U' ; M ; VDS ; MNS ; VES > MIS, MNS',
+      db(< ME , DT , U , U' , M , VDS , MNS , VES > MIS, MNS',
           VIS, VES', MNS'', MNS3, MNS4, QIL))
     = viewExpDeps(ME{PL}, PL,
-        db(< ME ; DT ; U ; U' ; M ; VDS ; (MNS . ME{PL}) ; VES > MIS,
+        db(< ME , DT , U , U' , M , VDS , (MNS . ME{PL}) , VES > MIS,
            MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq setUpModExpDeps(ME{PL},
-      db(< ME ; DM ; U ; U' ; M ; VDS ; MNS ; VES > MIS, MNS',
+      db(< ME , DM , U , U' , M , VDS , MNS , VES > MIS, MNS',
          VIS, VES', MNS'', MNS3, MNS4, QIL))
     = viewExpDeps(ME{PL}, PL,
-        db(< ME ; DM ; U ; U' ; M ; VDS ; (MNS . ME{PL}) ; VES > MIS,
+        db(< ME , DM , U , U' , M , VDS , (MNS . ME{PL}) , VES > MIS,
            MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq setUpModExpDeps('META-LEVEL{PL}, DB)
     = setUpModExpDeps('META-LEVEL{PL}, PL, DB) .
   eq setUpModExpDeps('META-LEVEL{QI},
-       db(< QI ; DT ; U ; U' ; M ; VDS ; MNS ; VES > MIS, MNS',
+       db(< QI , DT , U , U' , M , VDS , MNS , VES > MIS, MNS',
           VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(< QI ; DT ; U ; U' ; M ; VDS ; MNS . 'META-LEVEL{QI} ; VES >
+    = db(< QI , DT , U , U' , M , VDS , MNS . 'META-LEVEL{QI} , VES >
           MIS, MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
   eq setUpModExpDeps('META-LEVEL{QI},
-       db(< QI ; DM ; U ; U' ; M ; VDS ; MNS ; VES > MIS, MNS',
+       db(< QI , DM , U , U' , M , VDS , MNS , VES > MIS, MNS',
           VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(< QI ; DM ; U ; U' ; M ; VDS ; MNS . 'META-LEVEL{QI} ; VES >
+    = db(< QI , DM , U , U' , M , VDS , MNS . 'META-LEVEL{QI} , VES >
           MIS, MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
   ceq setUpModExpDeps(ME{PL}, DB)
     = warning(DB, ('\r 'Error: '\o 'Module header2QidList(ME) 'not 'in 'database. '\n))
     if (ME =/= 'META-LEVEL) /\ (not unitInDb(ME, DB)) .
 
   eq setUpModExpDeps('META-LEVEL{PL}, (QI, PL'),
-       db(< QI ; DT ; U ; U' ; M ; VDS ; MNS ; VES > MIS, MNS',
+       db(< QI , DT , U , U' , M , VDS , MNS , VES > MIS, MNS',
           VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpModExpDeps('META-LEVEL{PL}, PL',
-        db(< QI ; DT ; U ; U' ; M ; VDS ; MNS . 'META-LEVEL{PL} ; VES >
+        db(< QI , DT , U , U' , M , VDS , MNS . 'META-LEVEL{PL} , VES >
            MIS, MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq setUpModExpDeps('META-LEVEL{PL}, (QI, PL'),
-       db(< QI ; DM ; U ; U' ; M ; VDS ; MNS ; VES > MIS, MNS',
+       db(< QI , DM , U , U' , M , VDS , MNS , VES > MIS, MNS',
           VIS, VES', MNS'', MNS3, MNS4, QIL))
     = setUpModExpDeps('META-LEVEL{PL}, PL',
-        db(< QI ; DM ; U ; U' ; M ; VDS ; MNS . 'META-LEVEL{PL} ; VES >
+        db(< QI , DM , U , U' , M , VDS , MNS . 'META-LEVEL{PL} , VES >
            MIS, MNS', VIS, VES', MNS'', MNS3, MNS4, QIL)) .
   eq setUpModExpDeps('META-LEVEL{PL}, nil, DB) = DB .
 
@@ -15616,17 +15616,17 @@ fmod FM-INST-EXPR-EVALUATION is
 
 ----  eq viewExpDeps(ME, VE,
 ----        db(MIS, MNS,
-----           < VE ; DT ; VI ; MNS' ; VES > VIS, VES',
+----           < VE , DT , VI , MNS' , VES > VIS, VES',
 ----           MNS'', MNS3, MNS4, QIL))
-----    = db(MIS, MNS, < VE ; DT ; VI ; MNS' . ME ; VES > VIS, VES',
+----    = db(MIS, MNS, < VE , DT , VI , MNS' . ME , VES > VIS, VES',
 ----         MNS'', MNS3, MNS4, QIL) .
   eq viewExpDeps(ME, (VE, PL),
         db(MIS, MNS,
-           < VE ; DT ; VI ; MNS' ; VES > VIS, VES',
+           < VE , DT , VI , MNS' , VES > VIS, VES',
            MNS'', MNS3, MNS4, QIL))
     = viewExpDeps(ME, PL,
         db(MIS, MNS,
-           < VE ; DT ; VI ; MNS' . ME ; VES > VIS, VES',
+           < VE , DT , VI , MNS' . ME , VES > VIS, VES',
            MNS'', MNS3, MNS4, QIL)) .
 ----  eq viewExpDeps(ME, VE, DB) = DB [owise] .
   eq viewExpDeps(ME, (VE, PL), DB) = viewExpDeps(ME, PL, DB) [owise] .
@@ -15724,10 +15724,10 @@ fmod FM-RENAMING-EXPR-EVALUATION is
 
   ceq evalModExp(ME * (RS), PDL, DB)
     = if unitInDb(ME' * (RS''), DB')
-      then < DB' ; ME' * (RS'') >
-      else < crtCopyRen(ME', RS', DB') ; ME' * (RS'') >
+      then < DB' , ME' * (RS'') >
+      else < crtCopyRen(ME', RS', DB') , ME' * (RS'') >
       fi
-    if < DB' ; ME' > := evalModExp(ME, PDL, DB)
+    if < DB' , ME' > := evalModExp(ME, PDL, DB)
        /\ RS' := fixMaps(RS, ME', DB')
        /\ RS'' := canMaps(RS', getFlatModule(ME', DB')) .
 
@@ -15747,7 +15747,7 @@ fmod FM-RENAMING-EXPR-EVALUATION is
              DB)
       fi
     if RS' := canMaps(RS, getFlatModule(ME, DB))
-       /\ < SRS ; ORS ; TRS > := splitMaps(RS') .
+       /\ < SRS , ORS , TRS > := splitMaps(RS') .
 
   op canMaps : RenamingSet Module -> RenamingSet .
   eq canMaps(op F : TyL -> Ty to F' [AtS], M)
@@ -15775,7 +15775,7 @@ fmod FM-RENAMING-EXPR-EVALUATION is
   ---- eq canKinds(K:Kind TyL, M)
   ----   = kind(maximalSorts(M, K:Kind)) canKinds(TyL, M) .
   eq canKinds(nil, M) = nil .
-  eq canKinds(cc(S ; SS) TyL, M)
+  eq canKinds(cc(S , SS) TyL, M)
     = kind(maximalSorts(M, getKind(M, S))) canKinds(TyL, M) .
   ----eq canKinds(TyL, M) = nil [owise] .
 
@@ -15824,7 +15824,7 @@ fmod FM-RENAMING-EXPR-EVALUATION is
 
   ceq fixMaps(RS, ME, DB)
     = fixMaps2(RS, getFlatModule(ME, DB), CDS, MDS)
-    if < CDS ; MDS > := getAllClassesAndMsgs(ME, DB) .
+    if < CDS , MDS > := getAllClassesAndMsgs(ME, DB) .
 
   eq fixMaps2(op F to F' [AtS], M, CDS, MDS)
     = opsAffd(getOps(M), op F to F' [AtS], M) .
@@ -15898,11 +15898,11 @@ fmod FM-RENAMING-EXPR-EVALUATION is
   eq fixMaps2(none, M, CDS, MDS) = none .
 
   sort Tuple{ClassDeclSet, MsgDeclSet} .
-  op <_;_> : ClassDeclSet MsgDeclSet -> Tuple{ClassDeclSet, MsgDeclSet} .
+  op <_,_> : ClassDeclSet MsgDeclSet -> Tuple{ClassDeclSet, MsgDeclSet} .
   op getClasses : Tuple{ClassDeclSet, MsgDeclSet} -> ClassDeclSet .
   op getMsgs : Tuple{ClassDeclSet, MsgDeclSet} -> MsgDeclSet .
-  eq getClasses(< CDS ; MDS >) = CDS .
-  eq getMsgs(< CDS ; MDS >) = MDS .
+  eq getClasses(< CDS , MDS >) = CDS .
+  eq getMsgs(< CDS , MDS >) = MDS .
 
   op getAllClassesAndMsgs :
        ModuleExpression Database -> Tuple{ClassDeclSet, MsgDeclSet} .
@@ -15915,20 +15915,20 @@ fmod FM-RENAMING-EXPR-EVALUATION is
       then < getClasses(
                getAllClassesAndMsgs(getImports(getTopModule(ME, DB)), DB))
              getClasses(getTopModule(ME, DB))
-             ;
+             ,
              getMsgs(
                getAllClassesAndMsgs(getImports(getTopModule(ME, DB)), DB))
              getMsgs(getTopModule(ME, DB)) >
-      else < none ; none >
+      else < none , none >
       fi .
 
   eq getAllClassesAndMsgs(I IL, DB)
     = < getClasses(getAllClassesAndMsgs(moduleName(I), DB))
         getClasses(getAllClassesAndMsgs(IL, DB))
-        ;
+        ,
         getMsgs(getAllClassesAndMsgs(moduleName(I), DB))
         getMsgs(getAllClassesAndMsgs(IL, DB)) > .
-  eq getAllClassesAndMsgs((nil).ImportList, DB) = < none ; none > .
+  eq getAllClassesAndMsgs((nil).ImportList, DB) = < none , none > .
 
 ----  sorts NeSet<TypeList> Set<TypeList> .
 ----  subsort TypeList < NeSet<TypeList> < Set<TypeList> .
@@ -15983,20 +15983,20 @@ fmod FM-RENAMING-EXPR-EVALUATION is
   eq fixKindsAux(K, M) = fixKindsAux2(getSorts(K), M) .
   eq fixKindsAux(cc(SS), M) = fixKindsAux2(SS, M) .
 
-  eq fixKindsAux2((S ; SS), M)
+  eq fixKindsAux2((S , SS), M)
     = (if S in getSorts(M)
        then cc(connectedSorts(M, S))
        else none
        fi
-       ;
+       ,
        fixKindsAux2(SS, M)) .
   eq fixKindsAux2(none, M) = none .
 
   ceq unfold(TS l TSL) = add(TS, unfold(TSL)) if TS =/= none .
   eq unfold(nilTSL) = none .
 
-  ceq add(Ty, TyL ; TLS) = add(Ty, TyL) ; add(Ty, TLS) if TLS =/= none .
-  eq add(Ty ; Ty' ; TS, TLS) = add(Ty, TLS) ; add(Ty' ; TS, TLS) .
+  ceq add(Ty, TyL , TLS) = add(Ty, TyL) , add(Ty, TLS) if TLS =/= none .
+  eq add(Ty , Ty' , TS, TLS) = add(Ty, TLS) , add(Ty' , TS, TLS) .
   eq add(none, TLS) = nilTSL .
   eq add(Ty, none) = Ty .
   eq add(Ty, TyL) = Ty TyL .
@@ -16004,18 +16004,18 @@ fmod FM-RENAMING-EXPR-EVALUATION is
   op connectedSorts : Module Type -> SortSet .
   op connectedSorts : Module SortSet Type -> SortSet .
   eq connectedSorts(M, Ty) = connectedSorts(M, getSorts(M), Ty) .
-  eq connectedSorts(M, S ; SS, Ty)
+  eq connectedSorts(M, S , SS, Ty)
     = if sameKind(M, S, Ty)
       then S
       else none
-      fi ; connectedSorts(M, SS, Ty) .
+      fi , connectedSorts(M, SS, Ty) .
   eq connectedSorts(M, none, Ty) = none .
 
   op sortsAffd : SortSet Renaming -> Bool .
   op opsAffd : OpDeclSet Renaming Module -> RenamingSet .
   op opsAffdAux : OpDeclSet Qid TypeListSet Qid AttrSet Module -> RenamingSet .
 
-  eq sortsAffd((S ; SS), (sort S to S')) = true .
+  eq sortsAffd((S , SS), (sort S to S')) = true .
   eq sortsAffd(SS, (sort S to S')) = false [owise] .
 
   eq opsAffd(op F : TyL -> Ty [AtS] . OPDS, op F to F' [AtS'], M)
@@ -16025,11 +16025,11 @@ fmod FM-RENAMING-EXPR-EVALUATION is
   eq opsAffd(OPDS, RS:[RenamingSet], M) = none [owise] .
 
   eq opsAffdAux(op F : TyL -> Ty [AtS] . OPDS,
-       F, (TyL' Ty') ; TLS, F', AtS', M)
+       F, (TyL' Ty') , TLS, F', AtS', M)
     = if sameKind(M, (TyL Ty), (TyL' Ty'))
       then (op F : TyL' -> Ty' to F' [AtS'],
             opsAffdAux(OPDS, F, TLS, F', AtS', M))
-      else (opsAffdAux(OPDS, F, (TyL' Ty') ; TLS, F', AtS', M),
+      else (opsAffdAux(OPDS, F, (TyL' Ty') , TLS, F', AtS', M),
             opsAffdAux(op F : TyL -> Ty [AtS] . OPDS, F, TLS, F', AtS', M))
       fi .
   eq opsAffdAux(OPDS, F, TLS, F', AtS, M) = none [owise] .
@@ -16044,11 +16044,11 @@ fmod FM-RENAMING-EXPR-EVALUATION is
   eq stratsAffd(StratDcls, RS:[RenamingSet], M) = none [owise] .
 
   eq stratsAffdAux(strat F : TyL @ Ty [AtS] . StratDcls,
-       F, (TyL' Ty') ; TLS, F', M)
+       F, (TyL' Ty') , TLS, F', M)
     = if sameKind(M, (TyL Ty), (TyL' Ty'))
       then (strat F : TyL' @ Ty' to F',
             stratsAffdAux(StratDcls, F, TLS, F', M))
-      else (stratsAffdAux(StratDcls, F, (TyL' Ty') ; TLS, F', M),
+      else (stratsAffdAux(StratDcls, F, (TyL' Ty') , TLS, F', M),
             stratsAffdAux(strat F : TyL @ Ty [AtS] . StratDcls, F, TLS, F', M))
       fi .
   eq stratsAffdAux(StratDcls, F, TLS, F', M) = none [owise] .
@@ -16155,11 +16155,11 @@ fmod FM-RENAMING-EXPR-EVALUATION is
     = msgsAffdAux(MDS, F, fixKinds(TyL Ty, M), F', M) .
   eq msgsAffd(MDS, RS:[RenamingSet], M) = none [owise] .
 
-  eq msgsAffdAux(msg F : TyL -> Ty . MDS, F, (TyL' Ty') ; TLS, F', M)
+  eq msgsAffdAux(msg F : TyL -> Ty . MDS, F, (TyL' Ty') , TLS, F', M)
     = if sameKind(M, (TyL Ty), (TyL' Ty'))
       then (msg F : TyL' -> Ty' to F',
             msgsAffdAux(MDS, F, TLS, F', M))
-      else (msgsAffdAux(MDS, F, (TyL' Ty') ; TLS, F', M),
+      else (msgsAffdAux(MDS, F, (TyL' Ty') , TLS, F', M),
             msgsAffdAux(msg F : TyL -> Ty . MDS, F, TLS, F', M))
       fi .
   eq msgsAffdAux(MDS, F, TLS, F', M) = none [owise] .
@@ -16331,14 +16331,14 @@ fmod FM-RENAMING-EXPR-EVALUATION is
 *** database, \verb~ME *< RS >~ will be removed as well.
 
   eq setUpModExpDeps(ME * (RS),
-       db(< ME ; DT ; U ; U' ; M ; VDS ; MNS ; VES > MIS,
+       db(< ME , DT , U , U' , M , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(< ME ; DT ; U ; U' ; M ; VDS ; MNS . ME * (RS) ; VES > MIS,
+    = db(< ME , DT , U , U' , M , VDS , MNS . ME * (RS) , VES > MIS,
          MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
   eq setUpModExpDeps(ME * (RS),
-       db(< ME ; DM ; U ; U' ; M ; VDS ; MNS ; VES > MIS,
+       db(< ME , DM , U , U' , M , VDS , MNS , VES > MIS,
           MNS', VIS, VES', MNS'', MNS3, MNS4, QIL))
-    = db(< ME ; DM ; U ; U' ; M ; VDS ; MNS . ME * (RS) ; VES > MIS,
+    = db(< ME , DM , U , U' , M , VDS , MNS . ME * (RS) , VES > MIS,
          MNS', VIS, VES', MNS'', MNS3, MNS4, QIL) .
   ceq setUpModExpDeps(ME * (RS), DB)
     = warning(DB, '\r 'Error: '\o 'Module header2QidList(ME) 'not 'in 'database. '\n)
@@ -16482,21 +16482,21 @@ fmod UNION-EXPR is
 *** module as argument, the corresponding structured one is considered. If one
 *** of the two module expressions corresponds to a theory, then a theory is
 *** generated, and the lowest sort is taken between the sort of such a theory
-*** and the \texttt{Module} sort immediately above the sort of the other unit;
+*** and the \texttt{Module} sort immediately above the sort of the other unit,
 *** that is, sorts \texttt{FModule}, \texttt{SModule}, or \texttt{OModule} are
 *** considered to do the comparison.
 
   ceq evalModExp(ME + ME', PDL, DB)
     = if unitInDb(ME'', DB') or-else not summandsInDB(ME'', DB')
-      then < DB' ; ME'' >
+      then < DB' , ME'' >
       else < evalModule(
                addImports(unfoldSummands(ME''),
                  setName(rightEmptyModule(ME'', DB'), ME'')),
                none,
                DB')
-             ; ME'' >
+             , ME'' >
       fi
-    if < DB' ; ME'' > := evalModExp+(ME + ME', PDL, DB) .
+    if < DB' , ME'' > := evalModExp+(ME + ME', PDL, DB) .
 
   op summandsInDB : ModuleExpression Database -> Bool .
   eq summandsInDB(ME + ME', DB)
@@ -16513,7 +16513,7 @@ fmod UNION-EXPR is
   op evalModExp+ : ModuleExpression ParameterDeclList Database -> Tuple{Database, ModuleExpression} .
   eq evalModExp+(ME + ME', PDL, DB)
     = < database(evalModExp+(ME', PDL, database(evalModExp+(ME, PDL, DB))))
-      ; modExp(evalModExp+(ME', PDL, database(evalModExp+(ME, PDL, DB))))
+      , modExp(evalModExp+(ME', PDL, database(evalModExp+(ME, PDL, DB))))
         + modExp(evalModExp+(ME, PDL, DB)) > .
   eq evalModExp+(ME, PDL, DB) = evalModExp(ME, PDL, DB) [owise] .
 
@@ -16607,44 +16607,44 @@ fmod UNION-EXPR is
   eq setUpModExpDepsAux(ME, ME' + ME'', DB)
    = setUpModExpDepsAux(ME, ME', setUpModExpDepsAux(ME, ME'', DB)) .
   eq setUpModExpDepsAux(ME, ME',
-      db(< ME' ; DT ; U ; U' ; M ; VDS ; MNS ; VES > MIS, MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL))
-   = db(< ME' ; DT ; U ; U' ; M ; VDS ; MNS . ME ; VES > MIS, MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL)
+      db(< ME' , DT , U , U' , M , VDS , MNS , VES > MIS, MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL))
+   = db(< ME' , DT , U , U' , M , VDS , MNS . ME , VES > MIS, MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL)
    [owise] .
   eq setUpModExpDepsAux(ME, ME',
-      db(< ME' ; DM ; U ; U' ; M ; VDS ; MNS ; VES > MIS, MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL))
-   = db(< ME' ; DM ; U ; U' ; M ; VDS ; MNS . ME ; VES > MIS, MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL)
+      db(< ME' , DM , U , U' , M , VDS , MNS , VES > MIS, MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL))
+   = db(< ME' , DM , U , U' , M , VDS , MNS . ME , VES > MIS, MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL)
    [owise] .
 
 ---(  eq setUpModExpDeps((ME + ME'),
-      db((< ME ; DT ; U ; U' ; M ; VDS ; MNS ; VES >
-          < ME' ; DT' ; U'' ; U3 ; M' ; VDS' ; MNS' ; VES' > MIS),
+      db((< ME , DT , U , U' , M , VDS , MNS , VES >
+          < ME' , DT' , U'' , U3 , M' , VDS' , MNS' , VES' > MIS),
          MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL))
-   = db((< ME ; DT ; U ; U' ; M ; VDS ; MNS . (ME + ME') ; VES >
-         < ME' ; DT' ; U'' ; U3 ; M' ; VDS' ; MNS' . (ME + ME') ; VES' >
+   = db((< ME , DT , U , U' , M , VDS , MNS . (ME + ME') , VES >
+         < ME' , DT' , U'' , U3 , M' , VDS' , MNS' . (ME + ME') , VES' >
          MIS),
         MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL) .
   eq setUpModExpDeps((ME + ME'),
-      db((< ME ; DT ; U ; U' ; M ; VDS ; MNS ; VES >
-          < ME' ; DM ; U'' ; U3 ; M' ; VDS' ; MNS' ; VES' > MIS),
+      db((< ME , DT , U , U' , M , VDS , MNS , VES >
+          < ME' , DM , U'' , U3 , M' , VDS' , MNS' , VES' > MIS),
          MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL))
-   = db((< ME ; DT ; U ; U' ; M ; VDS ; MNS . (ME + ME') ; VES >
-         < ME' ; DM ; U'' ; U3 ; M' ; VDS' ; MNS' . (ME + ME') ; VES' >
+   = db((< ME , DT , U , U' , M , VDS , MNS . (ME + ME') , VES >
+         < ME' , DM , U'' , U3 , M' , VDS' , MNS' . (ME + ME') , VES' >
          MIS),
         MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL) .
   eq setUpModExpDeps((ME + ME'),
-      db((< ME ; DM ; U ; U' ; M ; VDS ; MNS ; VES >
-          < ME' ; DT ; U'' ; U3 ; M' ; VDS' ; MNS' ; VES' > MIS),
+      db((< ME , DM , U , U' , M , VDS , MNS , VES >
+          < ME' , DT , U'' , U3 , M' , VDS' , MNS' , VES' > MIS),
          MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL))
-   = db((< ME ; DM ; U ; U' ; M ; VDS ; MNS . (ME + ME') ; VES >
-         < ME' ; DT ; U'' ; U3 ; M' ; VDS' ; MNS' . (ME + ME') ; VES' >
+   = db((< ME , DM , U , U' , M , VDS , MNS . (ME + ME') , VES >
+         < ME' , DT , U'' , U3 , M' , VDS' , MNS' . (ME + ME') , VES' >
          MIS),
         MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL) .
   eq setUpModExpDeps((ME + ME'),
-      db((< ME ; DM ; U ; U' ; M ; VDS ; MNS ; VES >
-          < ME' ; DM' ; U'' ; U3 ; M' ; VDS' ; MNS' ; VES' > MIS),
+      db((< ME , DM , U , U' , M , VDS , MNS , VES >
+          < ME' , DM' , U'' , U3 , M' , VDS' , MNS' , VES' > MIS),
          MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL))
-   = db((< ME ; DM ; U ; U' ; M ; VDS ; MNS . (ME + ME') ; VES >
-         < ME' ; DM' ; U'' ; U3 ; M' ; VDS' ; MNS' . (ME + ME') ; VES' >
+   = db((< ME , DM , U , U' , M , VDS , MNS . (ME + ME') , VES >
+         < ME' , DM' , U'' , U3 , M' , VDS' , MNS' . (ME + ME') , VES' >
          MIS),
         MNS'', VIS, VES'', MNS3, MNS4, MNS5, QIL) .
   ceq setUpModExpDeps((ME + ME'), DB)
@@ -16742,7 +16742,7 @@ fmod N-TUPLE-EXPR is
 
   eq evalModExp(TUPLE[N], PDL, DB)
     = if unitInDb(TUPLE[N], DB)
-      then < DB ; TUPLE[N] >
+      then < DB , TUPLE[N] >
       else < evalModule(
                fmod TUPLE[N]{tupleParList(N)} is
                  nil  ---- tupleImportList(N)
@@ -16753,7 +16753,7 @@ fmod N-TUPLE-EXPR is
                  tupleEqSet(N)
                endfm,
                none,
-               createCopyPars(N, DB)) ;
+               createCopyPars(N, DB)) ,
              TUPLE[N] >
       fi .
 
@@ -16881,7 +16881,7 @@ fmod N-POWER-EXPR is
 
   eq evalModExp(POWER[N], PDL, DB)
     = if unitInDb(POWER[N], DB)
-      then < DB ; POWER[N] >
+      then < DB , POWER[N] >
       else < evalModule(
                fmod POWER[N]{'X :: 'TRIV} is
                  powImportList(N)
@@ -16892,7 +16892,7 @@ fmod N-POWER-EXPR is
                  none
                endfm,
                none,
-               createCopy('X :: 'TRIV, DB)) ;
+               createCopy('X :: 'TRIV, DB)) ,
              POWER[N] >
       fi .
 
@@ -17064,22 +17064,22 @@ fmod UNIT-DECL-PARSING is
   eq unfoldMultipleMsgDecl(nil, TyL, Ty) = none .
 
   op unfoldSubsortRel : TypeSetList ~> SubsortDeclSet .
-  eq unfoldSubsortRel(_l_((S ; SS), (S' ; SS'), TSL))
+  eq unfoldSubsortRel(_l_((S , SS), (S' , SS'), TSL))
     = ((subsort S < S' .)
        unfoldSubsortRel(_l_(S, SS'))
-       unfoldSubsortRel(_l_(SS, (S' ; SS')))
-       unfoldSubsortRel(_l_((S' ; SS'), TSL))) .
+       unfoldSubsortRel(_l_(SS, (S' , SS')))
+       unfoldSubsortRel(_l_((S' , SS'), TSL))) .
   eq unfoldSubsortRel(_l_(SS, none)) = none .
   eq unfoldSubsortRel(_l_(none, SS)) = none .
   eq unfoldSubsortRel(SS) = none .
   eq unfoldSubsortRel(qidError(QIL)) = subsortDeclError(QIL) .
 
   op unfoldSubclassRel : TypeSetList ~> SubclassDeclSet .
-  eq unfoldSubclassRel(_l_((S ; SS), (S' ; SS'), TSL))
+  eq unfoldSubclassRel(_l_((S , SS), (S' , SS'), TSL))
     = ((subclass S < S' .)
        unfoldSubclassRel(_l_(S, SS'))
-       unfoldSubclassRel(_l_(SS, (S' ; SS')))
-       unfoldSubclassRel(_l_((S' ; SS'), TSL))) .
+       unfoldSubclassRel(_l_(SS, (S' , SS')))
+       unfoldSubclassRel(_l_((S' , SS'), TSL))) .
   eq unfoldSubclassRel(_l_(SS, none)) = none .
   eq unfoldSubclassRel(_l_(none, SS)) = none .
   eq unfoldSubclassRel(SS) = none .
@@ -17091,7 +17091,7 @@ fmod UNIT-DECL-PARSING is
   eq unfoldStratDecl(nil, TyL, Ty, AtS) = none .
 
   eq parseVars((QI QIL), Tp)
-    = (qid(string(QI) + ":" + string(Tp)) ; parseVars(QIL, Tp)) .
+    = (qid(string(QI) + ":" + string(Tp)) , parseVars(QIL, Tp)) .
   eq parseVars(nil, Tp) = none .
   eq parseVars(QIL, qidError(QIL')) = variableSetError(QIL') .
 
@@ -17172,23 +17172,23 @@ fmod UNIT-DECL-PARSING is
 *** parse the given term.
 
   sort ParseDeclResult .
-  op <_;_;_> : Module Module VariableSet -> ParseDeclResult .
+  op <_,_,_> : Module Module VariableSet -> ParseDeclResult .
   op preModule : ParseDeclResult -> Module .
   op unit : ParseDeclResult -> Module .
   op vars : ParseDeclResult -> VariableSet .
 
-  eq preModule(< PU ; U ; VDS >) = PU .
-  eq preModule(< unitError(QIL) ; V:[Module] ; V:[VariableSet] >) = unitError(QIL) .
-  eq preModule(< V:[Module] ; unitError(QIL) ; V:[VariableSet] >) = unitError(QIL) .
-  eq preModule(< V:[Module] ; V':[Module] ; variableSetError(QIL) >) = unitError(QIL) .
-  eq unit(< PU ; U ; VDS >) = U .
-  eq unit(< unitError(QIL) ; V':[Module] ; V:[VariableSet] >) = unitError(QIL) .
-  eq unit(< V:[Module] ; unitError(QIL) ; V:[VariableSet] >) = unitError(QIL) .
-  eq unit(< V:[Module] ; V':[Module] ; variableSetError(QIL) >) = unitError(QIL) .
-  eq vars(< PU ; U ; VDS >) = VDS .
-  eq vars(< unitError(QIL) ; V:[Module] ; V:[VariableSet] >) = variableSetError(QIL) .
-  eq vars(< V:[Module] ; unitError(QIL) ; V:[VariableSet] >) = variableSetError(QIL) .
-  eq vars(< V:[Module] ; V':[Module] ; variableSetError(QIL) >) = variableSetError(QIL) .
+  eq preModule(< PU , U , VDS >) = PU .
+  eq preModule(< unitError(QIL) , V:[Module] , V:[VariableSet] >) = unitError(QIL) .
+  eq preModule(< V:[Module] , unitError(QIL) , V:[VariableSet] >) = unitError(QIL) .
+  eq preModule(< V:[Module] , V':[Module] , variableSetError(QIL) >) = unitError(QIL) .
+  eq unit(< PU , U , VDS >) = U .
+  eq unit(< unitError(QIL) , V':[Module] , V:[VariableSet] >) = unitError(QIL) .
+  eq unit(< V:[Module] , unitError(QIL) , V:[VariableSet] >) = unitError(QIL) .
+  eq unit(< V:[Module] , V':[Module] , variableSetError(QIL) >) = unitError(QIL) .
+  eq vars(< PU , U , VDS >) = VDS .
+  eq vars(< unitError(QIL) , V:[Module] , V:[VariableSet] >) = variableSetError(QIL) .
+  eq vars(< V:[Module] , unitError(QIL) , V:[VariableSet] >) = variableSetError(QIL) .
+  eq vars(< V:[Module] , V':[Module] , variableSetError(QIL) >) = variableSetError(QIL) .
 
   op parseDecl : Term Module Module VariableSet -> ParseDeclResult .
 
@@ -17204,21 +17204,21 @@ fmod UNIT-DECL-PARSING is
   eq parseDecl('pr_.[T], PU, U, VDS)
     = parseDecl('protecting_.[T], PU, U, VDS) .
   eq parseDecl('including_.[T], PU, U, VDS)
-    = < addImports((including parseModExp(T) .), PU) ; U ; VDS > .
+    = < addImports((including parseModExp(T) .), PU) , U , VDS > .
   eq parseDecl('extending_.[T], PU, U, VDS)
-    = < addImports((extending parseModExp(T) .), PU) ; U ; VDS > .
+    = < addImports((extending parseModExp(T) .), PU) , U , VDS > .
   eq parseDecl('protecting_.[T], PU, U, VDS)
-    = < addImports((protecting parseModExp(T) .), PU) ; U ; VDS > .
+    = < addImports((protecting parseModExp(T) .), PU) , U , VDS > .
 
   eq parseDecl('sort_.[T], PU, U, VDS) = parseDecl('sorts_.[T], PU, U, VDS) .
   eq parseDecl('sorts_.[T], PU, U, VDS)
-    = < addSorts(parseSortSet(T), PU) ; addSorts(parseSortSet(T), U) ; VDS > .
+    = < addSorts(parseSortSet(T), PU) , addSorts(parseSortSet(T), U) , VDS > .
 
   eq parseDecl('subsort_.[T], PU, U, VDS)
     = parseDecl('subsorts_.[T], PU, U, VDS) .
   eq parseDecl('subsorts_.[T], PU, U, VDS)
-    = < addSubsorts(unfoldSubsortRel(parseSubsortRel(T)), PU) ;
-        addSubsorts(unfoldSubsortRel(parseSubsortRel(T)), U) ; VDS > .
+    = < addSubsorts(unfoldSubsortRel(parseSubsortRel(T)), PU) ,
+        addSubsorts(unfoldSubsortRel(parseSubsortRel(T)), U) , VDS > .
 
 *** As pointed out in Section~\ref{SyntacticalRequirementsAndCaveats}, the
 *** name of operators in operator declaration has to be given as a single
@@ -17228,168 +17228,168 @@ fmod UNIT-DECL-PARSING is
 *** of an operator \verb~_(_)~, for example, is given as \verb~_`(_`)~.
 
   eq parseDecl('op_:`->_.['token[T], T'], PU, U, VDS)
-    = < addOps((op downQid(T) : nil -> parseType(T') [none] .), PU) ;
-        addOps((op downQid(T) : nil -> parseType(T') [none] .), U) ;
+    = < addOps((op downQid(T) : nil -> parseType(T') [none] .), PU) ,
+        addOps((op downQid(T) : nil -> parseType(T') [none] .), U) ,
         VDS > .
   eq parseDecl('op_:`->_`[_`].['token[T], T', T''], PU, U, VDS)
     = < addOps(
           (op downQid(T) : nil -> parseType(T') [parsePreAttrs(T'', 0)] .),
-          PU) ;
+          PU) ,
         addOps(
           (op downQid(T) : nil -> parseType(T') [parseAttrs(T'')] .),
-          U) ;
+          U) ,
         VDS > .
   eq parseDecl('op_:_->_.['token[T], T', T''], PU, U, VDS)
     = < addOps(
           (op downQid(T) : parseTypeList(T') -> parseType(T'') [none] .),
-          PU) ;
+          PU) ,
         addOps(
           (op downQid(T) : parseTypeList(T') -> parseType(T'') [none] .),
-          U) ;
+          U) ,
         VDS > .
   eq parseDecl('op_:_->_`[_`].['token[T], T', T'', T3], PU, U, VDS)
     = < addOps(
           (op downQid(T) : parseTypeList(T') -> parseType(T'')
-               [parsePreAttrs(T3, size(parseTypeList(T')))] .), PU) ;
+               [parsePreAttrs(T3, size(parseTypeList(T')))] .), PU) ,
         addOps(
           (op downQid(T) : parseTypeList(T') -> parseType(T'')
-               [parseAttrs(T3)] .), U) ;
+               [parseAttrs(T3)] .), U) ,
         VDS > .
 
   ceq parseDecl('op_:`->_.[F[TL], T], PU, U, VDS)
-    = < PU ; U ; VDS >
+    = < PU , U , VDS >
     if F =/= 'token .
   ceq parseDecl('op_:`->_`[_`].[F[TL], T, T'], PU, U, VDS)
-    = < PU ; U ; VDS >
+    = < PU , U , VDS >
     if F =/= 'token .
   ceq parseDecl('op_:_->_.[F[TL], T, T'], PU, U, VDS)
-    = < PU ; U ; VDS >
+    = < PU , U , VDS >
     if F =/= 'token .
   ceq parseDecl('op_:_->_`[_`].[F[TL], T, T', T''], PU, U, VDS)
-    = < PU ; U ; VDS >
+    = < PU , U , VDS >
     if F =/= 'token .
 
   eq parseDecl('ops_:`->_.['neTokenList[T], T'], PU, U, VDS)
     = < addOps(
-          unfoldOpDecl(downTypes(T), nil, parseType(T'), none), PU) ;
+          unfoldOpDecl(downTypes(T), nil, parseType(T'), none), PU) ,
         addOps(
-          unfoldOpDecl(downTypes(T), nil, parseType(T'), none), U) ;
+          unfoldOpDecl(downTypes(T), nil, parseType(T'), none), U) ,
         VDS > .
   eq parseDecl('ops_:`->_`[_`].['neTokenList[T], T', T''], PU, U, VDS)
     = < addOps(
           unfoldOpDecl(downTypes(T), nil, parseType(T'),
             parsePreAttrs(T'', 0)),
-          PU) ;
+          PU) ,
         addOps(
           unfoldOpDecl(downTypes(T), nil, parseType(T'),
             parseAttrs(T'')),
-          U) ;
+          U) ,
         VDS > .
   eq parseDecl('ops_:_->_.['neTokenList[T], T', T''], PU, U, VDS)
     = < addOps(
           unfoldOpDecl(downTypes(T), parseTypeList(T'),
             parseType(T''), none),
-          PU) ;
+          PU) ,
         addOps(
           unfoldOpDecl(downTypes(T), parseTypeList(T'),
             parseType(T''), none),
-          U) ;
+          U) ,
         VDS > .
   eq parseDecl('ops_:_->_`[_`].['neTokenList[T], T', T'', T3], PU, U, VDS)
     = < addOps(
           unfoldOpDecl(downTypes(T), parseTypeList(T'), parseType(T''),
-            parsePreAttrs(T3, size(parseTypeList(T')))), PU) ;
+            parsePreAttrs(T3, size(parseTypeList(T')))), PU) ,
         addOps(
           unfoldOpDecl(downTypes(T),
-            parseTypeList(T'), parseType(T''), parseAttrs(T3)), U) ;
+            parseTypeList(T'), parseType(T''), parseAttrs(T3)), U) ,
         VDS > .
 
   eq parseDecl('op_:`~>_.['token[T], T'], PU, U, VDS)
-    = < addOps((op downQid(T) : nil -> kind(parseType(T')) [none] .), PU) ;
-        addOps((op downQid(T) : nil -> kind(parseType(T')) [none] .), U) ;
+    = < addOps((op downQid(T) : nil -> kind(parseType(T')) [none] .), PU) ,
+        addOps((op downQid(T) : nil -> kind(parseType(T')) [none] .), U) ,
         VDS > .
   eq parseDecl('op_:`~>_`[_`].['token[T], T', T''], PU, U, VDS)
     = < addOps((op downQid(T) : nil -> kind(parseType(T'))
-                    [parsePreAttrs(T'', 0)] .), PU) ;
+                    [parsePreAttrs(T'', 0)] .), PU) ,
         addOps((op downQid(T) : nil -> kind(parseType(T'))
-                    [parseAttrs(T'')] .), U) ;
+                    [parseAttrs(T'')] .), U) ,
         VDS > .
   eq parseDecl('op_:_~>_.['token[T], T', T''], PU, U, VDS)
     = < addOps((op downQid(T) : kind(parseTypeList(T')) -> kind(parseType(T''))
-                    [none] .), PU) ;
+                    [none] .), PU) ,
         addOps((op downQid(T) : kind(parseTypeList(T')) -> kind(parseType(T''))
-                    [none] .), U) ;
+                    [none] .), U) ,
         VDS > .
   eq parseDecl('op_:_~>_`[_`].['token[T], T', T'', T3], PU, U, VDS)
     = < addOps((op downQid(T) : kind(parseTypeList(T')) -> kind(parseType(T''))
-                   [parsePreAttrs(T3, size(parseTypeList(T')))] .), PU) ;
+                   [parsePreAttrs(T3, size(parseTypeList(T')))] .), PU) ,
         addOps((op downQid(T) : kind(parseTypeList(T')) -> kind(parseType(T''))
-                   [parseAttrs(T3)] .), U) ;
+                   [parseAttrs(T3)] .), U) ,
         VDS > .
 
   ceq parseDecl('op_:`~>_.[F[TL], T], PU, U, VDS)
-    = < PU ; U ; VDS >
+    = < PU , U , VDS >
     if F =/= 'token .
   ceq parseDecl('op_:`~>_`[_`].[F[TL], T, T'], PU, U, VDS)
-    = < PU ; U ; VDS >
+    = < PU , U , VDS >
     if F =/= 'token .
   ceq parseDecl('op_:_~>_.[F[TL], T, T'], PU, U, VDS)
-    = < PU ; U ; VDS >
+    = < PU , U , VDS >
     if F =/= 'token .
   ceq parseDecl('op_:_~>_`[_`].[F[TL], T, T', T''], PU, U, VDS)
-    = < PU ; U ; VDS >
+    = < PU , U , VDS >
     if F =/= 'token .
 
   eq parseDecl('ops_:`~>_.['neTokenList[T], T'], PU, U, VDS)
     = < addOps(
           unfoldOpDecl(downTypes(T), nil, kind(parseType(T')), none),
-          PU) ;
+          PU) ,
         addOps(
           unfoldOpDecl(downTypes(T), nil, kind(parseType(T')), none),
-          U) ;
+          U) ,
         VDS > .
   eq parseDecl('ops_:`~>_`[_`].['neTokenList[T], T', T''], PU, U, VDS)
     = < addOps(
           unfoldOpDecl(downTypes(T), nil, kind(parseType(T')),
             parsePreAttrs(T'', 0)),
-          PU) ;
+          PU) ,
         addOps(
           unfoldOpDecl(downTypes(T), nil, kind(parseType(T')),
-            parseAttrs(T'')), U) ;
+            parseAttrs(T'')), U) ,
         VDS > .
   eq parseDecl('ops_:_~>_.['neTokenList[T], T', T''], PU, U, VDS)
     = < addOps(
           unfoldOpDecl(downTypes(T), parseTypeList(T'),
             kind(parseType(T'')), none),
-          PU) ;
+          PU) ,
         addOps(
           unfoldOpDecl(downTypes(T), parseTypeList(T'),
             kind(parseType(T'')), none),
-          U) ;
+          U) ,
         VDS > .
   eq parseDecl('ops_:_~>_`[_`].['neTokenList[T], T', T'', T3], PU,
        U, VDS)
     = < addOps(
           unfoldOpDecl(downTypes(T), parseTypeList(T'), parseType(T''),
             parsePreAttrs(T3, size(parseTypeList(T')))),
-          PU) ;
+          PU) ,
         addOps(
           unfoldOpDecl(downTypes(T),
-            parseTypeList(T'), parseType(T''), parseAttrs(T3)), U) ;
+            parseTypeList(T'), parseType(T''), parseAttrs(T3)), U) ,
         VDS > .
 
   eq parseDecl('var_:_.['neTokenList[T], T'], PU, U, VDS)
     = parseDecl('vars_:_.['neTokenList[T], T'], PU, U, VDS) .
   eq parseDecl('vars_:_.['neTokenList[T], T'], PU, U, VDS)
-    = < PU ; U ; (VDS ; parseVars(downQidList(T), parseType(T'))) > .
+    = < PU , U , (VDS , parseVars(downQidList(T), parseType(T'))) > .
 
   eq parseDecl('mb_:_.['rbubble[T], 'rbubble[T']], PU, U, VDS)
-    = < addMbs((mb T : getSort(breakMb(T', VDS)) [getAttrSet(breakMb(T', VDS))] .), PU) ; U ; VDS > .
+    = < addMbs((mb T : getSort(breakMb(T', VDS)) [getAttrSet(breakMb(T', VDS))] .), PU) , U , VDS > .
   eq parseDecl('cmb_:_if_.['rbubble[T], T', 'rbubble[T'']], PU, U, VDS)
     = < addMbs(
           (cmb T : parseType(T')
              if term(pullStmtAttrOut(T'', VDS)) = 'true.Bool
-             [attrSet(pullStmtAttrOut(T'', VDS))] .), PU) ; U ; VDS > .
+             [attrSet(pullStmtAttrOut(T'', VDS))] .), PU) , U , VDS > .
 
   op breakMb : Term VariableSet -> [Tuple{Sort,AttrSet}] .
   op breakMbAux : TermList AttrSet VariableSet -> [Tuple{Sort,AttrSet}] .
@@ -17434,101 +17434,101 @@ fmod UNIT-DECL-PARSING is
   eq breakTermSort('_:_[T, T']) = {T, parseType(T')} .
 
   eq parseDecl('eq_=_.[T, T'], PU, U, VDS)
-    = < addEqs((eq T = T' [none] .), PU) ; U ; VDS > .
+    = < addEqs((eq T = T' [none] .), PU) , U , VDS > .
   eq parseDecl('ceq_=_if_.[T, T', T''], PU, U, VDS)
-    = < addEqs((ceq T = T' if T'' = 'true.Bool [none] .), PU) ; U ; VDS > .
+    = < addEqs((ceq T = T' if T'' = 'true.Bool [none] .), PU) , U , VDS > .
   eq parseDecl('cq_=_if_.[T, T', T''], PU, U, VDS)
-    = < addEqs((ceq T = T' if T'' = 'true.Bool [none] .), PU) ; U ; VDS > .
+    = < addEqs((ceq T = T' if T'' = 'true.Bool [none] .), PU) , U , VDS > .
 
   eq parseDecl('rl_=>_.[T, T'], PU, U, VDS)
-    = < addRls((rl T => T' [none] .), PU) ; U ; VDS > .
+    = < addRls((rl T => T' [none] .), PU) , U , VDS > .
   eq parseDecl('crl_=>_if_.[T, T', T''], PU, U, VDS)
-    = < addRls((crl T => T' if T'' = 'true.Bool [none] .), PU) ; U ; VDS > .
+    = < addRls((crl T => T' if T'' = 'true.Bool [none] .), PU) , U , VDS > .
 
   eq parseDecl('class_|`.[T], PU, U, VDS)
     = parseDecl('class_.[T], PU, U, VDS) .
   eq parseDecl('class_.[T], PU, U, VDS)
-    = < addClasses((class parseType(T) | none .), PU) ;
-        addClasses((class parseType(T) | none .), U) ; VDS > .
+    = < addClasses((class parseType(T) | none .), PU) ,
+        addClasses((class parseType(T) | none .), U) , VDS > .
   eq parseDecl('class_|_.[T, T'], PU, U, VDS)
-    = < addClasses((class parseType(T) | parseAttrDeclList(T') .), PU) ;
-        addClasses((class parseType(T) | parseAttrDeclList(T') .), U) ; VDS > .
+    = < addClasses((class parseType(T) | parseAttrDeclList(T') .), PU) ,
+        addClasses((class parseType(T) | parseAttrDeclList(T') .), U) , VDS > .
 
   eq parseDecl('subclass_.[T], PU, U, VDS)
-    = < addSubclasses(unfoldSubclassRel(parseSubsortRel(T)), PU) ;
-        addSubclasses(unfoldSubclassRel(parseSubsortRel(T)), U) ; VDS > .
+    = < addSubclasses(unfoldSubclassRel(parseSubsortRel(T)), PU) ,
+        addSubclasses(unfoldSubclassRel(parseSubsortRel(T)), U) , VDS > .
   eq parseDecl('subclasses_.[T], PU, U, VDS)
-    = < addSubclasses(unfoldSubclassRel(parseSubsortRel(T)), PU) ;
-        addSubclasses(unfoldSubclassRel(parseSubsortRel(T)), U) ; VDS > .
+    = < addSubclasses(unfoldSubclassRel(parseSubsortRel(T)), PU) ,
+        addSubclasses(unfoldSubclassRel(parseSubsortRel(T)), U) , VDS > .
 
   eq parseDecl('msg_:_->_.['token[T], T', T''], PU, U, VDS)
     = < addMsgs((msg downQid(T) : parseTypeList(T') -> parseType(T'') .), PU)
-        ;
+        ,
         addMsgs((msg downQid(T) : parseTypeList(T') -> parseType(T'') .), U)
-        ;
+        ,
         VDS > .
   eq parseDecl('msg_:`->_.['token[T], T'], PU, U, VDS)
-    = < addMsgs((msg downQid(T) : nil -> parseType(T') .), PU) ;
-        addMsgs((msg downQid(T) : nil -> parseType(T') .), U) ; VDS > .
+    = < addMsgs((msg downQid(T) : nil -> parseType(T') .), PU) ,
+        addMsgs((msg downQid(T) : nil -> parseType(T') .), U) , VDS > .
   eq parseDecl('msgs_:_->_.['neTokenList[T], T', T''], PU, U, VDS)
-    = < addMsgs(unfoldMultipleMsgDecl(downQidList(T), parseTypeList(T'), parseType(T'')), PU) ;
-        addMsgs(unfoldMultipleMsgDecl(downQidList(T), parseTypeList(T'), parseType(T'')), U) ;
+    = < addMsgs(unfoldMultipleMsgDecl(downQidList(T), parseTypeList(T'), parseType(T'')), PU) ,
+        addMsgs(unfoldMultipleMsgDecl(downQidList(T), parseTypeList(T'), parseType(T'')), U) ,
         VDS > .
   eq parseDecl('msgs_:`->_.['neTokenList[T], T'], PU, U, VDS)
-    = < addMsgs(unfoldMultipleMsgDecl(downQidList(T), nil, parseType(T')), PU) ;
-        addMsgs(unfoldMultipleMsgDecl(downQidList(T), nil, parseType(T')), U) ; VDS > .
+    = < addMsgs(unfoldMultipleMsgDecl(downQidList(T), nil, parseType(T')), PU) ,
+        addMsgs(unfoldMultipleMsgDecl(downQidList(T), nil, parseType(T')), U) , VDS > .
 
   eq parseDecl('strat_@_.['token[T], T'], PU, U, VDS)
-    = < addStratDcls(strat downQid(T) : nil @ parseType(T') [none] ., PU) ;
-        U ; ---- addOps(op downQid(T) : nil -> '@CallStrategy@ [none] ., U) ;
+    = < addStratDcls(strat downQid(T) : nil @ parseType(T') [none] ., PU) ,
+        U , ---- addOps(op downQid(T) : nil -> '@CallStrategy@ [none] ., U) ,
         VDS > .
   eq parseDecl('strat_:`@_`[_`].['token[T], T', T''], PU, U, VDS)
-    = < addStratDcls(strat downQid(T) : nil @ parseType(T') [parseAttrs(T'')] ., PU) ;
-        U ; ---- addOps(op downQid(T) : nil -> '@CallStrategy@ [parsePreAttrs(T'', 0)] ., U) ;
+    = < addStratDcls(strat downQid(T) : nil @ parseType(T') [parseAttrs(T'')] ., PU) ,
+        U , ---- addOps(op downQid(T) : nil -> '@CallStrategy@ [parsePreAttrs(T'', 0)] ., U) ,
         VDS > .
   eq parseDecl('strat_:_@_.['token[T], T', T''], PU, U, VDS)
-    = < addStratDcls(strat downQid(T) : parseTypeList(T') @ parseType(T'') [none] ., PU) ;
-        U ; ---- addOps(op downQid(T) : parseTypeList(T') -> '@CallStrategy@ [none] ., U) ;
+    = < addStratDcls(strat downQid(T) : parseTypeList(T') @ parseType(T'') [none] ., PU) ,
+        U , ---- addOps(op downQid(T) : parseTypeList(T') -> '@CallStrategy@ [none] ., U) ,
         VDS > .
   eq parseDecl('strat_:_@_`[_`].['token[T], T', T'', T3], PU, U, VDS)
-    = < addStratDcls(strat downQid(T) : parseTypeList(T') @ parseType(T'') [parseAttrs(T3)] ., PU) ;
-        U ; ---- addOps(op downQid(T) : parseTypeList(T') -> '@CallStrategy@ [parsePreAttrs(T3, size(parseTypeList(T')))] ., U) ;
+    = < addStratDcls(strat downQid(T) : parseTypeList(T') @ parseType(T'') [parseAttrs(T3)] ., PU) ,
+        U , ---- addOps(op downQid(T) : parseTypeList(T') -> '@CallStrategy@ [parsePreAttrs(T3, size(parseTypeList(T')))] ., U) ,
         VDS > .
   ceq parseDecl('strat_:`@_.[F[TL], T], PU, U, VDS)
-    = < PU ; U ; VDS >
+    = < PU , U , VDS >
     if F =/= 'token .
   ceq parseDecl('strat_:`@_`[_`].[F[TL], T, T'], PU, U, VDS)
-    = < PU ; U ; VDS >
+    = < PU , U , VDS >
     if F =/= 'token .
   ceq parseDecl('strat_:_@_.[F[TL], T, T'], PU, U, VDS)
-    = < PU ; U ; VDS >
+    = < PU , U , VDS >
     if F =/= 'token .
   ceq parseDecl('op_:_@_`[_`].[F[TL], T, T', T''], PU, U, VDS)
-    = < PU ; U ; VDS >
+    = < PU , U , VDS >
     if F =/= 'token .
 
   eq parseDecl('strats_@_.['neTokenList[T], T'], PU, U, VDS)
-    = < addStratDcls(unfoldStratDecl(downTypes(T), nil, parseType(T'), none), PU) ;
-        U ; ---- addOps(unfoldOpDecl(downTypes(T), nil, '@CallStrategy@, none), U) ;
+    = < addStratDcls(unfoldStratDecl(downTypes(T), nil, parseType(T'), none), PU) ,
+        U , ---- addOps(unfoldOpDecl(downTypes(T), nil, '@CallStrategy@, none), U) ,
         VDS > .
   eq parseDecl('strats_@_`[_`].['neTokenList[T], T', T''], PU, U, VDS)
-    = < addStratDcls(unfoldStratDecl(downTypes(T), nil, parseType(T'), parseAttrs(T'')), PU) ;
-        U ; ---- addOps(unfoldOpDecl(downTypes(T), nil, '@CallStrategy@, parsePreAttrs(T'', 0)), U) ;
+    = < addStratDcls(unfoldStratDecl(downTypes(T), nil, parseType(T'), parseAttrs(T'')), PU) ,
+        U , ---- addOps(unfoldOpDecl(downTypes(T), nil, '@CallStrategy@, parsePreAttrs(T'', 0)), U) ,
         VDS > .
   eq parseDecl('strats_:_@_.['neTokenList[T], T', T''], PU, U, VDS)
-    = < addStratDcls(unfoldStratDecl(downTypes(T), parseTypeList(T'), parseType(T''), none), PU) ;
-        U ; ---- addOps(unfoldOpDecl(downTypes(T), parseTypeList(T'), '@CallStrategy@, none), U) ;
+    = < addStratDcls(unfoldStratDecl(downTypes(T), parseTypeList(T'), parseType(T''), none), PU) ,
+        U , ---- addOps(unfoldOpDecl(downTypes(T), parseTypeList(T'), '@CallStrategy@, none), U) ,
         VDS > .
   eq parseDecl('strats_:_@_`[_`].['neTokenList[T], T', T'', T3], PU, U, VDS)
-    = < addStratDcls(unfoldStratDecl(downTypes(T), parseTypeList(T'), parseType(T''), parseAttrs(T3)), PU) ;
-        U ; ---- addOps(
-            ----   unfoldOpDecl(downTypes(T), parseTypeList(T'), '@CallStrategy@, parsePreAttrs(T3, size(parseTypeList(T')))), U) ;
+    = < addStratDcls(unfoldStratDecl(downTypes(T), parseTypeList(T'), parseType(T''), parseAttrs(T3)), PU) ,
+        U , ---- addOps(
+            ----   unfoldOpDecl(downTypes(T), parseTypeList(T'), '@CallStrategy@, parsePreAttrs(T3, size(parseTypeList(T')))), U) ,
         VDS > .
 
   eq parseDecl('sd_:=_.[T, T'], PU, U, VDS)
-    = < addStratDefs(sd T := T' [none] ., PU) ; U ; VDS > .
+    = < addStratDefs(sd T := T' [none] ., PU) , U , VDS > .
   eq parseDecl('csd_:=_if_.[T, T', T''], PU, U, VDS)
-    = < addStratDefs(csd T := T' if T'' = 'true.Bool [none] ., PU) ; U ; VDS > .
+    = < addStratDefs(csd T := T' if T'' = 'true.Bool [none] ., PU) , U , VDS > .
 endfm
 
 *******************************************************************************
@@ -17888,7 +17888,7 @@ fmod DECL-META-PRETTY-PRINT is
       fi .
   eq eMetaPrettyPrint(K) = '`[ eMetaPrettyPrint(getSort(K)) '`] .
 
-  eq eMetaPrettyPrint((S ; SS))
+  eq eMetaPrettyPrint((S , SS))
     = (eMetaPrettyPrint(S) eMetaPrettyPrint(SS))
     [owise] .
   eq eMetaPrettyPrint((none).SortSet) = nil .
@@ -17919,7 +17919,7 @@ fmod DECL-META-PRETTY-PRINT is
     [owise] .
   eq eMetaPrettyPrint(M, (none).OpDeclSet)  = nil .
 
-  eq eMetaPrettyPrintVars(V ; VDS)
+  eq eMetaPrettyPrintVars(V , VDS)
     = ('\s '\s '\b 'var '\o getName(V) '\b ': '\o eMetaPrettyPrint(getType(V)) '\b '. '\o '\n
        eMetaPrettyPrintVars(VDS)) .
   eq eMetaPrettyPrintVars((none).VariableSet)  = nil .
@@ -18787,7 +18787,7 @@ fmod UNIT-PROCESSING is
       then evalModule(U, VDS, DB)
       else procModule2(DT, DB)
       fi
-    if < DT ; VDS ; U > := getTermModule(QI, DB) .
+    if < DT , VDS , U > := getTermModule(QI, DB) .
   eq procModule(T, DB) = procModule2(T, T, DB) .
 
   *** procModule2 just calls procModule3 with the name and the declarations of
@@ -19161,14 +19161,14 @@ fmod FM-COMMAND-PROCESSING is
   pr AX-COHERENCE-COMPLETION .
   pr UNIT-PROCESSING .
   pr UNIT-META-PRETTY-PRINT .
-  inc (2TUPLE * (op `(_`,_`) to <<_;_>>,
+  inc (2TUPLE * (op `(_`,_`) to <<_,_>>,
                  op p1_ to getDatabase,
                  op p2_ to getQidList)) {Database, QidList} .
   pr META-FULL-MAUDE-SIGN .
   pr FM-META-NARROWING-SEARCH * (op addOps to addOpsSE, op addEqs to addEqsSE, op addSorts to addSortsSE) .
 
-  eq getDatabase(<< DB ; qidError(QIL) >>) = warning(DB, QIL) .
-  eq getQidList(<< DB ; qidError(QIL) >>) = QIL .
+  eq getDatabase(<< DB , qidError(QIL) >>) = warning(DB, QIL) .
+  eq getQidList(<< DB , qidError(QIL) >>) = QIL .
 
   op {_,_} : Term Type ~> ResultPair [ctor] .
   op {_,_,_} : Term Type Substitution ~> ResultTriple [ctor] .
@@ -19344,9 +19344,9 @@ fmod FM-COMMAND-PROCESSING is
 
   ceq procLoad(T, ME, M, VDS, DB)
     = if downTerm(T:[Term], emptyFModule) =/= emptyFModule
-      then << evalModule(downModule(T:[Term]), none, DB) ;
+      then << evalModule(downModule(T:[Term]), none, DB) ,
               'Introduced 'module header2Qid(getHeader(downModule(T:[Term]))) '\n >>
-      else << DB ; '\r 'Error: '\o 'Incorrect 'metamodule. '\n >>
+      else << DB , '\r 'Error: '\o 'Incorrect 'metamodule. '\n >>
       fi
     if T:[Term] := getTerm(metaReduce(M, solveBubbles(T, M, true, VDS, DB))) .
 
@@ -19470,11 +19470,11 @@ fmod FM-COMMAND-PROCESSING is
 
   op eMetaPrettyPrint : Module Substitution -> QidList .
 
-  eq eMetaPrettyPrint(M, V <- T ; Sb:Substitution)
+  eq eMetaPrettyPrint(M, V <- T , Sb:Substitution)
     = V '--> '\s eMetaPrettyPrint(M, T)
       if eMetaPrettyPrint(M, Sb:Substitution) == nil
       then nil
-      else '; '\n eMetaPrettyPrint(M, Sb:Substitution)
+      else ', '\n eMetaPrettyPrint(M, Sb:Substitution)
       fi .
   eq eMetaPrettyPrint(M, (none).Substitution) = nil .
 
@@ -19488,22 +19488,22 @@ fmod FM-COMMAND-PROCESSING is
 
   ceq procDownCommand('down_:_[T, T'], ME, DB)
     = if T'':[Term] :: Term
-      then << DB'' ;
+      then << DB'' ,
               ('\b 'result '\o
                '\s eMetaPrettyPrint(leastSort(M, T'':[Term]))
                '\s '\b ': '\o '\n '\s '\s
                eMetaPrettyPrint(M, T'':[Term]) '\n) >>
-      else << DB ; ('\r 'Error: '\o 'Incorrect 'input. '\n) >>
+      else << DB , ('\r 'Error: '\o 'Incorrect 'input. '\n) >>
       fi
     if DB' := database(evalModExp(ME, DB))
-    /\ < DB'' ; ME' > := evalModExp(parseModExp(T), DB')
+    /\ < DB'' , ME' > := evalModExp(parseModExp(T), DB')
     /\ M := getFlatModule(ME', DB'')
     /\ T'':[Term] := procCommandUp(ME, getFlatModule(ME, DB''), T', getVars(ME, DB''), DB'').
 
   eq procCommand(T, ME, DB)
    = if compiledModule(ME, DB)
-     then << DB ; procCommand(T, ME, getFlatModule(ME, DB), getVars(ME, DB), DB) >>
-     else << database(evalModExp(ME, DB)) ;
+     then << DB , procCommand(T, ME, getFlatModule(ME, DB), getVars(ME, DB), DB) >>
+     else << database(evalModExp(ME, DB)) ,
              procCommand(T, modExp(evalModExp(ME, DB)),
                getFlatModule(modExp(evalModExp(ME, DB)), database(evalModExp(ME, DB))),
                getVars(modExp(evalModExp(ME, DB)), database(evalModExp(ME, DB))),
@@ -19730,7 +19730,7 @@ fmod FM-COMMAND-PROCESSING is
       then solveBubblesRed3(T', getFlatModule(ME, DB'), ME, getVars(ME, DB'), DB')
       else tupleTMBODerror('\r 'Error: '\o 'It 'is 'not 'possible 'to 'compile eMetaPrettyPrint(ME) '. '\n)
       fi
-    if < DB' ; ME > := evalModExp(parseModExp(T), DB) .
+    if < DB' , ME > := evalModExp(parseModExp(T), DB) .
   eq solveBubblesRed2('in_:_.[T, T'], DB)
     = tupleTMBODerror('\r 'Error: '\o 'It 'isn't 'possible 'to 'compile eMetaPrettyPrint(parseModExp(T)) '. '\n)
     [owise] .
@@ -19810,9 +19810,9 @@ fmod FM-COMMAND-PROCESSING is
 
   op GRAMMAR-REW : -> FModule [memo] .
   eq GRAMMAR-REW
-    = addSorts('@RewNuPart@ ; '@Token@ ; '@SortToken@ ; '@ViewToken@ ;
-               '@NeTokenList@ ; '@Bubble@ ; '@UBubble@ ; '@StBubble@ ;
-               '@EqLBubble@ ; '@RlLBubble@ ; '@SdLBubble@ ; '@RCBubble@ ; '@RBubble@,
+    = addSorts('@RewNuPart@ , '@Token@ , '@SortToken@ , '@ViewToken@ ,
+               '@NeTokenList@ , '@Bubble@ , '@UBubble@ , '@StBubble@ ,
+               '@EqLBubble@ , '@RlLBubble@ , '@SdLBubble@ , '@RCBubble@ , '@RBubble@,
         addOps((op '`[_`]_. : '@Token@ '@UBubble@ -> '@RewNuPart@ [none] .),
           BUBBLES)) .
 
@@ -19873,9 +19873,9 @@ fmod FM-COMMAND-PROCESSING is
 
   op GRAMMAR-SREW : -> FModule [memo] .
   eq GRAMMAR-SREW
-    = addSorts('@SrewNuPart@ ; '@Token@ ; '@SortToken@ ; '@ViewToken@ ;
-               '@NeTokenList@ ; '@Bubble@ ; '@UBubble@ ; '@StBubble@ ;
-               '@EqLBubble@ ; '@RlLBubble@ ; '@SdLBubble@ ; '@RCBubble@ ; '@RBubble@,
+    = addSorts('@SrewNuPart@ , '@Token@ , '@SortToken@ , '@ViewToken@ ,
+               '@NeTokenList@ , '@Bubble@ , '@UBubble@ , '@StBubble@ ,
+               '@EqLBubble@ , '@RlLBubble@ , '@SdLBubble@ , '@RCBubble@ , '@RBubble@,
         addOps((op '_using_. : '@StBubble@ '@UBubble@ -> '@SrewNuPart@ [none] .),
           BUBBLES)) .
 
@@ -19989,9 +19989,9 @@ fmod FM-COMMAND-PROCESSING is
 
   op GRAMMAR-FREW : -> FModule [memo] .
   eq GRAMMAR-FREW
-    = addSorts('@FrewNuPart@ ; '@Token@ ; '@SortToken@ ; '@ViewToken@ ;
-               '@NeTokenList@ ; '@Bubble@ ; '@UBubble@ ; '@StBubble@ ;
-               '@EqLBubble@ ; '@RlLBubble@ ; '@SdLBubble@ ; '@RCBubble@ ; '@RBubble@,
+    = addSorts('@FrewNuPart@ , '@Token@ , '@SortToken@ , '@ViewToken@ ,
+               '@NeTokenList@ , '@Bubble@ , '@UBubble@ , '@StBubble@ ,
+               '@EqLBubble@ , '@RlLBubble@ , '@SdLBubble@ , '@RCBubble@ , '@RBubble@,
         addOps(
           (op '`[_`]_. : '@Token@ '@UBubble@ -> '@FrewNuPart@ [none] .
            op '`[_`,_`]_. : '@Token@ '@Token@ '@UBubble@ -> '@FrewNuPart@ [none] .),
@@ -20006,9 +20006,9 @@ fmod FM-COMMAND-PROCESSING is
 
   op GRAMMAR-SEARCH : -> FModule [memo] .
   eq GRAMMAR-SEARCH
-    = addSorts('@SearchNuPart@ ; '@Token@ ; '@SortToken@ ; '@ViewToken@ ;
-               '@NeTokenList@ ; '@Bubble@ ; '@UBubble@ ; '@StBubble@ ;
-               '@EqLBubble@ ; '@RlLBubble@ ; '@SdLBubble@ ; '@RCBubble@ ; '@RBubble@,
+    = addSorts('@SearchNuPart@ , '@Token@ , '@SortToken@ , '@ViewToken@ ,
+               '@NeTokenList@ , '@Bubble@ , '@UBubble@ , '@StBubble@ ,
+               '@EqLBubble@ , '@RlLBubble@ , '@SdLBubble@ , '@RCBubble@ , '@RBubble@,
         addOps((op '`[_`,_`]_. : '@Token@ '@Token@ '@UBubble@ -> '@SearchNuPart@ [none] .)
                (op '`[`,_`]_. : '@Token@ '@UBubble@ -> '@SearchNuPart@ [none] .),
           BUBBLES)) .
@@ -20660,11 +20660,11 @@ fmod FM-COMMAND-PROCESSING is
 -------------------
 
   sort Tuple{TermList, Nat} .
-  op <_;_> : Term Nat -> Tuple{TermList, Nat} .
+  op <_,_> : Term Nat -> Tuple{TermList, Nat} .
   op term : Tuple{TermList, Nat} -> TermList .
   op index : Tuple{TermList, Nat} -> Nat .
-  eq term(< TL:[TermList] ; I:[Nat] >) = TL:[TermList] .
-  eq index(< TL:[TermList] ; I:[Nat] >) = I:[Nat] .
+  eq term(< TL:[TermList] , I:[Nat] >) = TL:[TermList] .
+  eq index(< TL:[TermList] , I:[Nat] >) = I:[Nat] .
 
   op prepSearchPattern : Term -> Term .
   op prepSearchPattern : TermList Nat -> Tuple{TermList, Nat} .
@@ -20674,22 +20674,22 @@ fmod FM-COMMAND-PROCESSING is
   eq prepSearchPattern('<_:_|_>[OT, Ct, T], I)
     = < '<_:_|_>[OT, qid("V#" + string(I, 10) + ":" + string(getName(Ct))),
            '_`,_[term(prepSearchPattern(T, s s I)),
-                 qid("V#" + string(s I, 10) + ":AttributeSet")]] ;
+                 qid("V#" + string(s I, 10) + ":AttributeSet")]] ,
         index(prepSearchPattern(T, s s I)) > .
   eq prepSearchPattern('<_:_|`>[OT, Ct], I)
     = < '<_:_|_>[OT, qid("V#" + string(I, 10) + ":" + string(getName(Ct))),
-           qid("V#" + string(s I, 10) + ".AttributeSet")] ;
+           qid("V#" + string(s I, 10) + ".AttributeSet")] ,
         s I > .
   eq prepSearchPattern(F[TL], I)
-    = < F[term(prepSearchPattern(TL, I))] ; index(prepSearchPattern(TL, I)) >
+    = < F[term(prepSearchPattern(TL, I))] , index(prepSearchPattern(TL, I)) >
     [owise] .
 
-  eq prepSearchPattern(F, I) = < F ; I > .
-  ----eq prepSearchPattern(Ct, I) = < Ct ; I > .
+  eq prepSearchPattern(F, I) = < F , I > .
+  ----eq prepSearchPattern(Ct, I) = < Ct , I > .
 
   ceq prepSearchPattern((T, TL), I)
     = < (term(prepSearchPattern(T, I)),
-         term(prepSearchPattern(TL, index(prepSearchPattern(T, I))))) ;
+         term(prepSearchPattern(TL, index(prepSearchPattern(T, I))))) ,
         index(prepSearchPattern(TL, index(prepSearchPattern(T, I)))) >
     if TL =/= empty .
 
@@ -20997,7 +20997,7 @@ fmod FM-COMMAND-PROCESSING is
       then solveBubblesRed3(T', addInfoUnify(getFlatModule(ME, DB')), ME, getVars(ME, DB'), DB')
       else tupleTMBODerror('\r 'Error: '\o 'The 'module eMetaPrettyPrint(ME) 'is 'not 'in 'the 'database '. '\n)
       fi
-    if < DB' ; ME > := evalModExp(parseModExp(T), DB) .
+    if < DB' , ME > := evalModExp(parseModExp(T), DB) .
   eq solveBubblesRedUnify2('in_:_.[T, T'], DB)
     = tupleTMBODerror('\r 'Error: '\o 'It 'isn't 'possible 'to 'compile eMetaPrettyPrint(parseModExp(T)) '. '\n)
     [owise] .
@@ -21282,7 +21282,7 @@ fmod CHECK-INPUT-MODULE is
 
   eq c-nonlinear(T, M) = not linear(T) and-then c-nonlinearAux(vars(T), M) .
 
-  eq c-nonlinearAux(V ; VS, M) = c-nonlinearAux(getType(V), M) or-else c-nonlinearAux(VS, M) .
+  eq c-nonlinearAux(V , VS, M) = c-nonlinearAux(getType(V), M) or-else c-nonlinearAux(VS, M) .
   eq c-nonlinearAux(none, M) = false .
 
   eq c-nonlinearAux(Tp, M) = c-nonlinearAux(Tp, Tp, getOps(M), getOps(M), M) .
@@ -21302,7 +21302,7 @@ fmod CHECK-INPUT-MODULE is
   eq c-nonlinearAux2(Tp TpL, TpS, ODS, M)
     = if Tp in TpS
       then false
-      else c-nonlinearAux(Tp, Tp ; TpS, ODS, ODS, M)
+      else c-nonlinearAux(Tp, Tp , TpS, ODS, ODS, M)
       fi
       or-else c-nonlinearAux2(TpL, TpS, ODS, M) .
   eq c-nonlinearAux2(nil, TpS, ODS, M) = false .
@@ -21333,14 +21333,14 @@ fmod MODULE-VARIANTS is
   inc FM-META-NARROWING-SEARCH * (op addOps to addOpsSE, op addEqs to addEqsSE, op addSorts to addSortsSE) .
   inc FM-UNIT .
   pr 2TUPLE{SubstitutionSet, Nat}
-      * (op `(_`,_`) : SubstitutionSet Nat -> Tuple{SubstitutionSet, Nat} to <_;_>,
+      * (op `(_`,_`) : SubstitutionSet Nat -> Tuple{SubstitutionSet, Nat} to <_,_>,
          op p1_ : Tuple{SubstitutionSet, Nat} -> SubstitutionSet to getSubst,
          op p2_ : Tuple{SubstitutionSet, Nat} -> Nat to getIndex) .
   pr CONVERSION .
   pr FM-EXT-TERM .
   pr FM-EXT-DECL .
   pr 2TUPLE{Module,Module}
-      * (op `(_`,_`) : Module Module -> Tuple{Module, Module} to <_;_>) .
+      * (op `(_`,_`) : Module Module -> Tuple{Module, Module} to <_,_>) .
 
   vars V W : Variable .
   var  C : Constant .
@@ -21437,7 +21437,7 @@ fmod MODULE-VARIANTS is
 
   eq removeIds(M, Which, VP)
     ---- the narrowing based getVariant function requires a module with id attributes turned into eqs
-    ---- and sort Tuple and tuple operators in; the ad-hoc getVariant (FroCos th 2) only needs the
+    ---- and sort Tuple and tuple operators in, the ad-hoc getVariant (FroCos th 2) only needs the
     ---- tuple declarations.
     = setRls(
         addEqs(
@@ -21652,15 +21652,15 @@ fmod MODULE-VARIANTS is
     = {getTerm(metaNormalize(M, T << Subst)), Subst, 0, none, false} | getVariants(M, T, SubstS) .
   eq getVariants(M, T, empty) = {T, none, 0, none, false} .
 
-  eq getSubstitutions(M, V ; VS, ODS, N)
+  eq getSubstitutions(M, V , VS, ODS, N)
     = < combineSubsts(
           getSubst(getSubstitutions1(M, V, ODS, N)),
-          getSubst(getSubstitutions(M, VS, ODS, getIndex(getSubstitutions1(M, V, ODS, N))))) ;
+          getSubst(getSubstitutions(M, VS, ODS, getIndex(getSubstitutions1(M, V, ODS, N))))) ,
         getIndex(getSubstitutions(M, VS, ODS, getIndex(getSubstitutions1(M, V, ODS, N)))) > .
-  eq getSubstitutions(M, none, ODS, N) = < empty ; N > .
+  eq getSubstitutions(M, none, ODS, N) = < empty , N > .
 
   eq combineSubsts(Subst | SubstS, Subst' | SubstS')
-    = (Subst ; Subst') | combineSubsts(SubstS, Subst' | SubstS') | combineSubsts(Subst, SubstS') .
+    = (Subst , Subst') | combineSubsts(SubstS, Subst' | SubstS') | combineSubsts(Subst, SubstS') .
   eq combineSubsts(SubstS, empty) = SubstS .
   eq combineSubsts(empty, SubstS) = SubstS .
 
@@ -21672,7 +21672,7 @@ fmod MODULE-VARIANTS is
            | (V <- (F[T, qid("X@" + string(s N, 10) + ":" + string(Tp))]))
         else empty
         fi |
-        getSubst(getSubstitutions1(M, V, ODS, s s N)) ;
+        getSubst(getSubstitutions1(M, V, ODS, s s N)) ,
         getIndex(getSubstitutions1(M, V, ODS, s s N)) >
     if sortLeq(M, leastSort(M, T), getType(V)) . ----  ls[e] <= s ls[f(y,e)] <= s
   ceq getSubstitutions1(M, V, op F : TpL -> Tp [right-id(T) AtS] . ODS, N)
@@ -21682,7 +21682,7 @@ fmod MODULE-VARIANTS is
         then (V <- F[T, qid("X@" + string(N, 10) + ":" + string(Tp))])
         else empty
         fi |
-        getSubst(getSubstitutions1(M, V, ODS, s s N)) ;
+        getSubst(getSubstitutions1(M, V, ODS, s s N)) ,
         getIndex(getSubstitutions1(M, V, ODS, s s N)) >
     if sortLeq(M, leastSort(M, T), getType(V)) . ----  ls[e] <= s ls[f(y,e)] <= s
   ceq getSubstitutions1(M, V, op F : TpL -> Tp [left-id(T) AtS] . ODS, N)
@@ -21692,10 +21692,10 @@ fmod MODULE-VARIANTS is
         then (V <- F[qid("X@" + string(s N, 10) + ":" + string(Tp)), T])
         else empty
         fi |
-        getSubst(getSubstitutions1(M, V, ODS, s s N)) ;
+        getSubst(getSubstitutions1(M, V, ODS, s s N)) ,
         getIndex(getSubstitutions1(M, V, ODS, s s N)) >
     if sortLeq(M, leastSort(M, T), getType(V)) . ----  ls[e] <= s ls[f(y,e)] <= s
-  eq getSubstitutions1(M, V, ODS, N) = < empty ; N > [owise] .
+  eq getSubstitutions1(M, V, ODS, N) = < empty , N > [owise] .
 
   ------------------------------------------------------------------------------
   ---- Given a module with axioms B where for each f we have B_f \in {A_f,C_f},
@@ -21717,9 +21717,9 @@ fmod MODULE-VARIANTS is
   ---- removes those assoc attributes that are not with the comm one
   op $removeLonelyAssocs : Module OpDeclSet OpDeclSet EquationSet ~> Module .
   ---- arg. 1 (Module): the module with assoc attribute removed
-  ---- arg. 2 (OpDeclSet): initially all op. decls.; they are evaluated one by one,
+  ---- arg. 2 (OpDeclSet): initially all op. decls., they are evaluated one by one,
   ----   adding the corresponding equation to the 4th arg. in the recursive call
-  ---- arg. 3 (OpDeclSet): initially empty; evaluated op. decls. are added to this set
+  ---- arg. 3 (OpDeclSet): initially empty, evaluated op. decls. are added to this set
   ---- arg. 4 (EquationSet): assoc. eq. to be added to the module
   op $checkAEq : Module Equation -> Bool .
   ---- checks whether the assoc. eq. given as argument unifies with any lhs in the module
@@ -22089,14 +22089,14 @@ mod FM-DATABASE-HANDLING is
     => < O : X@DatabaseClass | db : DB', input : nilTermList,
           output : eMetaPrettyPrint(getFlatModule(ME', DB'), getTopModule(ME', DB')),
           default : ME', Atts >
-    if < DB' ; ME' > := evalModExp(ME, DB) .
+    if < DB' , ME' > := evalModExp(ME, DB) .
   crl [show-module] :
     < O : X@DatabaseClass | db : DB, input : ('show`module_.[T]), output : nil, default : ME,   Atts >
     => < O : X@DatabaseClass |
           db : DB', input : nilTermList,
           output : eMetaPrettyPrint(getFlatModule(ME'', DB'), getTopModule(ME'', DB')),
           default : ME, Atts >
-    if < DB' ; ME'' > := evalModExp(parseModExp(T), DB) .
+    if < DB' , ME'' > := evalModExp(parseModExp(T), DB) .
   crl [show-module] :
     < O : X@DatabaseClass | db : DB, input : ('show`module_.[T]), output : nil, Atts >
     => < O : X@DatabaseClass | db : DB, input : nil,
@@ -22109,14 +22109,14 @@ mod FM-DATABASE-HANDLING is
     => < O : X@DatabaseClass | db : DB', input : nilTermList,
           output : eMetaPrettyPrint(getFlatModule(ME', DB'), getFlatModule(ME', DB')),
           default : ME', Atts >
-    if < DB' ; ME' > := evalModExp(ME, DB) .
+    if < DB' , ME' > := evalModExp(ME, DB) .
   crl [show-all] :
     < O : X@DatabaseClass | db : DB, input : ('show`all_.[T]), output : nil, default : ME, Atts >
     => < O : X@DatabaseClass | db : DB', input : nilTermList,
           output : eMetaPrettyPrint(getFlatModule(ME', DB'), getFlatModule(ME', DB')),
           default : ME, Atts >
     if ME'' := parseModExp(T)
-    /\ < DB' ; ME' > := evalModExp(ME'', DB) .
+    /\ < DB' , ME' > := evalModExp(ME'', DB) .
 
   crl [show-vars] :
     < O : X@DatabaseClass | db : DB, input : ('show`vars`..@Command@),
@@ -22332,14 +22332,14 @@ mod FM-DATABASE-HANDLING is
     => < O : X@DatabaseClass | db : DB', input : nilTermList,
           output : (eMetaPrettyPrint(getFlatModule(ME', DB'), removeIds(getFlatModule(ME', DB'), all))),
           default : ME', Atts >
-    if < DB' ; ME' > := evalModExp(ME, DB) .
+    if < DB' , ME' > := evalModExp(ME, DB) .
   crl [remove-id-attributes] :
     < O : X@DatabaseClass | db : DB, input : ('remove`identity`attributes_.[T]), output : nil, default : ME,   Atts >
     => < O : X@DatabaseClass |
           db : DB', input : nilTermList,
           output : (eMetaPrettyPrint(getFlatModule(ME'', DB'), removeIds(axCohComplete(getFlatModule(ME'', DB')), all))),
           default : ME, Atts >
-    if < DB' ; ME'' > := evalModExp(parseModExp(T), DB) .
+    if < DB' , ME'' > := evalModExp(parseModExp(T), DB) .
 
   eq 'rm`nh`ids`..@Command@ = 'remove`non-handled`identity`attributes`..@Command@ .
   eq 'rm`nh`ids_.[T] = 'remove`non-handled`identity`attributes_.[T] .
@@ -22351,14 +22351,14 @@ mod FM-DATABASE-HANDLING is
     => < O : X@DatabaseClass | db : DB', input : nilTermList,
           output : (eMetaPrettyPrint(getFlatModule(ME', DB'), removeIds(getFlatModule(ME', DB'), non-handled))),
           default : ME', Atts >
-    if < DB' ; ME' > := evalModExp(ME, DB) .
+    if < DB' , ME' > := evalModExp(ME, DB) .
   crl [remove-id-attributes] :
     < O : X@DatabaseClass | db : DB, input : ('remove`non-handled`identity`attributes_.[T]), output : nil, default : ME,   Atts >
     => < O : X@DatabaseClass |
           db : DB', input : nilTermList,
           output : (eMetaPrettyPrint(getFlatModule(ME'', DB'), removeIds(getFlatModule(ME'', DB'), non-handled))),
           default : ME, Atts >
-    if < DB' ; ME'' > := evalModExp(parseModExp(T), DB) .
+    if < DB' , ME'' > := evalModExp(parseModExp(T), DB) .
 
   crl [remove-assoc-attributes] :
     < O : X@DatabaseClass | db : DB,
@@ -22367,14 +22367,14 @@ mod FM-DATABASE-HANDLING is
     => < O : X@DatabaseClass | db : DB', input : nilTermList,
           output : (eMetaPrettyPrint(getFlatModule(ME', DB'), removeLonelyAssocs(getFlatModule(ME', DB')))),
           default : ME', Atts >
-    if < DB' ; ME' > := evalModExp(ME, DB) .
+    if < DB' , ME' > := evalModExp(ME, DB) .
   crl [remove-assoc-attributes] :
     < O : X@DatabaseClass | db : DB, input : ('remove`assoc`attributes_.[T]), output : nil, default : ME,   Atts >
     => < O : X@DatabaseClass |
           db : DB', input : nilTermList,
           output : (eMetaPrettyPrint(getFlatModule(ME'', DB'), removeLonelyAssocs(getFlatModule(ME'', DB')))),
           default : ME, Atts >
-    if < DB' ; ME'' > := evalModExp(parseModExp(T), DB) .
+    if < DB' , ME'' > := evalModExp(parseModExp(T), DB) .
 
   crl [acu-coherence-completion] :
     < O : X@DatabaseClass | db : DB,
@@ -22383,14 +22383,14 @@ mod FM-DATABASE-HANDLING is
     => < O : X@DatabaseClass | db : DB', input : nilTermList,
           output : (eMetaPrettyPrint(getFlatModule(ME', DB'), axCohComplete(getFlatModule(ME', DB')))),
           default : ME', Atts >
-    if < DB' ; ME' > := evalModExp(ME, DB) .
+    if < DB' , ME' > := evalModExp(ME, DB) .
   crl [acu-coherence-completion] :
     < O : X@DatabaseClass | db : DB, input : ('ax`coherence`completion_.[T]), output : nil, default : ME,   Atts >
     => < O : X@DatabaseClass |
           db : DB', input : nilTermList,
           output : (eMetaPrettyPrint(getFlatModule(ME'', DB'), axCohComplete(getFlatModule(ME'', DB')))),
           default : ME, Atts >
-    if < DB' ; ME'' > := evalModExp(parseModExp(T), DB) .
+    if < DB' , ME'' > := evalModExp(parseModExp(T), DB) .
 
   rl [error] :
      < O : X@DatabaseClass |
@@ -22502,7 +22502,7 @@ mod FULL-MAUDE is
 *** syntactically valid\footnote{Of course, the input may be syntactically
 *** valid, but not semantically valid, since further processing---for example,
 *** of bubbles---may reveal a semantic inconsistency.}, the parsed input is
-*** placed in the \texttt{input} attribute of the database object; otherwise,
+*** placed in the \texttt{input} attribute of the database object, otherwise,
 *** an error message is placed in the output channel of the loop.
 
   rl [in] :

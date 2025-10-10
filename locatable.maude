@@ -1,5 +1,5 @@
-load coordinate 
-load oidSet
+load coordinate .
+load oidSet .
 
 omod LOCATABLE is
     protecting COORDINATE .
@@ -7,10 +7,8 @@ omod LOCATABLE is
 
     class Locatable | coordinate : Coordinate .
 
-    subsort String < Oid .
-
-    ***returns the oidset of the objects in the configuration.
-    op getOidSet : Configuration -> OidSet .
+    ***returns the Set{OidElt} of the objects in the configuration.
+    op getOidSet : Configuration -> Set{OidElt} .
 
     ***Returns the Locatable object in the Configuration that has the least distance from the coordinate
     op minDistance : Object Coordinate Configuration -> Object .
@@ -27,11 +25,11 @@ omod LOCATABLE is
     vars OID OID2 : Oid .
     var CONF : Configuration .
     var OBJ : Object .
-    vars L L2 : Coordinate .
+    vars CO CO2 : Coordinate .
     var R : Rat .
 
-    eq getOidSet(none) = none .
-    eq getOidSet(< OID : Locatable | > CONF) = OID getOidSet(CONF) .
+    eq getOidSet(none) = empty .
+    eq getOidSet(< OID : Locatable | > CONF) = (OID , getOidSet(CONF)) .
     
     eq getOid(< OID : Locatable | >) = OID .
     
@@ -44,7 +42,7 @@ omod LOCATABLE is
             minDistance(< OID : Locatable | >, (X2,Y2), CONF)
         fi .
 
-    eq distance(< OID : Locatable | coordinate : L >, < OID2 : Locatable | coordinate : L2 >) = distance(L, L2) .
+    eq distance(< OID : Locatable | coordinate : CO >, < OID2 : Locatable | coordinate : CO2 >) = distance(CO, CO2) .
 
     ceq withinDistance(< OID : Locatable | >, R, < OID2 : Locatable | coordinate : (X2,Y2) > CONF) =
         < OID2 : Locatable | > withinDistance(< OID : Locatable | >, R, CONF)

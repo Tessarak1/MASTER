@@ -22,7 +22,7 @@ omod ROBOT is
     protecting ENTITY .
     protecting SYSTEM-VARS .
     protecting DIRECTION .
-    protecting REPRESENTATION .
+    protecting REPRESENTATION-SET .
 
     sort CargoLevel .
     sorts WorkerCargo TransporterCargo Cargo .
@@ -33,18 +33,21 @@ omod ROBOT is
     sort PriorityState .
 
     subsorts Tid TimedWork < WorkState .
+
     subsort Seed Water Fertilizer < WorkerCargo .
     subsort Produce < TransporterCargo .
     subsort TransporterCargo WorkerCargo < Cargo .
+
     subsort YieldInformation < YieldInformationSet .
     subsort BaseInformation < BaseInformationSet .
+
     subsort PriorityState < MsgContent .
 
     class Robot |
         detectionRange : Rat,
         cargoLevel : CargoLevel,
         curCargo : Cargo,
-        detected : RepresentationSet,
+        detected : Set{RepresentationElt},
         obstructionPoints : List-Coordinate,
         curTask : TaskStatus,
         workState : WorkState,
@@ -64,7 +67,7 @@ omod ROBOT is
     op _,_ : BaseInformationSet BaseInformationSet -> BaseInformationSet [ctor assoc comm id: noBaseInformation] .
     op noWaitingInformation : -> WaitingInformation [ctor] .
     op [_|_|_] : BaseInformationSet Timer Timer -> WaitingInformation [ctor] .
-    op getWaitingTimer : WaitingInformation -> TimerSet .
+    op getWaitingTimer : WaitingInformation -> MSet{TimerElt} .
     op decreaseWaitingTimers : WaitingInformation Time -> WaitingInformation .
     op rescanWaitingOn : BaseInformationSet Configuration -> BaseInformationSet .
     op inDetectionRange : Object Configuration -> Configuration .
@@ -78,7 +81,7 @@ omod ROBOT is
     op _,_ : YieldInformationSet YieldInformationSet -> YieldInformationSet [ctor assoc comm id: noYieldInformation] .
     op addYieldInformation : Oid Coordinate YieldInformationSet -> YieldInformationSet .
     op addYieldInformation : Oid YieldInformationSet -> YieldInformationSet .
-    op getYieldTimers : YieldInformationSet -> TimerSet .
+    op getYieldTimers : YieldInformationSet -> MSet{TimerElt} .
     op removeYieldInformation : Oid YieldInformationSet -> YieldInformationSet .
     op decreaseYieldTimers : YieldInformationSet Time -> YieldInformationSet .
     op yieldExpired : YieldInformation -> Bool .
@@ -104,21 +107,20 @@ omod ROBOT is
 
     op remove : Oid Configuration -> Configuration .
 
-
     ops noWork : -> WorkState [ctor] .
     op [_,_,_] : Oid TaskType Time -> TimedWork [ctor] .
-    ops empty full : -> CargoLevel [ctor] .
+    ops emptyCargo full : -> CargoLevel [ctor] .
     op finishedResupply : Object TaskType -> Object .
 
     op getLocation : Object -> Coordinate .
     op getLocation : YieldInformation -> List-Coordinate .
-    ops breaksPath $breaksPath : List-Coordinate RepresentationSet -> Bool .
+    ops breaksPath $breaksPath : List-Coordinate Set{RepresentationElt} -> Bool .
     op canCompleteNow : Object Tid -> Bool .
-    op $parseTasksGL : RepresentationSet -> TidSet .
-    op parseTasksGL : RepresentationSet -> TidSet .
+    op $parseTasksGL : Set{RepresentationElt} -> MSet{TidElt} .
+    op parseTasksGL : Set{RepresentationElt} -> MSet{TidElt} .
     op assignTask : Object Tid -> Object .
     op calculatePathLength : Object Tid Object -> Rat .
-    op prepareAuction : Object TidSet -> Configuration .
+    op prepareAuction : Object MSet{TidElt} -> Configuration .
     ops mustRejectTask : Object -> Bool .
     op startWorkGL : Object -> Object .
 
@@ -141,8 +143,8 @@ omod ROBOT is
     ***Checks if a given intersection has a connecting road that is not used by the list of locations.
     ***yieldLocation's boolean parameter determines if an intersection needs to have at least three connecting roads to be considered a valid solution.
     ***This is used for when a robot needs to yield to another yielding robot.
-    op $yieldLocationHelper : Coordinate RoadSet -> Coordinate .
-    op yieldLocation : Object RoadSet List-Coordinate -> List-Coordinate .
+    op $yieldLocationHelper : Coordinate Set{RoadElt} -> Coordinate .
+    op yieldLocation : Object Set{RoadElt} List-Coordinate -> List-Coordinate .
     ***Creates a path to the intersection that has a valid yieldLocation.
     op yieldIntersection : PQueue Object List-Coordinate Coordinate -> List-Coordinate .
     op yieldPath : Object Object List-Coordinate -> List-Coordinate .
@@ -170,7 +172,7 @@ omod ROBOT is
     var CARGO : Cargo .
     vars CONF CONF2 : Configuration .
     vars OID OID2 OID3 OID4 : Oid .
-    var OIDS : OidSet .
+    var OIDS : Set{OidElt} .
     vars X Y X2 Y2 X3 Y3 X4 Y4 X5 Y5 : Rat .
     vars RI RI2 : RatInf .
     var N : Nat .
@@ -179,20 +181,20 @@ omod ROBOT is
     vars L L2 : Level .
     var GS : GrowingState .
     var TC : TransporterCargo .
-    var RS : RoadSet .
+    var RS : Set{RoadElt} .
     var MC : MsgContent .
     var CID : Cid .
-    var IS : InformationSet .
+    var IS : Set{InformationElt} .
     vars D D2 : Direction .
     vars SP SP2 : Rat .
     var DR : Rat .
     var STATE : State .
-    var REPS : RepresentationSet .
-    vars OS OS2 : OidSet .
+    var REPS : Set{RepresentationElt} .
+    vars OS OS2 : Set{OidElt} .
     vars TR TR2 : Timer .
     vars TIME TIME2 : Time .
     vars TID TID2 : Tid .
-    var TIDS : TidSet .
+    var TIDS : MSet{TidElt} .
     vars AS AS2 : AttributeSet .
     var CL : CargoLevel .
     var PS : PriorityState .
@@ -213,7 +215,7 @@ omod ROBOT is
     vars WS WS2 : WorkState .
     var TW : TimedWork .
     var B : Bid .    
-    var AUS : AuctionSet .
+    var AUS : Set{AuctionElt} .
     var BIS : BaseInformationSet .
     var WI : WaitingInformation .
     var TWS : TimedWorkState .
@@ -223,7 +225,7 @@ omod ROBOT is
 
     eq addWaiting(noWaitingInformation, OID, (X,Y)) = [[OID - (X,Y)] | RESCAN-TIMER | WAITING-TIMER] .
     eq addWaiting([BIS | TR | TR2], OID, (X,Y)) = [BIS , [OID - (X,Y)] | TR | reset(TR2)] .
-    eq getWaitingTimer(noWaitingInformation) = noTimer .
+    eq getWaitingTimer(noWaitingInformation) = empty .
     eq getWaitingTimer([BIS | TR | TR2]) = TR TR2 .
     eq decreaseWaitingTimers(noWaitingInformation, TIME) = noWaitingInformation .
     eq decreaseWaitingTimers([BIS | TR | TR2], TIME) = [BIS | decrease(TR, TIME) | decrease(TR2, TIME)] .
@@ -269,6 +271,7 @@ omod ROBOT is
         < OID2 : Locatable | > inDetectionRange(< OID : Robot | >, CONF) .
     eq inDetectionRange(< OID : Robot | >, CONF) = none [owise] .
 
+    ***Calculates the cost of replanning a path
     eq replanCost(< OID : Robot | curTask : TID, obstructionPoints : LCO >, < OID2 : Map | >, (X,Y)) =
         if planPath(< OID : Robot | obstructionPoints : LCO (X,Y) >, TID, < OID2 : Map | >) == nil
         then
@@ -278,29 +281,29 @@ omod ROBOT is
             listLength(planPath(< OID : Robot | obstructionPoints : remove(LCO, (X,Y)) >, TID, < OID2 : Map | >)))
         fi .
 
-    ***Don'DR apply safety checks if the robot is moving.
+    ***Don't apply safety checks if the robot is moving.
     ceq safetyChecks(< OID : Robot | state : STATE >, {OID2 : Robot | IS}, < OID3 : Map | >) = < OID : Robot | > if STATE =/= moving .
-    eq safetyChecks(< OID : Robot | >, {OID2 : Robot | FUNC ; IS}, < OID3 : Map | >) =
-        if needNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC ; IS}, < OID3 : Map | >)
+    eq safetyChecks(< OID : Robot | >, {OID2 : Robot | FUNC , IS}, < OID3 : Map | >) =
+        if needNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC , IS}, < OID3 : Map | >)
         then
-            startNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC ; IS}, < OID3 : Map | >)
+            startNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC , IS}, < OID3 : Map | >)
         else
-            crashPrevention(< OID : Robot | >, {OID2 : Robot | FUNC ; IS})
+            crashPrevention(< OID : Robot | >, {OID2 : Robot | FUNC , IS})
         fi .
     ***Crash prevention consists of changing speed and/or the remaining path if relevant.
-    eq crashPrevention(< OID : Robot | coordinate : (X,Y), remainingPath : LCO >, {OID2 : CID | (X2,Y2) ; IS}) = 
+    eq crashPrevention(< OID : Robot | coordinate : (X,Y), remainingPath : LCO >, {OID2 : CID | (X2,Y2) , IS}) = 
         if between((X2, Y2), (X,Y) LCO) =/= nil
         then
-            $speedPrevention($locationPrevention(< OID : Robot | >, {OID2 : CID | (X2,Y2) ; IS}), {OID2 : CID | (X2,Y2) ; IS})
+            $speedPrevention($locationPrevention(< OID : Robot | >, {OID2 : CID | (X2,Y2) , IS}), {OID2 : CID | (X2,Y2) , IS})
         else
             < OID : Robot | >
         fi .
 
     ***Coordinate change is only performed when detecting an immobile object.
     ***If the task is to fix the robot, then we are not waiting on it, but otherwise we are.
-    ***ceq $locationPrevention(< OID : Robot | waitingStatus : OS >, {OID2 : Robot | (X2,Y2) ; FUNC ; IS}) = if STATE =/= moving .
-    eq $locationPrevention(< OID : Robot | >, {OID2 : Robot | moving ; IS}) = < OID : Robot | > .
-    eq $locationPrevention(< OID : Robot | coordinate : (X,Y), remainingPath : LCO >, {OID2 : Robot | (X2,Y2) ; INC ; IS}) = $locationChange(< OID : Robot | remainingPath : (X,Y) LCO >, (X2,Y2)) .
+    ***ceq $locationPrevention(< OID : Robot | waitingStatus : OS >, {OID2 : Robot | (X2,Y2) , FUNC , IS}) = if STATE =/= moving .
+    eq $locationPrevention(< OID : Robot | >, {OID2 : Robot | moving , IS}) = < OID : Robot | > .
+    eq $locationPrevention(< OID : Robot | coordinate : (X,Y), remainingPath : LCO >, {OID2 : Robot | (X2,Y2) , INC , IS}) = $locationChange(< OID : Robot | remainingPath : (X,Y) LCO >, (X2,Y2)) .
     eq $locationPrevention(< OID : Robot | coordinate : (X,Y), remainingPath : LCO >, {OID2 : Obstacle | (X2,Y2)}) = $locationChange(< OID : Robot | remainingPath : (X,Y) LCO >, (X2,Y2)) .
  
     eq $locationChange(< OID : Robot | remainingPath : LCO (X,Y) (X,Y2) >, (X,Y2)) =
@@ -321,14 +324,14 @@ omod ROBOT is
     ***Only coordinate change is needed here to prevent the Robot's path from overlapping with the obstacle.
     ***Speed change is dependent on the time it would take until the robot would crash with the detected object.
     eq $speedPrevention(< OID : Robot | >, {OID2 : Obstacle | IS}) = < OID : Robot | > .
-    eq $speedPrevention(< OID : Robot | coordinate : (X,Y), direction : D, speed : SP >, {OID2 : Robot | (X2,Y2) ; D ; detectedSpeed(SP2) ; moving ; IS}) =
+    eq $speedPrevention(< OID : Robot | coordinate : (X,Y), direction : D, speed : SP >, {OID2 : Robot | (X2,Y2) , D , detectedSpeed(SP2) , moving , IS}) =
         if SP2 >= SP
         then
             < OID : Robot | >
         else
             $timeCheck(< OID : Robot | >, OID2, distance((X,Y), (X2,Y2)) / (SP - SP2))
         fi .
-    ceq $speedPrevention(< OID : Robot | coordinate : (X,Y), direction : D, speed : SP >, {OID2 : Robot | (X2, Y2) ; D2 ; detectedSpeed(SP2) ; moving ; IS}) =
+    ceq $speedPrevention(< OID : Robot | coordinate : (X,Y), direction : D, speed : SP >, {OID2 : Robot | (X2, Y2) , D2 , detectedSpeed(SP2) , moving , IS}) =
         $timeCheck(< OID : Robot | >, OID2, distance((X,Y), (X2,Y2)) / (SP + SP2))
         if oppositeDirections(D, D2) .
     eq $speedPrevention(< OID : Robot | >, {OID2 : Robot | IS}) = < OID : Robot | > [owise] .
@@ -357,23 +360,23 @@ omod ROBOT is
         false if inNegotiationSet(NS, OID2) .
     ***Need to start negotation if two robots move towards each other directly, without any intersection in the middle.
     ceq needNegotiation(< OID : Robot | coordinate : (X,Y), direction : D, state : moving, negotiations : NS >,
-        {OID2 : Robot | (X2,Y2) ; D2 ; moving ; IS}, < OID3 : Map | roads : ({(X3,Y3) (X4,Y4)} , RS) >) =
+        {OID2 : Robot | (X2,Y2) , D2 , moving , IS}, < OID3 : Map | roads : ({(X3,Y3) (X4,Y4)} , RS) >) =
             true if oppositeDirections(D,D2) and (findRoad((X,Y), {(X3,Y3) (X4,Y4)}) == findRoad((X2,Y2), {(X3,Y3) (X4,Y4)}))
             and not inNegotiationSet(NS, OID2) .
     ***If a robot is moving towards a stationary robot that is in the way.
     ceq needNegotiation(< OID : Robot | coordinate : (X,Y), remainingPath : LCO, state : moving, negotiations : NS >,
-        {OID2 : Robot | (X2,Y2) ; STATE ; IS}, < OID3 : Map | roads : RS >) =
+        {OID2 : Robot | (X2,Y2) , STATE , IS}, < OID3 : Map | roads : RS >) =
             true if (STATE =/= moving) and (between((X2,Y2), (X,Y) LCO) =/= nil)
             and not inNegotiationSet(NS, OID2) .
     ***two robots move towards the same intersection from different paths.
     ceq needNegotiation(< OID : Robot | coordinate : (X,Y), state : moving, direction : D, negotiations : NS >,
-        {OID2 : Robot | (X2,Y2) ; D2 ; moving ; IS}, < OID3 : Map | roads : ({(X3,Y3) (X4,Y4)} , {(X4, Y4) (X5,Y5)} , RS) >) =
+        {OID2 : Robot | (X2,Y2) , D2 , moving , IS}, < OID3 : Map | roads : ({(X3,Y3) (X4,Y4)} , {(X4, Y4) (X5,Y5)} , RS) >) =
             true if (X,Y) inRange({(X3,Y3) (X4,Y4)}) and (X2,Y2) inRange({(X4, Y4) (X5,Y5)})
             and ((X,Y) D leadsTo (X4,Y4)) and ((X2,Y2) D2 leadsTo (X4,Y4))
             and not inNegotiationSet(NS, OID2) .
     eq needNegotiation(< OID : Robot | >, {OID2 : Robot | IS}, < OID3 : Map | >) = false [owise] .
 
-    eq startNegotiation(< OID : Robot | coordinate : (X,Y), remainingPath : LCO, negotiations : NS >, {OID2 : Robot | (X2,Y2) ; IS}, < OID3 : Map | >) =
+    eq startNegotiation(< OID : Robot | coordinate : (X,Y), remainingPath : LCO, negotiations : NS >, {OID2 : Robot | (X2,Y2) , IS}, < OID3 : Map | >) =
         < OID : Robot | state : negotiating, speed : 0, negotiations : addNegotiation(NS, [OID2 | (X2,Y2) | noCost]) > 
         dly(msg requestPath & path((X,Y) LCO) & priorityState(< OID : Robot | >) from OID to OID2, MSG-DELAY) .
 
@@ -393,7 +396,7 @@ omod ROBOT is
 
     eq getYieldTimers(([Oid: OID - (X,Y) | TR] , YIS)) = TR getYieldTimers(YIS) .
     eq getYieldTimers(([Oid: OID | TR] , YIS)) = TR getYieldTimers(YIS) .
-    eq getYieldTimers(noYieldInformation) = noTimer .
+    eq getYieldTimers(noYieldInformation) = empty .
 
     eq decreaseYieldTimers(([Oid: OID - (X,Y) | TR] , YIS), TIME) = [Oid: OID - (X,Y) | decrease(TR, TIME)] , decreaseYieldTimers(YIS, TIME) .
     eq decreaseYieldTimers(([Oid: OID | TR] , YIS), TIME) = [Oid: OID | decrease(TR, TIME)] , decreaseYieldTimers(YIS, TIME) .
@@ -421,7 +424,7 @@ omod ROBOT is
     ceq needsResupply(< OID : Worker | curCargo : CARGO >, [OID2, wateringTask]) = true if CARGO =/= water .
     ceq needsResupply(< OID : Worker | curCargo : CARGO >, [OID2, fertilizeTask]) = true if CARGO =/= fertilizer .
     ceq needsResupply(< OID : Worker | curCargo : CARGO >, [OID2, plantTask]) = true if CARGO =/= seed .
-    eq needsResupply(< OID : Worker | cargoLevel : empty >, TID) = true .
+    eq needsResupply(< OID : Worker | cargoLevel : emptyCargo >, TID) = true .
     eq needsResupply(< OID : Robot | >, TID) = false [owise] .
 
     eq cPointLocCheck(< OID : Robot | >, TID, (X,Y)) = if needsCPoint(< OID : Robot | >, TID) then (X,Y) else nil fi .
@@ -436,7 +439,7 @@ omod ROBOT is
     eq canCompleteNow(< OID : Worker | state : FUNC, cargoLevel : full, curCargo : water >, [OID2, wateringTask]) = true .
     eq canCompleteNow(< OID : Worker | state : FUNC, cargoLevel : full, curCargo : fertilizer >, [OID2, fertilizeTask]) = true .
     eq canCompleteNow(< OID : Worker | state : FUNC, cargoLevel : full, curCargo : seed >, [OID2, plantTask]) = true .
-    eq canCompleteNow(< OID : Transporter | state : FUNC, cargoLevel : empty >, [OID2, harvestTask]) = true .
+    eq canCompleteNow(< OID : Transporter | state : FUNC, cargoLevel : emptyCargo >, [OID2, harvestTask]) = true .
     eq canCompleteNow(< OID : Robot | state : INC >, TID) = false .
     ceq canCompleteNow(< OID : Robot | curTask : TID >, TID2) = false if TID =/= noTask .
     eq canCompleteNow(< OID : Robot | >, TID) = false [owise] .
@@ -450,7 +453,7 @@ omod ROBOT is
     eq $planPath(< OID : Map | >, LCO, LCO2) = dijkstraChain(getIntersections(modifyMap(< OID : Map | >, LCO, LCO2)), LCO) .
 
     eq planPath(< OID : Robot | coordinate : (X,Y), obstructionPoints : LCO >, [OID2, TT], < OID3 : Map | intersections : CONF >) =
-        removeNeighborDuplicates(
+        rmvNeighborDuplicates(
             $planPath(< OID3 : Map | >,
                 $planPathLocations(< OID : Robot | >, [OID2, TT], CONF),
                 LCO
@@ -460,23 +463,22 @@ omod ROBOT is
     ceq modifyPath(LCO (X,Y) (X2,Y2) LCO2, (X3,Y3) LCO3) = modifyPath(LCO (X,Y) (X3,Y3) (X2,Y2) LCO2, LCO3)
         if ((X3,Y3) =/= (X,Y) and (X3,Y3) =/= (X2,Y2) and between((X3,Y3), (X,Y) (X2,Y2)) =/= nil) . 
     eq modifyPath(LCO, LCO2) = LCO [owise] .
-
-    eq OID notIn ({OID : CID | (X,Y) ; IS} REPS) = false .
-    eq OID notIn REPS = true [owise] .
-    ceq $breaksPath((X,Y) (X,Y2), {OID2 : CID | (X,Y3) ; north ; IS}) = true if Y > Y2 .
-    ceq $breaksPath((X,Y) (X2,Y), {OID2 : CID | (X3,Y) ; east ; IS}) = true if X > X2 .
-    ceq $breaksPath((X,Y) (X,Y2), {OID2 : CID | (X,Y3) ; south ; IS}) = true if Y < Y2 .
-    ceq $breaksPath((X,Y) (X2,Y), {OID2 : CID | (X3,Y) ; west ; IS}) = true if X < X2 .
+    
+    ***Todo this can be generalized with the road thingy
+    ceq $breaksPath((X,Y) (X,Y2), {OID2 : CID | (X,Y3) , north , IS}) = true if Y > Y2 .
+    ceq $breaksPath((X,Y) (X2,Y), {OID2 : CID | (X3,Y) , east , IS}) = true if X > X2 .
+    ceq $breaksPath((X,Y) (X,Y2), {OID2 : CID | (X,Y3) , south , IS}) = true if Y < Y2 .
+    ceq $breaksPath((X,Y) (X2,Y), {OID2 : CID | (X3,Y) , west , IS}) = true if X < X2 .
     eq $breaksPath(LCO, REPS) = false [owise] .
     
-    ceq breaksPath(LCO, {OID2 : CID | (X,Y) ; IS}) = false if between((X,Y), LCO) == nil .
-    eq breaksPath(LCO, {OID2 : Obstacle | (X,Y) ; IS}) =
+    ceq breaksPath(LCO, {OID2 : CID | (X,Y) , IS}) = false if between((X,Y), LCO) == nil .
+    eq breaksPath(LCO, {OID2 : Obstacle | (X,Y) , IS}) =
         if between((X,Y), LCO) == nil then
             false
         else
             true
         fi .
-    eq breaksPath(LCO, {OID2 : CID | (X,Y) ; D ; IS}) = $breaksPath(between((X,Y), LCO), {OID2 : CID | (X,Y) ; D ; IS}) .
+    eq breaksPath(LCO, {OID2 : CID | (X,Y) , D , IS}) = $breaksPath(between((X,Y), LCO), {OID2 : CID | (X,Y) , D , IS}) .
 
     eq $yieldLocationHelper((X,Y), ({(X,Y) (X,Y2)} , RS)) =
         if Y < Y2
@@ -494,7 +496,7 @@ omod ROBOT is
         fi .
 
     eq yieldLocation(< OID : PassIntersection | coordinate : (X,Y) >, RS, LCO (X,Y) LCO2) =
-        if findRoad((X,Y), RS) \ findRoad(last(LCO) first(LCO2), RS) =/= noRoad then
+        if findRoad((X,Y), RS) \ findRoad(last(LCO) first(LCO2), RS) =/= empty  then
             $yieldLocationHelper((X,Y), findRoad((X,Y), RS) \ findRoad(last(LCO) first(LCO2), RS))
         else
             nil
@@ -506,7 +508,7 @@ omod ROBOT is
         then
             yieldLocation(< OID : PassIntersection | >, RS, LCO)
         else
-            if size(findRoad((X,Y), RS)) == 1
+            if | findRoad((X,Y), RS) | == 1
             then
                 nil
             else
@@ -547,7 +549,7 @@ omod ROBOT is
         then
             none
         else
-            if size(findRoad((X,Y), RS)) > 2
+            if | findRoad((X,Y), RS) | > 2
             then
                 < OID : PassIntersection | >
             else
@@ -617,29 +619,16 @@ omod ROBOT is
 
     eq < OID : Robot | curTask : [OID2, TT] > detects < OID2 : Locatable | > = false .
     eq < OID : Robot | obstructionPoints : (X,Y) LCO > detects < OID2 : Locatable | coordinate : (X,Y) > = false .
-    eq < OID : Robot | coordinate : (X,Y), detected : REPS, detectionRange : DR > detects < OID2 : Locatable | coordinate : (X2,Y2) > = (OID2 notIn REPS) and distance((X,Y), (X2,Y2)) <= DR .
+    eq < OID : Robot | coordinate : (X,Y), detected : REPS, detectionRange : DR > detects < OID2 : Locatable | coordinate : (X2,Y2) > = (not OID2 in REPS) and distance((X,Y), (X2,Y2)) <= DR .
     eq < OID : Robot | > detects < OID2 : Locatable | > = true [owise] .
 
     ceq detect(< OID : Robot | state : FUNC, detected : REPS > < OID2 : Obstacle | coordinate : (X2,Y2) > CONF) =
-        detect(< OID : Robot | detected : {OID2 : Obstacle | (X2,Y2)} REPS > < OID2 : Obstacle | > CONF) if < OID : Robot | > detects < OID2 : Obstacle | > .
+        detect(< OID : Robot | detected : ({OID2 : Obstacle | (X2,Y2)} , REPS) > < OID2 : Obstacle | > CONF) if < OID : Robot | > detects < OID2 : Obstacle | > .
     ceq detect(< OID : Robot | detected : REPS, workState : WS > < OID2 : Robot | state : STATE, coordinate : (X2,Y2), direction : D, speed : SP, workState : WS2 > CONF) =
-        detect(< OID : Robot | detected : {OID2 : Robot | (X2,Y2) ; D ; detectedSpeed(SP) ; STATE} REPS > < OID2 : Robot | > CONF) if (< OID : Robot | > detects < OID2 : Robot | >) .
+        detect(< OID : Robot | detected : ({OID2 : Robot | (X2,Y2) , D , detectedSpeed(SP) , STATE} , REPS) > < OID2 : Robot | > CONF) if (< OID : Robot | > detects < OID2 : Robot | >) .
     eq detect(CONF) = CONF [owise] .
 
-    ***Do a detection before starting to travel.
-    ***maybe change how detect works. Instead of doing all, it does one at a time, so IS can check result
-    ***add that detection must be empty to prevent looping
-    ***but it may still loop, update detection, parse them try to start travel, update detection.
 
-    rl [startTravel] :
-        < OID : Robot | coordinate : (X,Y), remainingPath : (X2,Y2) LCO, state : idle, speed : 0, maxSpeed : SP, detected : emptyRepresentationSet, negotiations : none >
-        =>
-        if (X,Y) == (X2,Y2)
-        then
-            < OID : Robot | remainingPath : LCO >
-        else
-            < OID : Robot | state : moving, direction : setDirection((X,Y), (X2,Y2)), speed : SP >
-        fi .
 
     crl [rescanTimerExpire] :
         < OID : Robot | waitingStatus : [BIS | TR | TR2] >
@@ -805,7 +794,7 @@ omod ROBOT is
 
     ***when planning path, if it is not possible, then auction away tasks.
     rl [planPath] :
-        < OID : Robot | state : planningPath, detected : emptyRepresentationSet, curTask : TID >
+        < OID : Robot | state : planningPath, detected : empty, curTask : TID >
         < OID3 : Map | >
         CONF
         =>
@@ -991,14 +980,14 @@ omod ROBOT is
     ---     if (STATE == removing) or (STATE == repairing) .
 
     rl [detectFunctioningRobot] :
-        < OID : Robot | detected : {OID2 : Robot | FUNC ; IS} REPS >
+        < OID : Robot | detected : ({OID2 : Robot | FUNC , IS} , REPS) >
         < OID3 : Map | >
         =>
-        safetyChecks(< OID : Robot | detected : REPS >, {OID2 : Robot | FUNC ; IS}, < OID3 : Map | >)
+        safetyChecks(< OID : Robot | detected : REPS >, {OID2 : Robot | FUNC , IS}, < OID3 : Map | >)
         < OID3 : Map | > .
 
     rl [detectFailedRobot] :
-        < OID : Robot | state : FUNC, coordinate : (X,Y), remainingPath : LCO, detected : {OID2 : Robot | INC ; (X2,Y2) ; IS} REPS, obstructionPoints : LCO2 >
+        < OID : Robot | state : FUNC, coordinate : (X,Y), remainingPath : LCO, detected : ({OID2 : Robot | INC , (X2,Y2) , IS} , REPS), obstructionPoints : LCO2 >
         < OID2 : Robot | coordinate : (X2,Y2) >
         < OID3 : Map | >
         CONF
@@ -1007,7 +996,7 @@ omod ROBOT is
         then
             crashPrevention(< OID : Robot | state : moving,
                 remainingPath : planPath(< OID : Robot | >, [OID2, repairAt (X2,Y2)], < OID3 : Map | >),
-                detected : REPS, curTask : [OID2, repairAt (X2,Y2)], obstructionPoints : (X2,Y2) LCO2 >, {OID2 : Robot | INC ; (X2,Y2) ; IS})
+                detected : REPS, curTask : [OID2, repairAt (X2,Y2)], obstructionPoints : (X2,Y2) LCO2 >, {OID2 : Robot | INC , (X2,Y2) , IS})
             < OID2 : Robot | >
             < OID3 : Map | >
             CONF
@@ -1029,10 +1018,14 @@ omod ROBOT is
     rl [detectIgnore] :
         < OID : Robot | state : INC, detected : REPS >
         =>
-        < OID : Robot | state : INC, detected : emptyRepresentationSet > .
+        < OID : Robot | state : INC, detected : empty > .
 
     rl [detectObstacle] : 
-        < OID : Robot | state : FUNC, coordinate : (X,Y), remainingPath : LCO, detected : {OID2 : Obstacle | (X2,Y2)} REPS, obstructionPoints : LCO2  > 
+        < OID : Robot | state : FUNC, 
+            coordinate : (X,Y), 
+            remainingPath : LCO, 
+            detected : ({OID2 : Obstacle | (X2,Y2)} , REPS), 
+            obstructionPoints : LCO2  > 
         < OID2 : Obstacle | coordinate : (X2,Y2) >
         < OID3 : Map | > 
         CONF
@@ -1119,7 +1112,7 @@ omod ROBOT is
         < OID : Transporter | state : unloading, curCargo : produce, coordinate : (X,Y), cargoLevel : full, workState : [OID2, unloadTask, 0] >
         < OID2 : Map | intersections : < OID3 : CollectionStation | coordinate : (X,Y), collections : N > CONF >
         =>
-        < OID : Transporter | state : idle, cargoLevel : empty, workState : noWork >
+        < OID : Transporter | state : idle, cargoLevel : emptyCargo, workState : noWork >
         < OID2 : Map | intersections : < OID3 : CollectionStation | coordinate : (X,Y), collections : N + 1 > CONF > .
 
     rl [startGrowingLocTask] :
@@ -1139,11 +1132,11 @@ omod ROBOT is
         < OID : Worker | state : FUNC, coordinate : (X,Y), remainingPath : nil, workState : [OID2, WT], cargoLevel : full >
         < OID2 : Field | coordinate : (X,Y), reserved : true >
         =>
-        < OID : Worker | cargoLevel : empty, curTask : noTask, workState : noWork >
+        < OID : Worker | cargoLevel : emptyCargo, curTask : noTask, workState : noWork >
         taskComplete(< OID2 : Field | >, [OID2, WT]) . 
 
     rl [finishTransporterFieldTask] :
-        < OID : Transporter | state : FUNC, coordinate : (X,Y), curTask : [OID2, harvestTask], remainingPath : nil, workState : [OID2, TPT], cargoLevel : empty >
+        < OID : Transporter | state : FUNC, coordinate : (X,Y), curTask : [OID2, harvestTask], remainingPath : nil, workState : [OID2, TPT], cargoLevel : emptyCargo >
         < OID2 : Field | coordinate : (X,Y), reserved : true >
         < OID3 : Map | intersections : < OID4 : CollectionStation | AS > CONF >
         =>

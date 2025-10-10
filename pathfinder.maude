@@ -1,7 +1,9 @@
 load map .
 load rat-inf .
+
 omod DIJKSTRA-NODE is
     protecting MAP .
+    protecting AREA .
     protecting RAT-INF .
     
     sort DijkstraNode .
@@ -69,7 +71,7 @@ omod PATHFINDER is
 
     vars I I2 : Object .
     var CONF : Configuration .
-    vars OS OS2 : OidSet .
+    vars OS OS2 : Set{OidElt} .
     vars X X2 X3 X4 Y Y2 Y3 Y4 : Rat .
     vars OID OID2 OID3 OID4 : Oid .
     vars PQ PQ2 : PQueue .
@@ -84,7 +86,7 @@ omod PATHFINDER is
     eq PQConvert(< OID : Intersection | coordinate : (X,Y) > CONF, (X,Y)) = [< OID : Intersection | >, 0, "Start"] PQConvert(CONF, (X,Y)) .   
     eq PQConvert(I2 CONF, (X,Y)) = [I2, ratInf, "Placeholder"] PQConvert(CONF, (X,Y)) [owise] .
         
-    eq $updateDistances(PQ [< OID : Intersection | coordinate : (X,Y), neighbors : OID3 OS >, RI, OID2] PQ2,
+    eq $updateDistances(PQ [< OID : Intersection | coordinate : (X,Y), neighbors : (OID3 , OS) >, RI, OID2] PQ2,
         [< OID3 : Intersection | coordinate : (X2,Y2) >, RI2, OID4]) =
             if (distance((X,Y), (X2,Y2)) + RI2) < RI
             then
@@ -93,8 +95,9 @@ omod PATHFINDER is
                 PQ [< OID : Intersection | neighbors : OS >, RI, OID2] PQ2
             fi .
 
-    eq updateDistances(PQ [< OID : PassIntersection | coordinate : (X,Y), neighbors : OID2 OS >, R, OID3] PQ2) = 
-        updateDistances($updateDistances(PQ [< OID : PassIntersection | neighbors : OS >, R, OID3] PQ2, [< OID : PassIntersection | coordinate : (X,Y), neighbors : OID2 OS >, R, OID3])) .
+    eq updateDistances(PQ [< OID : PassIntersection | coordinate : (X,Y), neighbors : (OID2 , OS) >, R, OID3] PQ2) = 
+        updateDistances($updateDistances(PQ [< OID : PassIntersection | neighbors : OS >, R, OID3] PQ2, 
+            [< OID : PassIntersection | coordinate : (X,Y), neighbors : (OID2 , OS) >, R, OID3])) .
     eq updateDistances(PQ) = PQ [owise] .
     
     eq buildPath(OID, PQ [< OID : Intersection | >, ratInf, OID2] PQ2) = nil .
@@ -131,8 +134,8 @@ omod PATHFINDER is
             (X - 1, Y2) (X - 1, Y) coverVertical((X - 1, Y2) (X - 1, Y), (X2,Y) (X2, Y2))
         fi .
 
-    eq $coverArea((X,Y3), area((X,Y), (X2,Y), (X,Y2), (X2,Y2))) = (X,Y) (X,Y2) coverVertical((X,Y) (X,Y2), (X2,Y) (X2,Y2)) .
-    eq $coverArea((X3,Y), area((X,Y), (X2,Y), (X,Y2), (X2,Y2))) = (X,Y) (X2,Y) coverHorizontal((X,Y) (X2,Y), (X,Y2) (X2,Y2)).
+    eq $coverArea((X,Y3), area(((X,Y), (X2,Y), (X,Y2), (X2,Y2)))) = (X,Y) (X,Y2) coverVertical((X,Y) (X,Y2), (X2,Y) (X2,Y2)) .
+    eq $coverArea((X3,Y), area(((X,Y), (X2,Y), (X,Y2), (X2,Y2)))) = (X,Y) (X2,Y) coverHorizontal((X,Y) (X2,Y), (X,Y2) (X2,Y2)).
     
     eq coverArea((X,Y), A) = $coverArea((X,Y), A) backToStart(last($coverArea((X,Y), A)), (X,Y)) .
 endom   

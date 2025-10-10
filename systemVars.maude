@@ -1,4 +1,4 @@
-load time-inf .
+load timer .
 omod SYSTEM-VARS is
     protecting TIMER .
     protecting STRING .

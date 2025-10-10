@@ -1,53 +1,57 @@
 load coordinate .
 fmod ROAD is
-    protecting LIST-COORDINATE .
     protecting RAT .
+    protecting COORDINATE-LIST .
 
-    sorts Road RoadSet .
-    subsort Road < RoadSet .
-
-    ***RoadSet constructors. A road is defined by two locations on the same axis.
+    sort Road .
+    
     op {__} : Coordinate Coordinate -> Road [ctor comm] .
-    op noRoad : -> RoadSet [ctor] .
-    op _,_ : RoadSet RoadSet -> RoadSet [assoc comm id: noRoad] .
-
-    op findRoad : List-Coordinate RoadSet -> RoadSet .
-    op splitRoad : Coordinate Road RoadSet -> RoadSet .
+ 
     ***Checks if the first rat is in the interval between the two others.
+    ***TODO replace inrange with ininterval from coordinate, maybe come up with new name.
+    ***Declare other fucntion for coordiante road version
+
     op _inRange(_,_) : Rat Rat Rat -> Bool .
     op _inRange(_) : Coordinate Road -> Bool .
-    op _\_ : RoadSet RoadSet -> RoadSet .
-    op commonIntersection : Road Road -> Bool [comm] .
-    op size : RoadSet -> Nat .
+    op commonIntersection : Road Road -> List-Coordinate  [comm] .
 
     vars R R2 R3 : Rat .
     vars X X2 X3 Y Y2 Y3 : Rat .
-    vars RS RS2 : RoadSet .
     vars RO RO2 : Road .
-    var LCO : List-Coordinate .
-
-    eq ({(X,Y) (X2,Y2)} , {(X,Y) (X2,Y2)}) = {(X,Y) (X2,Y2)} .
-
-    eq findRoad((X,Y) LCO, noRoad) = noRoad .
-    eq findRoad(nil, RS) = noRoad .
-    ceq findRoad((X,Y) LCO, (RO , RS)) = (RO , findRoad((X,Y) LCO, RS))
-        if (X,Y) inRange(RO) .
-    eq findRoad((X,Y) LCO, RS) = findRoad(LCO, RS) [owise] .
-
-    eq splitRoad((X,Y), {(X2,Y2) (X3,Y3)}, ({(X2,Y2) (X3,Y3)} , RS)) = ({(X,Y) (X2,Y2)} , {(X,Y) (X3,Y3)} , RS) .
-    eq splitRoad((X,Y), {(X2,Y2) (X3,Y3)}, RS) = ({(X,Y) (X2,Y2)} , {(X,Y) (X3,Y3)} , RS) [owise] .
 
     ceq R inRange(R2, R3) = true if R <= max(R2,R3) and R >= min(R2,R3) .
     eq R inRange(R2, R3) = false [owise] .
     ceq (X,Y) inRange({(X2,Y2) (X3,Y3)}) = true if X inRange(X2,X3) and Y inRange(Y2,Y3) .
     eq (X,Y) inRange({(X2,Y2) (X3,Y3)}) = false [owise] .
 
-    eq ({(X,Y) (X2,Y2)} , RS) \ ({(X,Y) (X2,Y2)} , RS2) = RS \ RS2 .
-    eq RS \ RS2 = RS [owise] .
 
-    eq commonIntersection({(X,Y) (X2,Y2)}, {(X2,Y2) (X3,Y3)}) = true .
-    eq commonIntersection(RO, RO2) = false [owise] .
+    eq commonIntersection({(X,Y) (X2,Y2)}, {(X2,Y2) (X3,Y3)}) = (X2,Y2) .
+    eq commonIntersection(RO, RO2) = nil [owise] .
+endfm
 
-    eq size(noRoad) = 0 .
-    eq size(RO , RS) = 1 + size(RS) .
+view RoadElt from TRIV to ROAD is
+    sort Elt to Road .
+endv
+
+
+fmod ROAD-SET is
+    protecting SET{RoadElt} .
+
+    op findRoad : List-Coordinate Set{RoadElt} -> Set{RoadElt} .
+    op splitRoad : Coordinate Road Set{RoadElt} -> Set{RoadElt} .
+
+    vars R R2 R3 : Rat .
+    vars X X2 X3 Y Y2 Y3 : Rat .
+    vars RS RS2 : Set{RoadElt} .
+    vars RO RO2 : Road .
+    var LCO : List-Coordinate .
+
+    eq findRoad((X,Y) LCO, empty) = empty .
+    eq findRoad(nil, RS) = empty .
+    ceq findRoad((X,Y) LCO, (RO , RS)) = (RO , findRoad((X,Y) LCO, RS))
+        if (X,Y) inRange(RO) .
+    eq findRoad((X,Y) LCO, RS) = findRoad(LCO, RS) [owise] .
+
+    eq splitRoad((X,Y), {(X2,Y2) (X3,Y3)}, ({(X2,Y2) (X3,Y3)} , RS)) = ({(X,Y) (X2,Y2)} , {(X,Y) (X3,Y3)} , RS) .
+    eq splitRoad((X,Y), {(X2,Y2) (X3,Y3)}, RS) = ({(X,Y) (X2,Y2)} , {(X,Y) (X3,Y3)} , RS) [owise] .
 endfm

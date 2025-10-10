@@ -1,22 +1,43 @@
-load direction .
-load coordinate .
+load entity .
 
 ***import state here, or do something else, moving, unmoving , broken?
-omod REPRESENTATION is
+omod REPRESENTATION-SORTS is
     protecting COORDINATE .
     protecting DIRECTION .
+    protecting ENTITY .
 
-    sorts Information InformationSet .
-    sorts Representation RepresentationSet .
-    subsorts Coordinate Direction State < Information < InformationSet .
-    subsort Representation < RepresentationSet .
-
-    op emptyInformationSet : -> InformationSet [ctor] .
-    op _;_ : InformationSet InformationSet -> InformationSet [ctor assoc comm id: emptyInformationSet] .
+    sorts Information Representation .
+    subsorts Coordinate Direction State < Information .
+    
     op detectedSpeed : Rat -> Information [ctor] . 
+endom
 
-    op emptyRepresentationSet : -> RepresentationSet [ctor] .
-    op __ : RepresentationSet RepresentationSet -> RepresentationSet [ctor assoc comm id: emptyRepresentationSet] .
-    op {_:_|_} : Oid Cid InformationSet -> Representation .
-    op _notIn_ : Oid RepresentationSet -> Bool .
+view InformationElt from TRIV to REPRESENTATION-SORTS is
+    sort Elt to Information .
+endv
+
+omod REPRESENTATION is
+    protecting SET{InformationElt} .
+
+    op {_:_|_} : Oid Cid Set{InformationElt} -> Representation [ctor] .
+endom
+
+
+view RepresentationElt from TRIV to REPRESENTATION-SORTS is
+    sort Elt to Representation .
+endv
+
+omod REPRESENTATION-SET is
+    protecting REPRESENTATION .
+    protecting SET{RepresentationElt} .
+
+    op _in_ : Oid Set{RepresentationElt} -> Bool .
+
+    var OID : Oid .
+    var CID : Cid .
+    var REPS : Set{RepresentationElt} .
+    var IS : Set{InformationElt} .
+    
+    eq OID in ({OID : CID | IS} , REPS) = true .
+    eq OID in REPS = false [owise] .
 endom

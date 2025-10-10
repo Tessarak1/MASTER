@@ -1,11 +1,10 @@
 load locatable .
 omod INTERSECTION is
     protecting LOCATABLE .
-    protecting LIST-COORDINATE .
-    protecting STRING .
+    protecting COORDINATE-LIST .
 
     ***Intersections are connected to one another. ObsIntersections cannot be traveled through
-    class Intersection | neighbors : OidSet .
+    class Intersection | neighbors : Set{OidElt} .
     class ObsIntersection .
     class PassIntersection .
 

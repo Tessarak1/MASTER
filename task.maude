@@ -1,139 +1,33 @@
-load oidSet .
-load time-inf .
 load coordinate .
-load cost .
-load systemVars .
+load mset .
 
-omod TASK is
+omod TASK-SORTS is
     protecting COORDINATE .
-    protecting OID-SET .
 
-    ***Workers and transporters can complete different types of tasks.
-    sorts WorkerTask TransporterTask TaskType TaskTypeSet .
-    sorts Tid TidSet .
-    ***A robot either is either working on completing a task, or it has none.
-    sort TaskStatus . 
+    sorts WorkerTask TransporterTask TaskType .
+    sort Tid .
+    sort TaskStatus .
 
     subsort Tid < TaskStatus .
-    subsorts WorkerTask TransporterTask < TaskType < TaskTypeSet .
-    subsort Tid < TidSet .
+    subsorts WorkerTask TransporterTask < TaskType .
 
-    ***A worker can work on growing crops, fixing broken robots or removing obstacles.
     ops wateringTask fertilizeTask plantTask resupplyTask : -> WorkerTask [ctor] .
     ops removeAt_ repairAt_ : Coordinate -> WorkerTask [ctor] .
-    ***A transporters only task is harvesting crops and delivering it to the collection point.
     ops harvestTask unloadTask : -> TransporterTask [ctor] .
 
-    op empty : -> TaskTypeSet [ctor] .
-    op _,_ : TaskTypeSet TaskTypeSet -> TaskTypeSet [ctor assoc comm id: empty] .
-
-    op inSet : TaskTypeSet TaskTypeSet -> Bool .
-
-    ***An identificator for a given task consists of the Oid for the tasks subject (name of field or robot), what operation the task involves.
     op [_,_] : Oid TaskType -> Tid [ctor] .
-    op none : -> TidSet [ctor] .
-    op __ : TidSet TidSet -> TidSet [ctor assoc comm id: none] .
-    op _\_ : TidSet TidSet -> TidSet [assoc] .
-
     op noTask : -> TaskStatus [ctor] .
-
-    var TID : Tid .
-    vars TIDS TIDS2 : TidSet .
-    vars TTS TTS2 : TaskTypeSet .
-
-    eq inSet(TTS, (TTS , TTS2)) = true .
-    eq inSet(TTS, TTS2) = false [owise] .
-
-    eq TIDS \ none = TIDS .
-    eq none \ TIDS = none .
-    eq (TID TIDS) \ (TID TIDS2) = TIDS \ TIDS2 .
-    eq TIDS \ TIDS2 = TIDS [owise] .
-
-endom 
-
-omod AUCTION is
-    protecting COST .
-    protecting TASK .
-    protecting SYSTEM-VARS .
-
-    ***Tasks are assigned based on auctions. Each participant bids on a task based on traveling distance to complete the task.
-    ***Cost function is required distance to travel to complete the task, so a lower bid is better.
-    sorts Bid BidSet .
-    sorts Auction AuctionSet .
-
-    subsort Bid < BidSet .
-    subsort Auction < AuctionSet .
-
-    ***A robot can either bid on or refuse to participate in the auction.
-    ***A refusal happens if the participant is busy or does not find a viable path to complete the task.
-    op [_bids_] : Oid Cost -> Bid [ctor] .
-    op [_rejects] : Oid -> Bid [ctor] .
-    op noBid : -> BidSet [ctor] .
-    op __ : BidSet BidSet -> BidSet [assoc comm ctor id: noBid] .
-
-    ***An auction consists of the task that is bidded on, a timer for when the auction closes and the received bids.
-    op [Task:__|_] : Tid Timer BidSet -> Auction [ctor] .
-    op noAuction : -> AuctionSet [ctor] .
-    op __ : AuctionSet AuctionSet -> AuctionSet [assoc comm ctor id: noAuction] .
-
-    ***Returns the Oid of the lowest bid.
-    op auctionWinner : BidSet Oid Cost -> Oid .
-
-    ***Creates an auction for every task in the TidSet.
-    op createAuction : TidSet -> AuctionSet .
-
-    ***Checks if a task is up for auction in an auction set.
-    ***Used to prevent duplication of auctions when a robot discovers a task.
-    op closed : Tid AuctionSet -> Bool .
-    ***returns the Oids of received bids.
-    op bidders : BidSet -> OidSet .
-
-    ***returns minimum time until a timer in the auction set expires, ratInf if there are none.
-    op minTimeToClose : AuctionSet -> TimeInf .
-
-    ***Returns the auctions' timers
-    op getAuctionTimers : AuctionSet -> TimerSet .
-
-    ***Decreases the timers of the active auctions.
-    op decreaseAuctionTimers : AuctionSet Time -> AuctionSet .
-
-    var TID : Tid .
-    var TIDS : TidSet .
-    var TR : Timer .
-    var B : Bid .
-    var BS : BidSet .
-    var AUS : AuctionSet .
-    var OS : OidSet .
-    vars OID OID2 : Oid .
-    var COST : Cost .
-    vars RI RI2 : RatInf .
-    var TIME-INF : TimeInf .
-    vars TIME TIME2 TIME3 : Time .
-
-    eq auctionWinner(noBid, OID, COST) = OID .
-    eq auctionWinner([OID bids cost(RI)] BS, OID2, cost(RI2)) =
-        if RI < RI2
-        then
-            auctionWinner(BS, OID, cost(RI))
-        else
-            auctionWinner(BS, OID2, cost(RI2))
-        fi .
-
-    eq createAuction(none) = noAuction .
-    eq createAuction(TID TIDS) = [Task: TID AUCTION-TIMER | noBid] createAuction(TIDS) .
-
-    eq closed(TID, [Task: TID TR | BS] AUS) = false .
-    eq closed(TID, AUS) = true [owise] .
-
-    eq bidders(noBid) = none .
-    eq bidders([OID bids COST] BS) = OID bidders(BS) .
-
-    eq minTimeToClose(noAuction) = ratInf .
-    eq minTimeToClose([Task: TID [cur: TIME - base: TIME2] | BS] AUS) = min(TIME, minTimeToClose(AUS)) .
-
-    eq getAuctionTimers(noAuction) = noTimer .
-    eq getAuctionTimers([Task: TID TR | BS] AUS) = TR getAuctionTimers(AUS) .
-
-    eq decreaseAuctionTimers(noAuction, TIME) = noAuction .
-    eq decreaseAuctionTimers([Task: TID [cur: TIME - base: TIME2] | BS] AUS, TIME3) = [Task: TID decrease([cur: TIME - base: TIME2], TIME3) | BS] decreaseAuctionTimers(AUS, TIME3) .
 endom
+
+view TaskTypeElt from TRIV to TASK-SORTS is
+    sort Elt to TaskType .
+endv
+
+view TidElt from TRIV to TASK-SORTS is
+    sort Elt to Tid .
+endv
+
+omod TASK-MSET is
+    protecting SET{TaskTypeElt} .
+    protecting MSET{TidElt} .
+endom 

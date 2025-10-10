@@ -1,10 +1,10 @@
 load direction
 load physicalObject
 
-***Merge this into robot?
+***Merge this into Entity?
 omod ENTITY is
     protecting PHYSICAL-OBJ .
-    protecting LIST-COORDINATE .
+    protecting COORDINATE-LIST .
     protecting DIRECTION .
     
     sorts IncapacitatedState FunctioningState TimedWorkState State .
@@ -12,7 +12,13 @@ omod ENTITY is
     subsort IncapacitatedState FunctioningState < State .
     subsort TimedWorkState < FunctioningState .
 
-    class Entity | direction : Direction, speed : Rat, maxSpeed : Rat, remainingPath : List-Coordinate, state : State .
+    class Entity | 
+        handledTime : Bool, 
+        direction : Direction,
+        speed : Rat, 
+        maxSpeed : Rat, 
+        remainingPath : List-Coordinate, 
+        state : State .
     subclass Entity < PhysicalObj .    
 
     ops crashed failed : -> IncapacitatedState [ctor] .
@@ -38,13 +44,37 @@ omod ENTITY is
 
     eq stoppingDistance(< OID : Entity | speed : SP >) =  ((SP / 5) ^ 2) / 2 .
 
-    rl [finish] :
-        < OID : Entity | coordinate : (X,Y), remainingPath : (X,Y), state : moving >
+    rl [startTravel] :
+        < OID : Entity | coordinate : (X,Y), 
+            remainingPath : (X2,Y2) LCO, 
+            state : idle, 
+            maxSpeed : SP >
         =>
-        < OID : Entity | speed : 0, remainingPath : nil, state : idle > .
+        if (X,Y) == (X2,Y2)
+        then
+            < OID : Entity | remainingPath : LCO >
+        else
+            < OID : Entity | state : moving,
+                direction : setDirection((X,Y), (X2,Y2)),
+                speed : SP >
+        fi .
 
     rl [nextIntersection] :
-        < OID : Entity | state : moving, coordinate : (X,Y), remainingPath : (X,Y) (X2,Y2) LCO > 
+        < OID : Entity | 
+            state : moving,
+            coordinate : (X,Y),
+            remainingPath : (X,Y) (X2,Y2) LCO > 
         =>
-        < OID : Entity | direction : setDirection((X,Y), (X2,Y2)), remainingPath : (X2,Y2) LCO > .
+        < OID : Entity |
+            direction : setDirection((X,Y), (X2,Y2)), 
+            remainingPath : (X2,Y2) LCO > .
+
+    rl [finish] :
+        < OID : Entity | coordinate : (X,Y), 
+            remainingPath : (X,Y), 
+            state : moving >
+        =>
+        < OID : Entity | speed : 0, 
+            remainingPath : nil, 
+            state : idle > .
 endom

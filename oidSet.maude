@@ -1,18 +1,13 @@
-omod OID-SET is 
+omod OID is
     protecting STRING .
 
-    sort OidSet .
+    subsort String < Oid .
+endom 
 
-    subsort String < Oid < OidSet .
-    
-    op none : -> OidSet [ctor] .
-    op __ : OidSet OidSet -> OidSet [ctor assoc comm id: none] .
-    op _\_ : OidSet OidSet -> OidSet [assoc] .
+view OidElt from TRIV to OID is
+    sort Elt to Oid .
+endv
 
-    vars OS OS2 : OidSet .
-    var O : Oid .
-    
-    eq OS \ none = OS .
-    eq none \ OS = none .
-    eq (O OS) \ (O OS2) = OS \ OS2 .
+omod OID-SET is 
+    protecting SET{OidElt} .
 endom

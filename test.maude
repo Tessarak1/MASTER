@@ -87,5 +87,6 @@ mod TEST2 is
         c .
 endm
 
+
 red modelCheck(a, <> isC) .
 red modelCheck(b, isA) .

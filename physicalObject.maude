@@ -2,7 +2,7 @@ load locatable .
 omod PHYSICAL-OBJ is
     protecting STRING .
     protecting LOCATABLE .
-    protecting LIST-COORDINATE .
+    protecting COORDINATE-LIST .
 
     class PhysicalObj .
     subclass PhysicalObj < Locatable .

@@ -1,16 +1,23 @@
 ***Parameterized multiset
 fmod MSET{X :: TRIV} is
+    protecting NAT .
+
     sort MSet{X} .
     subsort X$Elt < MSet{X} .
 
-    op none : -> MSet{X} [ctor] .
-    op _,_ : MSet{X} MSet{X} -> MSet{X} [ctor assoc comm id: none] .
+    op empty : -> MSet{X} [ctor] .
+    op __ : MSet{X} MSet{X} -> MSet{X} [ctor assoc comm id: empty] .
 
     op _in_ : X$Elt MSet{X} -> Bool .
+    op |_| : MSet{X} -> Nat .
+
 
     var E : X$Elt .
     var MS : MSet{X} .
     
-    eq E in (E , MS) = true .
+    eq E in (E MS) = true .
     eq E in MS = false [owise] .
+
+    eq | empty | = 0 .
+    eq | E MS | = 1 + | MS | .
 endfm
