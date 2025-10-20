@@ -1,4 +1,5 @@
 load entity .
+load obstacle .
 
 ***import state here, or do something else, moving, unmoving , broken?
 omod REPRESENTATION-SORTS is
@@ -18,8 +19,27 @@ endv
 
 omod REPRESENTATION is
     protecting SET{InformationElt} .
+    protecting OBSTACLE .
 
     op {_:_|_} : Oid Cid Set{InformationElt} -> Representation [ctor] .
+
+    op getRepCoord : Representation -> Coordinate .
+    op getRepOid : Representation -> Oid .
+    op isFixable : Representation -> Bool .
+
+    var REP : Representation .
+    var OID : Oid .
+    var CID : Cid .
+    var IS : Set{InformationElt} .
+    var CO : Coordinate .
+    var INC : IncapacitatedState .
+
+    eq getRepCoord({OID : CID | CO , IS}) = CO .
+    eq getRepOid({OID : CID | IS}) = OID .
+    
+    eq isFixable({OID : CID | INC , IS}) = true .
+    eq isFixable({OID : Obstacle | IS}) = true .
+    eq isFixable(REP) = false [owise] .
 endom
 
 

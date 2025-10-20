@@ -30,9 +30,7 @@ omod FIELD is
     ***Changes the field based on the task that has been completed on it.
     op taskComplete : Object Tid -> Object .
     ops activeWaterTimer activeFertilizerTimer activeGrowTimer : Object -> Timer .
-    ***returns the minimum of activeWaterTimer activeFertilizerTimer and activeGrowTimer.
-    op $mteField : Object -> TimeInf .
-
+    
     vars OID OID2 : Oid .
     var L L2 : Level .
     vars TIME TIME2 : Time .

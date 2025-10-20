@@ -103,7 +103,7 @@ omod MAP is
         < OID : Map | intersections : $removeNeighbor(findRoad(LCO, RS), CONF), 
             roads : RS \ findRoad(LCO, RS) > .
 
-    ceq outsideMap((X,Y), ({(X2,Y2) (X3,Y3)} , RS)) = false if between((X,Y), (X2,Y2) (X3,Y3)) =/= nil .
+    ceq outsideMap((X,Y), ({(X2,Y2) (X3,Y3)} , RS)) = false if findPathPair((X,Y), (X2,Y2) (X3,Y3)) =/= nil .
     eq outsideMap((X,Y), RS) = true [owise] .
 
     eq modifyMap(< OID : Map | >, LCO, LCO2) = 

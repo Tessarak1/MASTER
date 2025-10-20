@@ -4,7 +4,7 @@ fmod DIRECTION is
     
     sort Direction .
 
-    ops north east south west : -> Direction [ctor] .
+    ops north east south west noDirection : -> Direction [ctor] .
 
     op setDirection : Coordinate Coordinate -> Direction .
     op oppositeDirections : Direction Direction -> Bool [comm] .
@@ -17,6 +17,7 @@ fmod DIRECTION is
     ceq setDirection((X,Y), (X2,Y)) = east if X2 > X .
     ceq setDirection((X,Y), (X,Y2)) = south if Y2 < Y .
     ceq setDirection((X,Y), (X2,Y)) = west if X2 < X .
+    eq setDirection((X,Y), (X2,Y2)) = noDirection [owise] .
 
     eq oppositeDirections(north, south) = true .
     eq oppositeDirections(east, west) = true .

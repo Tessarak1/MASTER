@@ -8,9 +8,9 @@ fmod QUADRATIC-SOLVER is
     op noResult : -> QuadResult [ctor] .
     op _;_ : QuadResult QuadResult -> QuadResult [ctor comm assoc id: noResult] .
     
-    ops $quadraticFormulaMinus $quadraticFormulaPlus : Rat Rat Rat -> Rat .
-    op $quadraticFormula : QuadResult -> QuadResult .
-    op quadraticFormula : Rat Rat Rat -> QuadResult .
+    ops $quadFormulaMinus $quadFormulaPlus : Rat Rat Rat -> Rat .
+    op $quadFormula : QuadResult -> QuadResult .
+    op quadFormula : Rat Rat Rat -> QuadResult .
     op minElement : QuadResult -> Rat .
     op posOnly : QuadResult -> QuadResult .
 
@@ -23,16 +23,14 @@ fmod QUADRATIC-SOLVER is
     ceq posOnly((QR ; R ; QR2)) = posOnly((QR ; QR2)) if R < 0 .
     eq posOnly(QR) = QR [owise] .
 
-    eq $quadraticFormulaMinus(R, R2, R3) = ((-1 * R2) - rat(sqrt(float((R2 ^ 2) - (4 * R * R3))))) / (2 * R) . 
-    eq $quadraticFormulaPlus(R, R2, R3) = ((-1 * R2) + rat(sqrt(float((R2 ^ 2) - (4 * R * R3))))) / (2 * R) . 
+    eq $quadFormulaMinus(R, R2, R3) = ((-1 * R2) - rat(sqrt(float((R2 ^ 2) - (4 * R * R3))))) / (2 * R) . 
+    eq $quadFormulaPlus(R, R2, R3) = ((-1 * R2) + rat(sqrt(float((R2 ^ 2) - (4 * R * R3))))) / (2 * R) . 
 
-    eq $quadraticFormula(QR) = minElement(posOnly(QR)) .
-
-    eq quadraticFormula(R, R2, R3) = 
+    eq quadFormula(R, R2, R3) = 
         if ((R2 ^ 2) - (4 * R * R3)) < 0
         then
             noResult
         else
-            $quadraticFormula(($quadraticFormulaMinus(R, R2, R3) ; $quadraticFormulaPlus(R, R2, R3)))
+            $quadFormulaMinus(R, R2, R3) ; $quadFormulaPlus(R, R2, R3)
         fi .
 endfm

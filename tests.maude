@@ -140,7 +140,7 @@ omod SMALL-TESTS is
 
   ops robotAttrs workerAttrs transporterAttrs : -> AttributeSet .
   op fieldAttrs : -> AttributeSet .
-  ops rob : -> Object .
+  ops rob rob2 : -> Object .
   ops I1 : -> Object .
   op resupply : -> Object .
   op collection : -> Object .
@@ -169,11 +169,32 @@ omod SMALL-TESTS is
 
   eq GL1 = < "GL1" : Field | coordinate : (0, 100), neighbors : "I1", growingArea : area(((-1, 100), (1,100), (-1, 101), (1, 101))), fieldAttrs > .
   
-  eq rob = < "W1" : Worker | curCargo : water, speed : 0, coordinate : (0,0), state : idle, direction : west, remainingPath : nil, robotAttrs > .
-***  eq rob2 = < "T1" : Transporter | speed : 0, coordinate : (10,-100), state : idle, direction : east, remainingPath : nil, robotAttrs, transporterAttrs > .
+  eq rob = < "W1" : Worker | curCargo : water, speed : 1, coordinate : (-10,0), state : moving, direction : east, remainingPath : (0,0), robotAttrs > .
+  eq rob2 = < "T1" : Worker | speed : 1, coordinate : (0,3), state : moving, direction : north, remainingPath : (0,10), robotAttrs > .
 
   eq map1 = < "Map" : Map | intersections : intersections1, roads : createRoadSet(intersections1) > .
   
-  eq farm1 = map1 GL1 collection resupply .
-  eq base1 = farm1 rob @ 0 .
+  eq farm1 = map1 collection resupply .
+  eq base1 = farm1 GL1 @ 0 .
 endom
+
+***Defines the test scenarios with small configurations to run specific tests on. 
+omod SMALL-SCENARIOS is
+  protecting SMALL-TESTS .
+
+  ops obstacleTest repairTest test3 test4 test5 test6 test7 : -> LimitClockedConfiguration .
+  ops timeRob1 timeRob2 : -> Object .
+  ops timeTest : -> LimitClockedConfiguration .
+
+  eq timeRob1 = < "W1" : Worker | curCargo : water, speed : 1000, coordinate : (0,0), state : moving, direction : west, remainingPath : (-100,0), robotAttrs > .
+  eq timeRob2 = < "W2" : Worker | speed : 100, coordinate : (-99,0), state : moving, direction : east, remainingPath : (0,0), robotAttrs > .
+
+  eq timeTest = farm1 timeRob2 timeRob1 @ 0 [LIMIT: 100] .
+  eq obstacleTest = farm1 rob  @ 0 [LIMIT: 1000] .
+  eq repairTest = map1 collection resupply rob rob2 @ 0 [LIMIT: 100] .
+endom
+***time testing
+rew [1] timeTest .
+
+***search [1] repairTest =>* C:Configuration < "T1" : Worker | state : idle, AS:AttributeSet > @ T:Time [LIMIT: T2:Time] .
+***Detection when idle, dont start negotiation, but add to obs points or something, need to track it.

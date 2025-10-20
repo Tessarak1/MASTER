@@ -28,8 +28,9 @@ omod MESSAGE is
   subsort Msg < DlyMsg < Configuration .
   subsort Tid < MsgContent .
 
+
   op dly : Msg Time -> DlyMsg [ctor right id: 0] .
-  ops obstacleAt_ removed_ yielding_ : Coordinate -> MsgContent .
+  ops yielding_ : Coordinate -> MsgContent .
   ops path conflictYield : List-Coordinate -> MsgContent .
   op pathCost : Cost -> MsgContent .
   ops requestPath noConflict completedYield noYield : -> MsgContent .

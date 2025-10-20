@@ -12,7 +12,7 @@ omod TASK-SORTS is
     subsorts WorkerTask TransporterTask < TaskType .
 
     ops wateringTask fertilizeTask plantTask resupplyTask : -> WorkerTask [ctor] .
-    ops removeAt_ repairAt_ : Coordinate -> WorkerTask [ctor] .
+    ops fixAt_ : Coordinate -> WorkerTask [ctor] .
     ops harvestTask unloadTask : -> TransporterTask [ctor] .
 
     op [_,_] : Oid TaskType -> Tid [ctor] .

@@ -44,9 +44,10 @@ fmod COORDINATE-LIST is
 
     op first : List-Coordinate -> Coordinate .
     op last : List-Coordinate -> Coordinate  .
+    op _in_ : Coordinate List-Coordinate -> Bool .
     op remove : List-Coordinate List-Coordinate -> List-Coordinate .
     ***Checks if a given locations is between two neighboring locations in the list, and returns them if they exist.
-    op between : Coordinate List-Coordinate -> List-Coordinate .
+    op findPathPair : Coordinate List-Coordinate -> List-Coordinate .
     ***The total distance required to traverse the entire list.
     op listLength : List-Coordinate -> Rat .
     ***Checks for overlap between two paralell lines represented by two locations
@@ -56,8 +57,11 @@ fmod COORDINATE-LIST is
 
     op sharedLocation : List-Coordinate List-Coordinate -> List-Coordinate .
 
+    op shortenEndBy : List-Coordinate Rat -> List-Coordinate .
+
     vars LCO LCO2 LCO3 LCO4 : List-Coordinate .
     var CO : Coordinate .
+    var R : Rat .
     vars X X2 X3 X4 Y Y2 Y3 Y4 : Rat .
 
     eq first(nil) = nil .
@@ -66,13 +70,13 @@ fmod COORDINATE-LIST is
     eq last(nil) = nil .
     eq last(LCO CO) = CO .
 
-    eq between(CO, nil) = nil .
-    eq between(CO, (X,Y)) = nil .
-    eq between((X, Y), (X2, Y2) (X3, Y3) LCO) =
+    eq findPathPair(CO, nil) = nil .
+    eq findPathPair(CO, (X,Y)) = nil .
+    eq findPathPair((X, Y), (X2, Y2) (X3, Y3) LCO) =
         if ((X inInterval(X2,X3)) and (Y inInterval(Y2,Y3))) then
             (X2, Y2) (X3,Y3)
         else
-            between((X,Y), (X3,Y3) LCO)
+            findPathPair((X,Y), (X3,Y3) LCO)
         fi .
 
     eq remove(nil, LCO) = nil .
@@ -92,4 +96,23 @@ fmod COORDINATE-LIST is
     eq rmvNeighborDuplicates(LCO) = LCO [owise] .
 
     eq sharedLocation((X,Y) (X2,Y2) LCO, (X3,Y3) (X2,Y2) LCO2) = (X2,Y2) .
+
+    eq shortenEndBy(nil, R) = nil .
+    eq shortenEndBy((X,Y), R) = nil .
+    eq shortenEndBy(LCO (X,Y) (X,Y2), R) =
+        if Y > Y2
+        then
+            LCO (X,Y) (X, Y2 + R)
+        else
+            LCO (X,Y) (X,Y2 - R)
+        fi .
+    eq shortenEndBy(LCO (X,Y) (X2,Y), R) = 
+        if X > X2
+        then
+            LCO (X,Y) (X2 + R, Y)
+        else
+            LCO (X,Y) (X2 - R, Y)
+        fi .
+    eq (X,Y) in LCO (X,Y) LCO2 = true .
+    eq (X,Y) in LCO = false [owise] .
 endfm
