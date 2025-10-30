@@ -19,7 +19,7 @@ omod AUCTIONEER is
     ops won_ reject_ accept_ : Tid -> AuctionMsgContent [ctor] .
 
     ***Creates an auction for every task in the TidSet and broadcasts it within range.
-    op initiateAuction : Object MSet{TidElt} Configuration -> Configuration .
+    op initiateAuction : Object Tid Configuration -> Configuration .
 
     ***Overloaded in subclasses to determine if theo bject needs to start auctioning a task.
     op needToStartAuction : Object -> Bool .
@@ -36,7 +36,6 @@ omod AUCTIONEER is
     var TIDS : MSet{TidElt} .
     var AUS : Set{AuctionElt} .
     var MSG : Msg .
-    var BMC : BidMsgContent .
     var TR : Timer .
     vars TIME TIME2 TIME3 : Time .
     var BS : Set{BidElt} .
@@ -45,10 +44,9 @@ omod AUCTIONEER is
     var CONF : Configuration .
     vars COST : Cost .
 
-    eq initiateAuction(< OID : Auctioneer | >, empty, CONF) = < OID : Auctioneer | > CONF .
-    eq initiateAuction(< OID : Auctioneer | auctions : AUS >, TIDS, CONF) =
-        < OID : Auctioneer | auctions  : (AUS, createAuction(TIDS)) >
-        broadcastInRange(< OID : Auctioneer | >, tidToMsgContent(TIDS), CONF)  .
+    eq initiateAuction(< OID : Auctioneer | auctions : AUS >, TID, CONF) =
+        < OID : Auctioneer | auctions  : (AUS , createAuction(TID)) >
+        broadcastInRange(< OID : Auctioneer | >, TID, CONF)  .
 
     ***No winner, so restart the auction.
     eq retryAuction(< OID : Auctioneer | >, CONF, [Task: TID TR | empty]) =

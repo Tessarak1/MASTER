@@ -28,22 +28,11 @@ omod MESSAGE is
   subsort Msg < DlyMsg < Configuration .
   subsort Tid < MsgContent .
 
-
   op dly : Msg Time -> DlyMsg [ctor right id: 0] .
-  ops yielding_ : Coordinate -> MsgContent .
-  ops path conflictYield : List-Coordinate -> MsgContent .
-  op pathCost : Cost -> MsgContent .
-  ops requestPath noConflict completedYield noYield : -> MsgContent .
-
-  ***Converts a set of tasks into msg content set.
-  op tidToMsgContent : MSet{TidElt} -> MsgContentSet .
-
-  var TID : Tid .
-  var TIDS : MSet{TidElt} .
-
-  eq tidToMsgContent(empty) = noContent .
-  eq tidToMsgContent(TID TIDS) = TID & tidToMsgContent(TIDS) .
-endom
+  ops yielding_ : Coordinate -> MsgContent [ctor] .
+  ops path conflictYield : List-Coordinate -> MsgContent [ctor] .
+  op pathCost : Cost -> MsgContent [ctor] .
+  ops requestPath noConflict completedYield noYield : -> MsgContent [ctor] .
 
 omod MESSENGER is
   protecting MESSAGE .
@@ -52,14 +41,18 @@ omod MESSENGER is
 
   ***Objects of this class can communicate with one another.
   ***Each object has a range that they can communicate within. 
-  class Messenger | broadcastRange : Rat .
+  class Messenger | transmissionRange : Rat .
   
   subclass Messenger < Locatable .
 
   ***Creates a message from Oid to everyone in the Set{OidElt}.
+  ***need to add transmission delay to each message sent.
   op broadcast : Oid MsgContent Set{OidElt} -> Configuration .
+  op unicast : Oid MsgContent Oid -> Configuration .
 
-  ***Broadcasts messages from Object to each object in the configuration that is in range.
+  ***broadcasts messages from Object to each object in the configuration that is in range.
+  ***Segment this, to unicast operation too.
+  ***MSG DELAY and sender delay.
   op broadcastInRange : Object MsgContent Configuration -> Configuration .
   op $broadcastInRange : Oid MsgContent Set{OidElt} -> Configuration .
 
@@ -81,9 +74,10 @@ omod MESSENGER is
   eq broadcast(OID, MC, (OID2, OIDS)) = dly((msg MC from OID to OID2), MSG-DELAY) broadcast(OID, MC, OIDS) .
 
   eq broadcastInRange(< OID : Messenger | >, noContent, CONF) = none .
-  eq broadcastInRange(< OID : Messenger | broadcastRange : R >, MCS, CONF) =
+  eq broadcastInRange(< OID : Messenger | transmissionRange : R >, MCS, CONF) =
     $broadcastInRange(OID, MCS, messengerOids(withinDistance(< OID : Messenger | >, R, CONF))) .
   
   eq $broadcastInRange(OID, noContent, OIDS) = none .
   eq $broadcastInRange(OID, MC & MCS, OIDS) = broadcast(OID, MC, OIDS) $broadcastInRange(OID, MCS, OIDS) .
 endom
+  

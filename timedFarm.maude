@@ -12,7 +12,6 @@ omod TIMED-FARM is
     protecting BUILDINGS .
     protecting QUADRATIC-SOLVER .
 
-    ***filter based on workers/transporters/fields here? Makes most sense to facilitate multicast instead of broadcast.
     sorts ClockedConfiguration LimitClockedConfiguration .
 
     op  _@_ : Configuration Time -> ClockedConfiguration [ctor] .
@@ -29,7 +28,7 @@ omod TIMED-FARM is
     op $coefficientC : Rat Rat Rat -> Rat .
 
     op timeEffect : Configuration Time -> Configuration .
-    ops $timeEffectRobot $timeEffectField : Object Time -> Object .
+    ops move $timeEffectField : Object Time -> Object .
 
     op $linearTime : Object Object Rat -> Time .
     op linearTime : Object Object -> Time .
@@ -69,9 +68,9 @@ omod TIMED-FARM is
     var TT : TaskType .
     var WT : WorkerTask .
     var TPT : TransporterTask .
-    var YIS : YieldInformationSet .
-    var WI : WaitingInformation .
-    var BIS : BaseInformationSet .
+    var YIS : YieldInfoSet .
+    var WI : WaitingInfo .
+    var BIS : BaseInfoSet .
 
     eq $coefficientA(SP, SP2) = (SP ^ 2) + (SP2 ^ 2) .
     eq $coefficientB(SP, DIST, SP2, DIST2) = -2 * ((SP * DIST) + (SP2 * DIST2)) .
@@ -356,9 +355,9 @@ omod TIMED-FARM is
     ***Needs to stop negotiating
     eq $mteRobot(< OID : Robot | state : negotiating, negotiations : none >,  CONF) = 0 .
     ***Needs to transition to planningPath
-    eq $mteRobot(< OID : Robot | state : idle, remainingPath : nil, yieldStatus : noYieldInformation, curTask : TID >,  CONF) = 0 .
+    eq $mteRobot(< OID : Robot | state : idle, remainingPath : nil, yieldStatus : noYieldInfo, curTask : TID >,  CONF) = 0 .
     ***Needs to stop waiting
-    eq $mteRobot(< OID : Robot | state : waiting, waitingStatus : noWaitingInformation >, CONF) = 0 .
+    eq $mteRobot(< OID : Robot | state : waiting, waitingStatus : noWaitingInfo >, CONF) = 0 .
     ***Allow robot to start resupplying if needed
     ceq $mteRobot(< OID : Robot | coordinate : (X,Y), state : FUNC, curTask : TID >,
     < OID2 : ResupplyStation | coordinate : (X,Y) > CONF) = 0 if needsResupply(< OID : Robot | >, TID) and (FUNC =/= resupplying) .
@@ -433,7 +432,7 @@ omod TIMED-FARM is
 
     ceq $mteField(< OID : Field | >) = 0 if needToStartAuction(< OID : Field | >) .
     eq $mteField(< OID : Field | auctions : AUS >) = 
-        minTimer(getAuctionTimers(AUS) 
+        minTimer(getTimers(AUS) 
             activeWaterTimer(< OID : Field | >) 
             activeFertilizerTimer(< OID : Field | >) 
             activeGrowTimer(< OID : Field | >)) .
@@ -448,7 +447,7 @@ omod TIMED-FARM is
     eq mte(dly(MSG, TIME) CONF) = min(TIME, mte(CONF)).
     eq mte(CONF) = ratInf [owise] .
 
-    eq $timeEffectRobot(< OID : Robot | state : moving, 
+    eq move(< OID : Robot | state : moving, 
             coordinate : (X, Y), 
             direction : north, 
             speed : SP, 
@@ -457,7 +456,7 @@ omod TIMED-FARM is
         = 
         < OID : Robot | coordinate : (X, Y + (SP * TIME)) > .
 
-    eq $timeEffectRobot(< OID : Robot | state : moving, 
+    eq move(< OID : Robot | state : moving, 
             coordinate : (X, Y), 
             direction : east, 
             speed : SP, 
@@ -466,7 +465,7 @@ omod TIMED-FARM is
         = 
         < OID : Robot | coordinate : (X + (SP * TIME), Y) > .
 
-    eq $timeEffectRobot(< OID : Robot | state : moving, 
+    eq move(< OID : Robot | state : moving, 
             coordinate : (X, Y), 
             direction : south, 
             speed : SP, 
@@ -475,7 +474,7 @@ omod TIMED-FARM is
         = 
         < OID : Robot | coordinate : (X, Y - (SP * TIME)) > .
 
-    eq $timeEffectRobot(< OID : Robot | state : moving, 
+    eq move(< OID : Robot | state : moving, 
             coordinate : (X, Y), 
             direction : west, 
             speed : SP, 
@@ -484,7 +483,7 @@ omod TIMED-FARM is
         = 
         < OID : Robot | coordinate : (X - (SP * TIME), Y) > .
 
-    ceq $timeEffectRobot(< OID : Robot | state : STATE >, 
+    ceq move(< OID : Robot | state : STATE >, 
         TIME) 
         = 
         < OID : Robot | > 
@@ -492,12 +491,12 @@ omod TIMED-FARM is
 
     eq timeEffect(< OID : Robot | > CONF, TIME) 
         = 
-        $timeEffectRobot(
-            decreaseTimers(< OID : Robot | >, TIME),
+        move(
+            decTimers(< OID : Robot | >, TIME),
             TIME
         ) 
         timeEffect(CONF, TIME) .
-    eq timeEffect(< OID : Field | > CONF, TIME) = decreaseTimers(< OID : Field | >, TIME) timeEffect(CONF, TIME) .
+    eq timeEffect(< OID : Field | > CONF, TIME) = decTimers(< OID : Field | >, TIME) timeEffect(CONF, TIME) .
     eq timeEffect(dly(MSG, TIME) CONF, TIME2) = dly(MSG, TIME monus TIME2) timeEffect(CONF, TIME) .
     eq timeEffect(CONF, TIME) = CONF [owise] .
 

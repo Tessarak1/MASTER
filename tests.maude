@@ -15,11 +15,11 @@ omod BASE is
   op map1 : -> Object .
   op base1 : -> ClockedConfiguration .
 
-  eq robotAttrs = broadcastRange : 200, maxSpeed : 1, detected : empty, auctions : empty, curTask : noTask,
-    handledTime : false, workState : noWork, detectionRange : 10, obstructionPoints : nil, negotiations : none, yieldStatus : noYieldInformation, waitingStatus : noWaitingInformation .
+  eq robotAttrs = transmissionRange : 200, maxSpeed : 1, detected : empty, auctions : empty, curTask : noTask,
+    handledTime : false, workState : noWork, detectionRange : 10, obsCoords : nil, negotiations : none, yieldStatus : noYieldInfo, waitingStatus : noWaitingInfo .
   ***eq workerAttrs = cargoLevel : emptyCargo .
   eq transporterAttrs = cargoLevel : emptyCargo .
-  eq fieldAttrs = handledTime : false, broadcastRange : 200, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 500 - base: 500],
+  eq fieldAttrs = handledTime : false, transmissionRange : 200, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 500 - base: 500],
     fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 1200 - base: 1200], reserved : false, auctions : empty, activeTasks : empty .
 
   eq I1 = < "I1" : PassIntersection | coordinate : (0,0), neighbors : ("I2" , "I3" , "GL1") > .
@@ -57,36 +57,36 @@ omod HIERARCHY-TESTS is
   op yieldFarm : -> Configuration .
   op yieldTest : -> ClockedConfiguration .
 
-  eq customAttrs = broadcastRange : 200, maxSpeed : 1, detected : empty, auctions : empty,  handledTime : false, 
-    detectionRange : 10, obstructionPoints : nil .
+  eq customAttrs = transmissionRange : 200, maxSpeed : 1, detected : empty, auctions : empty,  handledTime : false, 
+    detectionRange : 10, obsCoords : nil .
   eq customFieldAttrs = waterLevel : low, waterTimer : [cur: 0 - base: 1000] .
 
-  eq yieldAttrs = broadcastRange : 200, maxSpeed : 1, detected : empty, auctions : empty, handledTime : false,
-    detectionRange : 10, obstructionPoints : nil, cargoLevel : emptyCargo, workState : noWork, waitingStatus : noWaitingInformation,
+  eq yieldAttrs = transmissionRange : 200, maxSpeed : 1, detected : empty, auctions : empty, handledTime : false,
+    detectionRange : 10, obsCoords : nil, cargoLevel : emptyCargo, workState : noWork, waitingStatus : noWaitingInfo,
     negotiations : none .
 
   ***Coordinates around single entrance to Resupply
   eq taskRob1 = < "W1" : Worker | curCargo : water, speed : 1, coordinate : (-40,-100), 
-    state : moving, curTask : ["GL2", wateringTask], direction : west, yieldStatus : noYieldInformation, 
+    state : moving, curTask : ["GL2", wateringTask], direction : west, yieldStatus : noYieldInfo, 
     remainingPath : (-50,-100) (0,-100) (100,-100) (150, -100), customAttrs, cargoLevel : emptyCargo, workState : noWork > .
   eq taskRob2 = < "W2" : Worker | curCargo : fertilizer, speed : 1, coordinate : (-10,-100),
-    state : moving, curTask : ["GL1", fertilizeTask], direction : west, yieldStatus : noYieldInformation, 
+    state : moving, curTask : ["GL1", fertilizeTask], direction : west, yieldStatus : noYieldInfo, 
     remainingPath : (-50, -100) (0,-100) (0,0) (0,100), customAttrs, cargoLevel : emptyCargo, workState : noWork > .
 
   eq taskRob3 = < "W3" : Worker | curCargo : water, speed : 0, coordinate : (99,0),
     state : idle, curTask : noTask, direction : west, yieldStatus : [Oid: YIELD-PLACEHOLDER | [cur: 100 - base: 100]],
     remainingPath : nil, customAttrs, cargoLevel : full, workState : noWork > .
   eq taskRob4 = < "W4" : Transporter | curCargo : produce, speed : 1, coordinate : (20, 0),
-    state : moving, curTask : ["Collection", unloadTask], direction : east, yieldStatus : noYieldInformation,
+    state : moving, curTask : ["Collection", unloadTask], direction : east, yieldStatus : noYieldInfo,
     remainingPath : (100,0) (100,-100) (100,-150), customAttrs, cargoLevel : full, workState : noWork > .
 
   eq taskRob5 = < "W3" : Worker | curCargo : water, speed : 0, coordinate : (-49,-100),
-    state : negotiating, curTask : ["GL2", wateringTask], direction : west, yieldStatus : noYieldInformation,
-    remainingPath : nil, customAttrs, cargoLevel : emptyCargo, workState : noWork, waitingStatus : noWaitingInformation,
+    state : negotiating, curTask : ["GL2", wateringTask], direction : west, yieldStatus : noYieldInfo,
+    remainingPath : nil, customAttrs, cargoLevel : emptyCargo, workState : noWork, waitingStatus : noWaitingInfo,
     negotiations : ["Placeholder" | (200,200) | noCost] > .
   eq taskRob6 = < "W4" : Transporter | curCargo : produce, speed : 1, coordinate : (-10, -100),
     state : moving, curTask : ["Collection", unloadTask], direction : west, yieldStatus : [Oid: YIELD-PLACEHOLDER | [cur: 100 - base: 100]],
-    remainingPath : (-50,-100), customAttrs, cargoLevel : full, workState : noWork, waitingStatus : noWaitingInformation,
+    remainingPath : (-50,-100), customAttrs, cargoLevel : full, workState : noWork, waitingStatus : noWaitingInfo,
     negotiations : none > .
   eq taskFarm = farm1 taskRob1 taskRob2 .
   eq taskTest = taskFarm @ 0 .
@@ -101,7 +101,7 @@ omod HIERARCHY-TESTS is
     direction : west, state : idle, curTask : noTask, yieldStatus : [Oid: "placeholder" | [cur: 100 - base: 100]], yieldAttrs > .
 
   eq yieldRob3 = < "TASK" : Worker | curCargo : water, speed : 1, coordinate : (90,0), remainingPath : (100,0) (110,0),
-    direction : east, curTask : ["GL2", wateringTask], state : moving, yieldStatus : noYieldInformation, yieldAttrs > .
+    direction : east, curTask : ["GL2", wateringTask], state : moving, yieldStatus : noYieldInfo, yieldAttrs > .
 
   eq yieldFarm = farm1 yieldRob1 yieldRob2 .
   eq yieldTest = yieldFarm @ 0 .
@@ -115,14 +115,14 @@ omod ROW-TESTS is
   op rowTest : -> LimitClockedConfiguration .
   op obstacle1 : -> Object .
 
-  eq rowAttrs = broadcastRange : 200, maxSpeed : 1, detected : empty, auctions : empty, handledTime : false,
-    detectionRange : 10, obstructionPoints : nil, cargoLevel : full, workState : noWork, waitingStatus : noWaitingInformation,
+  eq rowAttrs = transmissionRange : 200, maxSpeed : 1, detected : empty, auctions : empty, handledTime : false,
+    detectionRange : 10, obsCoords : nil, cargoLevel : full, workState : noWork, waitingStatus : noWaitingInfo,
     negotiations : none .
 
   eq rowRob1 = < "R1" : Worker | curCargo : water, speed : 1, coordinate : (10,0), remainingPath : (100,0) (100,-100) (150,-100),
-    direction : east, state : moving, curTask : ["GL2", wateringTask], yieldStatus : noYieldInformation, rowAttrs > .
+    direction : east, state : moving, curTask : ["GL2", wateringTask], yieldStatus : noYieldInfo, rowAttrs > .
   eq rowRob2 = < "R2" : Worker | curCargo : water, speed : 1, coordinate : (20,0), remainingPath : (100,0) (100,-100) (150,-100),
-    direction : east, state : moving, curTask : ["GL2", fertilizeTask], yieldStatus : noYieldInformation, rowAttrs > .
+    direction : east, state : moving, curTask : ["GL2", fertilizeTask], yieldStatus : noYieldInfo, rowAttrs > .
   eq rowRob3 = < "R3" : Worker | curCargo : water, speed : 1, coordinate : (90,0), remainingPath : (0,0) (0,-5),
     direction : west, state : moving, curTask : noTask, yieldStatus : [Oid: "placeholder" | [cur: 100 - base: 100]], rowAttrs > .
   eq rowRob4 = < "R4" : Worker | curCargo : water, speed : 1, coordinate : (100,0), remainingPath : (0,0) (0,-2),
@@ -150,15 +150,15 @@ omod SMALL-TESTS is
   op map1 : -> Object .
   op base1 : -> ClockedConfiguration .
 
-  eq robotAttrs = broadcastRange : 200, maxSpeed : 1, 
+  eq robotAttrs = transmissionRange : 200, maxSpeed : 1, 
     detected : empty, auctions : empty, curTask : noTask,
     handledTime : false, workState : noWork, 
-    detectionRange : 10, obstructionPoints : nil, 
-    negotiations : none, yieldStatus : noYieldInformation, 
-    waitingStatus : noWaitingInformation,
+    detectionRange : 10, obsCoords : nil, 
+    negotiations : none, yieldStatus : noYieldInfo, 
+    waitingStatus : noWaitingInfo,
     cargoLevel : full .
 ***  eq transporterAttrs = cargoLevel : emptyCargo .
-  eq fieldAttrs = handledTime : false, broadcastRange : 200, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 500 - base: 500],
+  eq fieldAttrs = handledTime : false, transmissionRange : 200, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 500 - base: 500],
     fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 1200 - base: 1200], reserved : false, auctions : empty, activeTasks : empty .
 
   eq I1 = < "I1" : PassIntersection | coordinate : (0,0), neighbors : ("Resupply", "GL1") > .

@@ -20,7 +20,6 @@ omod FIELD is
         growTimer : Timer,
         growingArea : Area,
         reserved : Bool,
-        activeTasks : Set{TaskTypeElt} .
 
     subclass Field < PassIntersection Auctioneer .
 
@@ -45,16 +44,18 @@ omod FIELD is
     var TTS : Set{TaskTypeElt} .
 
     eq taskComplete(< OID : Field | 
-            waterTimer : TR, 
-            reserved : true, 
-            activeTasks : wateringTask , TTS >, 
-        [OID, wateringTask]) 
+                waterTimer : TR, 
+                reserved : true, 
+                activeTasks : wateringTask , TTS >, 
+            [OID, wateringTask]) 
         = 
         < OID : Field | 
             waterLevel : good, 
             waterTimer : reset(TR), 
-            reserved : false, 
-            activeTasks : TTS > .
+            reserved : false,
+            activeTasks : TTS
+        > .
+
     eq taskComplete(< OID : Field | fertilizerTimer : TR, reserved : true, activeTasks : fertilizeTask , TTS >, [OID, fertilizeTask]) = < OID : Field | fertilizerLevel : good, fertilizerTimer : reset(TR), reserved : false, activeTasks : TTS > .
     eq taskComplete(< OID : Field | growingState : vacant,  reserved : true, activeTasks : plantTask , TTS >, [OID, plantTask]) = < OID : Field | growingState : growing, reserved : false, activeTasks : TTS > .
     eq taskComplete(< OID : Field | growingState : harvest, growTimer : TR,  reserved : true, activeTasks : harvestTask , TTS >, [OID, harvestTask]) = < OID : Field | growingState : vacant, growTimer : reset(TR),  reserved : false, activeTasks : TTS > .
@@ -68,19 +69,19 @@ omod FIELD is
             growTimer : TR3 >,
         TIME)
         =
-        < OID : Field | growTimer : decrease(TR3, TIME) > .
+        < OID : Field | growTimer : dec(TR3, TIME) > .
     eq $progressGrowth(< OID : Field | >, TIME) = < OID : Field | > [owise] .
     
-    eq decreaseTimers(< OID : Field | 
+    eq decTimers(< OID : Field | 
             auctions : AUS, 
             waterTimer : TR, 
             fertilizerTimer : TR2 >,
         TIME)
         =
         $progressGrowth(< OID : Field | 
-            auctions : decreaseAuctionTimers(AUS, TIME),
-            waterTimer : decrease(TR, TIME),
-            fertilizerTimer : decrease(TR2, TIME) >, TIME) .
+            auctions : decTimers(AUS, TIME),
+            waterTimer : dec(TR, TIME),
+            fertilizerTimer : dec(TR2, TIME) >, TIME) .
 
     eq activeWaterTimer(< OID : Field | activeTasks : (wateringTask , TTS) >) = empty .
     eq activeWaterTimer(< OID : Field | waterTimer : TR, waterLevel : good >) = TR [owise] .

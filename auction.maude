@@ -1,6 +1,8 @@
 load task .
 load timer .
 load oidSet .
+load cost .
+load systemVars . 
 
 fmod AUCTION-SORTS is
     sort Bid .
@@ -40,7 +42,9 @@ omod AUCTION is
     op auctionWinner : Set{BidElt} Oid Cost -> Oid .
 
     ***Creates an auction for every task in the MSet{TidElt}.
-    op createAuction : MSet{TidElt} -> Set{AuctionElt} .
+    op createAuction : Tid -> Auction .
+
+    op auctionExists : Tid Set{AuctionElt} -> Bool .
 
     ***Checks if a task is up for auction in an auction set.
     ***Used to prevent duplication of auctions when a robot discovers a task.
@@ -48,16 +52,11 @@ omod AUCTION is
     ***returns the Oids of received bids.
     op bidders : Set{BidElt} -> Set{OidElt} .
 
-    ***returns minimum time until a timer in the auction set expires, ratInf if there are empty.
-    ***TODO: remove this as mintimer does the same function
-    ***Just make a set with getAuctionTimers, then minTimer.
-    op minTimeToClose : Set{AuctionElt} -> TimeInf .
-
     ***Returns the auctions' timers
-    op getAuctionTimers : Set{AuctionElt} -> MSet{TimerElt} .
+    op getTimers : Set{AuctionElt} -> MSet{TimerElt} .
 
     ***Decreases the timers of the active auctions.
-    op decreaseAuctionTimers : Set{AuctionElt} Time -> Set{AuctionElt} .
+    op decTimers : Set{AuctionElt} Time -> Set{AuctionElt} .
 
     var TID : Tid .
     var TIDS : MSet{TidElt} .
@@ -81,8 +80,7 @@ omod AUCTION is
             auctionWinner(BS, OID2, cost(RI2))
         fi .
 
-    eq createAuction(empty) = empty .
-    eq createAuction(TID TIDS) = ([Task: TID AUCTION-TIMER | empty], createAuction(TIDS)) .
+    eq createAuction(TID) = [Task: TID AUCTION-TIMER | empty] .
 
     eq closed(TID, ([Task: TID TR | BS], AUS)) = false .
     eq closed(TID, AUS) = true [owise] .
@@ -90,14 +88,14 @@ omod AUCTION is
     eq bidders(empty) = empty .
     eq bidders(([OID bids COST], BS)) = (OID, bidders(BS)) .
 
-    eq minTimeToClose(empty) = ratInf .
-    eq minTimeToClose(([Task: TID [cur: TIME - base: TIME2] | BS], AUS)) = min(TIME, minTimeToClose(AUS)) .
+    eq getTimers(empty) = empty .
+    eq getTimers(([Task: TID TR | BS], AUS)) = TR getTimers(AUS) .
 
-    eq getAuctionTimers(empty) = empty .
-    eq getAuctionTimers(([Task: TID TR | BS], AUS)) = TR getAuctionTimers(AUS) .
+    eq decTimers(empty, TIME) = empty .
+    eq decTimers(([Task: TID TR | BS], AUS), TIME3) =
+        ([Task: TID dec(TR, TIME3) | BS],
+        decTimers(AUS, TIME3)) .
 
-    eq decreaseAuctionTimers(empty, TIME) = empty .
-    eq decreaseAuctionTimers(([Task: TID TR | BS], AUS), TIME3) =
-        ([Task: TID decrease(TR, TIME3) | BS],
-        decreaseAuctionTimers(AUS, TIME3)) .
+    eq auctionExists(TID, ([Task: TID TR | BS] , AUS)) = true .
+    eq auctionExists(TID, AUS) = false [owise] .
 endom

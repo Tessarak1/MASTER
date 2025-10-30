@@ -7,21 +7,21 @@ omod REPRESENTATION-SORTS is
     protecting DIRECTION .
     protecting ENTITY .
 
-    sorts Information Representation .
-    subsorts Coordinate Direction State < Information .
+    sorts Info Representation .
+    subsorts Coordinate Direction State < Info .
     
-    op detectedSpeed : Rat -> Information [ctor] . 
+    op detectedSpeed : Rat -> Info [ctor] . 
 endom
 
-view InformationElt from TRIV to REPRESENTATION-SORTS is
-    sort Elt to Information .
+view InfoElt from TRIV to REPRESENTATION-SORTS is
+    sort Elt to Info .
 endv
 
 omod REPRESENTATION is
-    protecting SET{InformationElt} .
+    protecting SET{InfoElt} .
     protecting OBSTACLE .
 
-    op {_:_|_} : Oid Cid Set{InformationElt} -> Representation [ctor] .
+    op {_:_|_} : Oid Cid Set{InfoElt} -> Representation [ctor] .
 
     op getRepCoord : Representation -> Coordinate .
     op getRepOid : Representation -> Oid .
@@ -30,7 +30,7 @@ omod REPRESENTATION is
     var REP : Representation .
     var OID : Oid .
     var CID : Cid .
-    var IS : Set{InformationElt} .
+    var IS : Set{InfoElt} .
     var CO : Coordinate .
     var INC : IncapacitatedState .
 
@@ -56,7 +56,7 @@ omod REPRESENTATION-SET is
     var OID : Oid .
     var CID : Cid .
     var REPS : Set{RepresentationElt} .
-    var IS : Set{InformationElt} .
+    var IS : Set{InfoElt} .
     
     eq OID in ({OID : CID | IS} , REPS) = true .
     eq OID in REPS = false [owise] .

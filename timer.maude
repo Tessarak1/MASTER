@@ -7,7 +7,7 @@ omod TIMER is
 
     op [cur:_- base:_] : Time Time -> Timer [ctor] .
     op reset : Timer -> Timer .
-    op decrease : Timer Time -> Timer .
+    op dec : Timer Time -> Timer .
     op expired : Timer -> Bool .
 
     vars TIME TIME2 TIME3 : Time .
@@ -15,8 +15,7 @@ omod TIMER is
 
     eq reset([cur: TIME - base: TIME2]) = [cur: TIME2 - base: TIME2] .
 
-    ***Is monus really necessary here? Time is never supposed to be above the remaining time of a timer.
-    eq decrease([cur: TIME - base: TIME2], TIME3) = [cur: TIME monus TIME3 - base: TIME2] .
+    eq dec([cur: TIME - base: TIME2], TIME3) = [cur: TIME monus TIME3 - base: TIME2] .
 
     eq expired([cur: TIME - base: TIME2]) = TIME == 0 .
 endom
@@ -32,12 +31,12 @@ omod TIMER-MSET is
     op minTimer : MSet{TimerElt} -> Time .
     op getTimers : Object -> MSet{TimerElt} .
 
-    ***Gettimers and decreasetimers should be moved to superclass of Field and Robot.
+    ***Gettimers and decTimers should be moved to superclass of Field and Robot.
     var MSTR : MSet{TimerElt} .
     vars TIME TIME2 : Time .
 
     ***TODO: move this operation to superclass of field and robot.
-    op decreaseTimers : Object Time -> Object .
+    op decTimers : Object Time -> Object .
 
     eq minTimer(empty) = ratInf .
     eq minTimer(([cur: TIME - base: TIME2] MSTR)) = min(TIME, minTimer(MSTR)) .

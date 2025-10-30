@@ -23,7 +23,7 @@ omod ENTITY is
 
     ops crashed failed : -> IncapacitatedState [ctor] .
     ops moving deadlocked waiting idle negotiating planningPath : -> FunctioningState [ctor] .
-    ops resupplying repairing removing unloading : -> TimedWorkState [ctor] .
+    ops resupplying fixing unloading : -> TimedWorkState [ctor] .
 
     op stoppingDistance : Object -> Rat .
 

@@ -1,92 +1,19 @@
-load mset .
-load model-checker.maude .
+omod TEST is
+    protecting STRING .
 
-fmod SET{X :: TRIV} is
-    protecting NAT .
-    sort Set{X} .
-    subsort X$Elt < Set{X} .
-    
-    op none : -> Set{X} [ctor] .
-    op __ : Set{X} Set{X} -> Set{X} [ctor assoc comm id: none] .
-endfm
+    class O | a : Nat .
+    subsort String < Oid .
 
-fmod TIMER is
-    protecting NAT .
-    sort Timer .
+    op testA : Nat -> Configuration .
 
-    op [cur:_] : Nat -> Timer .
-endfm
+    var N : Nat .
 
-view TimerElem from TRIV to TIMER is
-    sort Elt to Timer .
-endv
-
-mod TIMER-SET is
-    protecting MSET{TimerElem} .
-    sort NatSet .
-    subsort Nat < NatSet .
-    sort DlyMsg .
-
-    op noSet : -> NatSet [ctor] .
-    op union : NatSet NatSet -> NatSet [ctor assoc comm id: noSet] .
-    op testSet : -> MSet{TimerElem} .
-    op transform : MSet{TimerElem} MSet{TimerElem} -> Bool [frozen (1 2)] .
-    op dlyMsg : Nat MSet{TimerElem} -> DlyMsg [ctor] .
-
-    rl [transform] :
-        [cur: 1]
-        =>
-        [cur: 10] .
-endm
-
-mod TEST is
-    sorts A B C Token .
-    subsort A B C < Token .
-
-    op __ : Token Token -> Token [ctor assoc comm] .
-
-    op a : -> A [ctor] .
-    op b : -> B [ctor] .
-    op c : -> C [ctor] .
-
-    rl [ab] :
-        a
-        =>
-        b .
-endm
-
-mod TEST2 is
-    protecting MODEL-CHECKER .
-
-    sorts A B C Token .
-    subsort A B C < Token .
-    subsort Token < State .
-
-    op __ : Token Token -> Token [ctor assoc comm] .
-
-    op a : -> A [ctor] .
-    op b : -> B [ctor] .
-    op c : -> C [ctor] .
-
-    op isA : -> Prop [ctor] .
-    op isC : -> Prop [ctor] .
-
-    var T : Token .
-
-    eq a |= isA = true .
-    eq T |= isA = false [owise] .
-
-    eq c |= isC = true .
-    eq T |= isC = false [owise] .
-    
-
-
-    rl [ab] :
-        a
-        =>
-        c .
-endm
-
-
-red modelCheck(a, <> isC) .
-red modelCheck(b, isA) .
+    eq testA(N) = < "obj1" : O | a : N >
+        if N > 0 
+        then
+            < "obj2" : O | a : N + 100 >
+        else
+            none
+        fi  
+    .
+endom
