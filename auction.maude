@@ -30,9 +30,9 @@ omod AUCTION is
     ***Tasks are assigned based on auctions. Each participant bids on a task based on traveling distance to complete the task.
     ***Cost function is required distance to travel to complete the task, so a lower bid is better.
 
-    ***A robot can either bid on or refuse to participate in the auction.
-    ***A refusal happens if the participant is busy or does not find a viable path to complete the task.
+    ***A robot can place a bid on a task.
     op [_bids_] : Oid Cost -> Bid [ctor] .
+    ***A winner rejects the task if it has become occupied before the auction
     op [_rejects] : Oid -> Bid [ctor] .
 
     ***An auction consists of the task that is bidded on, a timer for when the auction closes and the received bids.
@@ -41,7 +41,6 @@ omod AUCTION is
     ***Returns the Oid of the lowest bid.
     op auctionWinner : Set{BidElt} Oid Cost -> Oid .
 
-    ***Creates an auction for every task in the MSet{TidElt}.
     op createAuction : Tid -> Auction .
 
     op auctionExists : Tid Set{AuctionElt} -> Bool .

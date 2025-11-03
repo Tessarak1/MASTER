@@ -5,24 +5,18 @@ omod AUCTIONEER is
     protecting AUCTION .
     protecting MESSENGER .
 
-    ***BidMsg sort to differentiate from other messages when pattern matching.
-    sorts BidMsgContent AuctionMsgContent .
-    subsort BidMsgContent AuctionMsgContent < MsgContent .
-
-    class Auctioneer | auctions : Set{AuctionElt} .
+    ***Auction closes when task is accepted, a winner. Need a trigger for task being complete.
+    ***TODO: Remember to implement addition and removal of corresponding activeTasks from robots too.
+    class Auctioneer | auctions : Set{AuctionElt}, activeTasks : Set{TaskTypeElt} .
     
     subclass Auctioneer < Messenger .
 
     ***Message content to facilitate auctions
-    op bid_on_ : Cost Tid -> BidMsgContent [ctor] .
-    op busy_ : Tid -> BidMsgContent [ctor] .
-    ops won_ reject_ accept_ : Tid -> AuctionMsgContent [ctor] .
+    op bid_on_ : Cost Tid -> MsgContent [ctor] .
+    ops won_ reject_ accept_ : Tid -> MsgContent [ctor] .
 
     ***Creates an auction for every task in the TidSet and broadcasts it within range.
     op initiateAuction : Object Tid Configuration -> Configuration .
-
-    ***Overloaded in subclasses to determine if theo bject needs to start auctioning a task.
-    op needToStartAuction : Object -> Bool .
 
     ***winAuction is overloaded in robot. Determines if it accepts the task or not.
     op winAuction : Object Tid -> Configuration .
@@ -46,7 +40,7 @@ omod AUCTIONEER is
 
     eq initiateAuction(< OID : Auctioneer | auctions : AUS >, TID, CONF) =
         < OID : Auctioneer | auctions  : (AUS , createAuction(TID)) >
-        broadcastInRange(< OID : Auctioneer | >, TID, CONF)  .
+        broadcast(OID, TID, < OID : Auctioneer | > CONF)  .
 
     ***No winner, so restart the auction.
     eq retryAuction(< OID : Auctioneer | >, CONF, [Task: TID TR | empty]) =
@@ -54,7 +48,7 @@ omod AUCTIONEER is
     ***we have a winner, so send to that winner.
     eq retryAuction(< OID : Auctioneer | auctions : AUS >, CONF, [Task: TID TR | BS]) =
         < OID : Auctioneer | auctions : ([Task: TID TR | BS], AUS) >
-        broadcast(OID, won TID, auctionWinner(BS, "",cost(ratInf))) [owise] .
+        unicast(OID, won TID, auctionWinner(BS, "",cost(ratInf))) [owise] .
 
     ***Determines the winner of an auction when its timer runs out.
     crl [auctionTimerExpire] :
@@ -89,4 +83,6 @@ omod AUCTIONEER is
         =>
         retryAuction(< OID : Auctioneer | auctions : AUS >, CONF, [Task: TID TR | BS])
         CONF .
+
+    ***Rule for ignoring bids on closed auctions.
 endom

@@ -29,11 +29,12 @@ omod MESSAGE is
   subsort Tid < MsgContent .
 
   op dly : Msg Time -> DlyMsg [ctor right id: 0] .
+
   ops yielding_ : Coordinate -> MsgContent [ctor] .
   ops path conflictYield : List-Coordinate -> MsgContent [ctor] .
   op pathCost : Cost -> MsgContent [ctor] .
   ops requestPath noConflict completedYield noYield : -> MsgContent [ctor] .
-
+endom
 omod MESSENGER is
   protecting MESSAGE .
   protecting LOCATABLE .
@@ -41,21 +42,18 @@ omod MESSENGER is
 
   ***Objects of this class can communicate with one another.
   ***Each object has a range that they can communicate within. 
-  class Messenger | transmissionRange : Rat .
+  class Messenger | transRange : Rat .
   
   subclass Messenger < Locatable .
 
   ***Creates a message from Oid to everyone in the Set{OidElt}.
   ***need to add transmission delay to each message sent.
-  op broadcast : Oid MsgContent Set{OidElt} -> Configuration .
-  op unicast : Oid MsgContent Oid -> Configuration .
-
-  ***broadcasts messages from Object to each object in the configuration that is in range.
-  ***Segment this, to unicast operation too.
-  ***MSG DELAY and sender delay.
-  op broadcastInRange : Object MsgContent Configuration -> Configuration .
-  op $broadcastInRange : Oid MsgContent Set{OidElt} -> Configuration .
-
+  ***Check range on both and add a constant delay.
+  ***one common operator
+  ***eq attemptTrans(MSG, O, OS) if distance O OS then msg else none.
+  op attemptTrans : Oid MsgContentSet Set{OidElt} -> Configuration .
+  op broadcast : Oid MsgContentSet Configuration -> Msg .
+  op unicast : Oid MsgContentSet Oid -> Msg .
   ***returns the oids of messengers.
   op messengerOids : Configuration -> Set{OidElt} .
 
@@ -67,17 +65,23 @@ omod MESSENGER is
   var CONF : Configuration .
   var TIDS : MSet{TidElt} .
 
-  eq messengerOids(< OID : Messenger | > CONF) = (OID, messengerOids(CONF)) .
+  eq messengerOids(< OID : Messenger | > CONF) = (OID , messengerOids(CONF)) .
   eq messengerOids(CONF) = empty [owise] .
 
-  eq broadcast(OID, MC, empty) = none .
-  eq broadcast(OID, MC, (OID2, OIDS)) = dly((msg MC from OID to OID2), MSG-DELAY) broadcast(OID, MC, OIDS) .
+  eq attemptTrans(OID, MCS, empty) = none .
+  eq attemptTrans(OID, MCS, (OID2 , OIDS)) < OID : Messenger | transRange : R >
+    < OID2 : Messenger | > 
+    =
+    attemptTrans(OID, MCS, OIDS)
+    < OID : Messenger | > < OID2 : Messenger | >
+    if distance(< OID : Messenger | >, < OID2 : Messenger | >) <= R
+    then
+      dly(msg MCS from OID to OID2, MSG-DELAY)
+    else
+      none
+    fi .
 
-  eq broadcastInRange(< OID : Messenger | >, noContent, CONF) = none .
-  eq broadcastInRange(< OID : Messenger | transmissionRange : R >, MCS, CONF) =
-    $broadcastInRange(OID, MCS, messengerOids(withinDistance(< OID : Messenger | >, R, CONF))) .
-  
-  eq $broadcastInRange(OID, noContent, OIDS) = none .
-  eq $broadcastInRange(OID, MC & MCS, OIDS) = broadcast(OID, MC, OIDS) $broadcastInRange(OID, MCS, OIDS) .
+  eq unicast(OID, MCS, OID2) = attemptTrans(OID, MCS, OID2) .
+
+  eq broadcast(OID, MCS, CONF) = attemptTrans(OID, MCS, messengerOids(CONF)) .
 endom
-  

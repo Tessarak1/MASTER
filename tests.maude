@@ -15,11 +15,11 @@ omod BASE is
   op map1 : -> Object .
   op base1 : -> ClockedConfiguration .
 
-  eq robotAttrs = transmissionRange : 200, maxSpeed : 1, detected : empty, auctions : empty, curTask : noTask,
+  eq robotAttrs = transRange : 200, maxSpeed : 1, detected : empty, auctions : empty, curTask : noTask,
     handledTime : false, workState : noWork, detectionRange : 10, obsCoords : nil, negotiations : none, yieldStatus : noYieldInfo, waitingStatus : noWaitingInfo .
   ***eq workerAttrs = cargoLevel : emptyCargo .
   eq transporterAttrs = cargoLevel : emptyCargo .
-  eq fieldAttrs = handledTime : false, transmissionRange : 200, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 500 - base: 500],
+  eq fieldAttrs = handledTime : false, transRange : 200, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 500 - base: 500],
     fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 1200 - base: 1200], reserved : false, auctions : empty, activeTasks : empty .
 
   eq I1 = < "I1" : PassIntersection | coordinate : (0,0), neighbors : ("I2" , "I3" , "GL1") > .
@@ -57,11 +57,11 @@ omod HIERARCHY-TESTS is
   op yieldFarm : -> Configuration .
   op yieldTest : -> ClockedConfiguration .
 
-  eq customAttrs = transmissionRange : 200, maxSpeed : 1, detected : empty, auctions : empty,  handledTime : false, 
+  eq customAttrs = transRange : 200, maxSpeed : 1, detected : empty, auctions : empty,  handledTime : false, 
     detectionRange : 10, obsCoords : nil .
   eq customFieldAttrs = waterLevel : low, waterTimer : [cur: 0 - base: 1000] .
 
-  eq yieldAttrs = transmissionRange : 200, maxSpeed : 1, detected : empty, auctions : empty, handledTime : false,
+  eq yieldAttrs = transRange : 200, maxSpeed : 1, detected : empty, auctions : empty, handledTime : false,
     detectionRange : 10, obsCoords : nil, cargoLevel : emptyCargo, workState : noWork, waitingStatus : noWaitingInfo,
     negotiations : none .
 
@@ -115,7 +115,7 @@ omod ROW-TESTS is
   op rowTest : -> LimitClockedConfiguration .
   op obstacle1 : -> Object .
 
-  eq rowAttrs = transmissionRange : 200, maxSpeed : 1, detected : empty, auctions : empty, handledTime : false,
+  eq rowAttrs = transRange : 200, maxSpeed : 1, detected : empty, auctions : empty, handledTime : false,
     detectionRange : 10, obsCoords : nil, cargoLevel : full, workState : noWork, waitingStatus : noWaitingInfo,
     negotiations : none .
 
@@ -150,15 +150,15 @@ omod SMALL-TESTS is
   op map1 : -> Object .
   op base1 : -> ClockedConfiguration .
 
-  eq robotAttrs = transmissionRange : 200, maxSpeed : 1, 
-    detected : empty, auctions : empty, curTask : noTask,
+  eq robotAttrs = transRange : 200, maxSpeed : 1, 
+    detected : empty, auctions : empty, 
     handledTime : false, workState : noWork, 
     detectionRange : 10, obsCoords : nil, 
     negotiations : none, yieldStatus : noYieldInfo, 
     waitingStatus : noWaitingInfo,
     cargoLevel : full .
 ***  eq transporterAttrs = cargoLevel : emptyCargo .
-  eq fieldAttrs = handledTime : false, transmissionRange : 200, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 500 - base: 500],
+  eq fieldAttrs = handledTime : false, transRange : 200, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 500 - base: 500],
     fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 1200 - base: 1200], reserved : false, auctions : empty, activeTasks : empty .
 
   eq I1 = < "I1" : PassIntersection | coordinate : (0,0), neighbors : ("Resupply", "GL1") > .
@@ -186,15 +186,14 @@ omod SMALL-SCENARIOS is
   ops timeRob1 timeRob2 : -> Object .
   ops timeTest : -> LimitClockedConfiguration .
 
-  eq timeRob1 = < "W1" : Worker | curCargo : water, speed : 1000, coordinate : (0,0), state : moving, direction : west, remainingPath : (-100,0), robotAttrs > .
-  eq timeRob2 = < "W2" : Worker | speed : 100, coordinate : (-99,0), state : moving, direction : east, remainingPath : (0,0), robotAttrs > .
+  eq timeRob1 = < "W1" : Worker | curCargo : water, speed : 1, coordinate : (0,0), state : moving, direction : west, remainingPath : (-100,0), curTask : ["GL1", wateringTask], robotAttrs > .
+  eq timeRob2 = < "W2" : Worker | speed : 100, coordinate : (-99,0), state : moving, direction : east, remainingPath : (0,0), curTask : noTask, robotAttrs > .
 
   eq timeTest = farm1 timeRob2 timeRob1 @ 0 [LIMIT: 100] .
   eq obstacleTest = farm1 rob  @ 0 [LIMIT: 1000] .
   eq repairTest = map1 collection resupply rob rob2 @ 0 [LIMIT: 100] .
 endom
+red unicast("W1", requestPath, "W2") timeRob1 timeRob2 rob rob2 .
 ***time testing
-rew [1] timeTest .
-
 ***search [1] repairTest =>* C:Configuration < "T1" : Worker | state : idle, AS:AttributeSet > @ T:Time [LIMIT: T2:Time] .
 ***Detection when idle, dont start negotiation, but add to obs points or something, need to track it.

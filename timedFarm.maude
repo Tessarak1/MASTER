@@ -193,6 +193,7 @@ omod TIMED-FARM is
         updateLocation(< OID : Robot | state : crashed, speed : 0 >) < OID2 : Robot | speed : 0, state : crashed >
         if outsideMap(getLocation(updateLocation(< OID : Robot | >)), ROS) == false .
 
+    ***TODO: Each colliding robot should broadcast its own request of being crashed or failed
     eq handleCollisions(< OID : Robot | coordinate : (X, Y) > < OID2 : PhysicalObj | coordinate : (X, Y) >  < OID3 : Map | > CONF) = collision(< OID : Robot | > < OID2 : PhysicalObj | >, < OID3 : Map | >) handleCollisions(< OID3 : Map | > CONF) .
     eq handleCollisions(CONF) = CONF [owise] .
 
@@ -430,7 +431,6 @@ omod TIMED-FARM is
         =
         linearTime(< OID : Robot | >, objectInWay((X,Y), (X2,Y2), CONF)) [owise] .
 
-    ceq $mteField(< OID : Field | >) = 0 if needToStartAuction(< OID : Field | >) .
     eq $mteField(< OID : Field | auctions : AUS >) = 
         minTimer(getTimers(AUS) 
             activeWaterTimer(< OID : Field | >) 

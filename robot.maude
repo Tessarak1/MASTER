@@ -214,6 +214,7 @@ omod ROBOT is
     var YIS : YieldInfoSet .
 
     vars TT TT2 : TaskType .
+    var TTS : Set{TaskTypeElt} .
     var TS : TaskStatus .
     var TPT : TransporterTask .
     var WT : WorkerTask .
@@ -419,7 +420,7 @@ omod ROBOT is
 
     eq startNegotiation(< OID : Robot | coordinate : (X,Y), remainingPath : LCO, negotiations : NS >, {OID2 : Robot | (X2,Y2) , IS}, < OID3 : Map | >) =
         < OID : Robot | state : negotiating, speed : 0, negotiations : addNegotiation(NS, [OID2 | (X2,Y2) | noCost]) > 
-        dly(msg requestPath & path((X,Y) LCO) & priorityState(< OID : Robot | >) from OID to OID2, MSG-DELAY) .
+        unicast(OID, requestPath & path((X,Y) LCO) & priorityState(< OID : Robot | >), OID2) .
 
     eq closestPhysObjs((X,Y), CONF, none) = CONF .
     eq closestPhysObjs((X,Y), < OID : Robot | coordinate : (X2,Y2), direction : D > CONF, < OID2 : Robot | coordinate : (X3,Y3), direction : D > CONF2) =
@@ -455,13 +456,12 @@ omod ROBOT is
                 >, 
             TIME)
         =
-
         < OID : Robot |
             auctions : decTimers(AUS, TIME),
             yieldStatus : decTimers(YIS, TIME),
             waitingStatus : decTimers(WI, TIME),
             workState : decTimer(WS, TIME)
-        >
+        > .
 
     eq mustRejectTask(< OID : Robot | state : INC >) = true .
     eq mustRejectTask(< OID : Robot | curTask : TID >) = true .
@@ -636,25 +636,27 @@ omod ROBOT is
             (X,Y)
         ) .
 
-    eq $yieldProtocol(< OID : Robot | remainingPath : LCO >, < OID2 : Map | >, OID3, nil) =
+    ***TODO: instead of setting path directly, planPath with another path?
+    eq $yieldProtocol(< OID : Robot | >, < OID2 : Map | >, OID3, nil) =
         < OID : Robot | remainingPath : conflictYieldPath(< OID : Robot | >, < OID2 : Map | >) >
-        dly(msg conflictYield(conflictYieldPath(< OID : Robot | >, < OID2 : Map | >)) from OID to OID3, MSG-DELAY) .
+        unicast(OID, conflictYield(conflictYieldPath(< OID : Robot | >, < OID2 : Map | >)), OID3) .
 
+    ***If a yieldpath is found, yield to it and say so.
     eq $yieldProtocol(< OID : Robot | negotiations : NS, yieldStatus : YIS >, < OID2 : Map | >, OID3, LCO (X,Y) (X2,Y2)) =
         < OID : Robot | remainingPath : LCO (X,Y) (X2,Y2), negotiations : endNegotiation(NS, OID3), yieldStatus : addYieldInfo(OID3, YIS) >
-        dly(msg yielding (X,Y) from OID to OID3, MSG-DELAY) .
+        unicast(OID, yielding (X,Y), OID3) .
 
     eq $yieldProtocol(< OID : Robot | coordinate : (X,Y), negotiations : NS, yieldStatus : YIS >, < OID2 : Map | >, OID3, (X2,Y2)) =
         < OID : Robot | remainingPath : (X2,Y2), negotiations : endNegotiation(NS, OID3), yieldStatus : addYieldInfo(OID3, YIS) >
-        dly(msg yielding (X,Y) from OID to OID3, MSG-DELAY) .
+        unicast(OID, yielding (X,Y), OID3) .
 
     eq $conflictYieldProtocol(< OID : Robot | state : STATE, negotiations : NS >, < OID2 : Map | >, OID3, nil) =
         < OID : Robot | state : deadlocked, negotiations : endNegotiation(NS, OID3) >
-        dly(msg noYield from OID to OID3, MSG-DELAY) .
+        unicast(OID, noYield, OID3) .
     
     eq $conflictYieldProtocol(< OID : Robot | negotiations : NS, yieldStatus : YIS >, < OID2 : Map | >, OID3, LCO (X,Y) (X2,Y2)) =
         < OID : Robot | remainingPath : LCO (X,Y) (X2,Y2), negotiations : endNegotiation(NS, OID3), yieldStatus : addYieldInfo(OID3, YIS) >
-        dly(msg yielding (X,Y) from OID to OID3, MSG-DELAY) .
+        unicast(OID, yielding (X,Y), OID3) .
 
     eq conflictYieldProtocol(< OID : Robot | coordinate : (X,Y) >, < OID2 : Map | >, OID3, LCO) =
         $conflictYieldProtocol(< OID : Robot | >, < OID2 : Map | >, OID3, yieldPath(< OID : Robot | >, < OID2 : Map | >, LCO)) .
@@ -664,7 +666,7 @@ omod ROBOT is
         if not pathConflict((LCO2), (X,Y))
         then
             < OID : Robot | remainingPath : nil, negotiations : endNegotiation(NS, OID3), yieldStatus : addYieldInfo(OID3, YIS) >
-            dly(msg yielding sharedLocation((X,Y) LCO, LCO2) from OID to OID3, MSG-DELAY)
+            unicast(OID, yielding sharedLocation((X,Y) LCO, LCO2), OID3)
         else
             $yieldProtocol(< OID : Robot | >, < OID2 : Map | >, OID3, yieldPath(< OID : Robot | >, < OID2 : Map | >, LCO2))
         fi .
@@ -763,10 +765,10 @@ omod ROBOT is
         if mustRejectTask(< OID : Robot | >)
         then
             < OID : Robot | >
-            dly(msg reject TID from OID to OID2, MSG-DELAY)
+            unicast(OID, reject TID, OID2)
         else
             < OID : Robot | state : planningPath, speed : 0, curTask : TID >
-            dly(msg accept TID from OID to OID2, MSG-DELAY)
+            unicast(OID, accept TID, OID2)
         fi .
     
     ***A robot that has a task and is not involved in resolving a conflict will path towards task
@@ -787,7 +789,7 @@ omod ROBOT is
         =>
         < OID : Robot | state : planningPath, obsCoords : (X2,Y2) LCO, negotiations : NS >
         < OID3 : Map | >
-        dly(msg noConflict from OID to OID2, MSG-DELAY)
+        unicast(OID, noConflict, OID2) 
         if RI2 > RI .
 
     rl [rcvEqualCostMsg] :
@@ -797,8 +799,10 @@ omod ROBOT is
         =>
         ***If both costs are ratInf, the conflict is not solvable with rerouting.
         ***Start the yielding process to check if the conflict can be solved with one of the robots yielding.
+        < OID3 : Map | > 
         if RI == ratInf
         then
+            ***Tiebreaker is oid value This can cause looping problem.
             if OID < OID2
             then
                 ***attempt to yield to the path
@@ -811,20 +815,16 @@ omod ROBOT is
                     OID2,
                     (X2,Y2) LCO2
                 )
-                < OID3 : Map | >
             else
                 < OID : Robot | >
-                < OID3 : Map | >
             fi
         else
             if OID < OID2
             then
                 < OID : Robot | state : planningPath, obsCoords : (X2,Y2) LCO, negotiations : NS >
-                < OID3 : Map | > 
-                dly(msg noConflict from OID to OID2, MSG-DELAY)
+                unicast(OID, noConflict, OID2)
             else
                 < OID : Robot | >
-                < OID3 : Map | > 
             fi 
         fi .
 
@@ -859,14 +859,12 @@ omod ROBOT is
 
     crl [rcvConflictYieldHigherPriority] :
         < OID : Robot | coordinate : (X,Y), remainingPath : LCO, state : negotiating, negotiations : NS >
-        < OID2 : Map | >
-        msg conflictYield(LCO2) from OID3 to OID
+        msg conflictYield(LCO2) from OID2 to OID
         =>
-        < OID : Robot | negotiations : endNegotiation(NS, OID3) >
-        < OID2 : Map | >
-        dly(msg priorityWaiting & path((X,Y) LCO) from OID to OID3, MSG-DELAY)
+        < OID : Robot | negotiations : endNegotiation(NS, OID2) >
+        unicast(OID, priorityWaiting & path((X,Y) LCO), OID2)
         if priorityState(< OID : Robot | >) == priorityWaiting
-            or priorityState(< OID : Robot | negotiations : endNegotiation(NS, OID3) >) == priorityNegotiating .
+            or priorityState(< OID : Robot | negotiations : endNegotiation(NS, OID2) >) == priorityNegotiating .
     
     crl [rcvConflictYield] :
         < OID : Robot | state : negotiating, negotiations : NS >
@@ -903,22 +901,19 @@ omod ROBOT is
 
     ***Notify another robot when Self has reached the yieldIntersection, Other can move again.
     rl [finishYieldingTask] :
-        < OID : Robot | state : FUNC, coordinate : (X,Y), yieldStatus : ([Oid: OID2 - (X,Y) | TR], YIS) >
-        < OID2 : Robot | >
-        < OID3 : Map | >
+        < OID : Robot | coordinate : (X,Y), yieldStatus : ([Oid: OID2 - (X,Y) | TR], YIS) >
         =>
-        < OID : Robot | state : FUNC, yieldStatus : YIS >
-        < OID2 : Robot | >
-        < OID3 : Map | >
-        dly(msg completedYield from OID to OID2, MSG-DELAY) .
+        < OID : Robot | yieldStatus : YIS >
+        unicast(OID, completedYield, OID2) .
 
+    ***Other has requested a check for potential pathconflict. Return noConflict if either paths dont intersect, or unmoving
     crl [rcvPathNegotiationNoConflict] :
         < OID : Robot | coordinate : (X,Y), state : STATE, remainingPath : LCO >
         msg requestPath & path(LCO2) & PS from OID2 to OID
         =>
         < OID : Robot | >
-        dly(msg noConflict from OID to OID2, MSG-DELAY)
-        if ((not pathConflict(LCO2, (X,Y) LCO)) and STATE == moving) or  ((not pathConflict(LCO2, (X,Y))) and STATE =/= moving) .
+        unicast(OID, noConflict, OID2)
+        if (not pathConflict(LCO2, (X,Y) LCO)) .
 
     crl [rcvPathNegotiationIdle] :
         < OID : Robot | coordinate : (X,Y), negotiations : NS >
@@ -934,44 +929,51 @@ omod ROBOT is
         < OID2 : Map | >
         if pathConflict((X2,Y2) LCO, (X,Y)) and priorityState(< OID : Robot | >) == priorityIdle .
 
+    ***Self has highests priority, tell other to wait.
     crl [rcvPathNegotiationHighestPriority] :
         < OID : Robot | coordinate : (X,Y), remainingPath : LCO, negotiations : NS >
         msg requestPath & path(LCO2) & PS from OID2 to OID
         =>
         < OID : Robot | >
-        dly(msg path((X,Y) LCO) & priorityWaiting from OID to OID2, MSG-DELAY)
+        unicast(OID, path((X,Y) LCO) & priorityWaiting, OID2)
         if pathConflict(LCO2, (X,Y))
             and (priorityState(< OID : Robot | >) == priorityWorking
             or priorityState(< OID : Robot | >) == priorityWaiting
             or priorityState(< OID : Robot | negotiations : endNegotiation(NS, OID2) >) == priorityNegotiating) .
 
+    ***Self has a task to complete when Other requests conflict resolution.
     crl [rcvPathNegotiationTask] :
         < OID : Robot | coordinate : (X,Y), remainingPath : LCO, negotiations : NS >
         < OID2 : Map | >
         msg requestPath & path((X2,Y2) LCO2) & PS from OID3 to OID
         =>
+        < OID2 : Map | >
         if PS == priorityTask
         then
-            < OID : Robot | state : negotiating, speed : 0, negotiations : addNegotiation(NS, [OID3 | (X2,Y2) | replanCost(< OID : Robot | >, < OID2 : Map | >, (X2, Y2))]) >
-            < OID2 : Map | >
-            dly(msg path((X,Y) LCO) & pathCost(replanCost(< OID : Robot | >, < OID2 : Map | >, (X2, Y2))) from OID to OID3, MSG-DELAY)
+            ***Calculate cost of rerouting
+            < OID : Robot | state : negotiating, speed : 0, 
+                negotiations : addNegotiation(NS, [OID3 | (X2,Y2) | replanCost(< OID : Robot | >, < OID2 : Map | >, (X2, Y2))]) >
+            unicast(OID, path((X,Y) LCO) & pathCost(replanCost(< OID : Robot | >, < OID2 : Map | >, (X2, Y2))), OID2)
         else
+            ***If the other doesnt have priorityTask, it must be higher, so we yield.
             yieldProtocol(
                 < OID : Robot | state : negotiating, speed : 0, negotiations : addNegotiation(NS, [OID3 | (X2,Y2) | noCost]) >,
                 < OID2 : Map | >,
                 OID3,
                 (X2,Y2) LCO2
             )
-            < OID2 : Map | >
         fi
-        if pathConflict((X2,Y2) LCO2, (X,Y) LCO) and priorityState(< OID : Robot | negotiations : endNegotiation(NS, OID3) >) == priorityTask .
+        if pathConflict((X2,Y2) LCO2, (X,Y) LCO) and 
+            priorityState(< OID : Robot | negotiations : endNegotiation(NS, OID3) >) == priorityTask .
 
     ***TODO: Fix yielding towards same intersection.
+    ***Separate this rule into multiple instead of all the ifclauses.
     crl [rcvPathNegotiationYielding] : 
         < OID : Robot | coordinate : (X,Y), remainingPath : LCO, negotiations : NS >
         < OID2 : Map | >
         msg requestPath & path((X2,Y2) LCO2) & PS from OID3 to OID
         =>
+        < OID2 : Map | >
         if PS == priorityYielding
         then
             ***Tiebreaker, lowest oid maintains, other yields.
@@ -980,11 +982,9 @@ omod ROBOT is
                 if LCO == nil
                 then
                     < OID : Robot | >
-                    < OID2 : Map | >
-                    dly(msg priorityWaiting & path((X,Y)) from OID to OID3, MSG-DELAY)
+                    unicast(OID, priorityWaiting & path((X,Y)), OID3)
                 else
                     < OID : Robot | >
-                    < OID2 : Map | >
                 fi
             else
                 yieldProtocol(
@@ -993,18 +993,15 @@ omod ROBOT is
                     OID3,
                     (X2,Y2) LCO2
                 )
-                < OID2 : Map | >
             fi
         else
             if pathConflict((X,Y) LCO, (X2,Y2) LCO2)
             then
                 < OID : Robot | >
-                < OID2 : Map | >
-                dly(msg requestPath & path(LCO) & priorityYielding from OID to OID3, MSG-DELAY)
+                unicast(OID, requestPath & path(LCO) & priorityYielding, OID3)
             else
                 < OID : Robot | >
-                < OID2 : Map | >
-                dly(msg path((X,Y) LCO) & priorityWaiting from OID to OID3, MSG-DELAY)
+                unicast(OID, path((X,Y) LCO) & priorityWaiting, OID3)
             fi
         fi
         if priorityState(< OID : Robot | negotiations : endNegotiation(NS, OID3) >) == priorityYielding
@@ -1051,12 +1048,12 @@ omod ROBOT is
     ***can only accept tasks of correct type
     crl [rcvTaskMsgFree] :
         < OID : Robot | coordinate : (X,Y), obsCoords : LCO >
-        < OID2 : Map | intersections : CONF >
+        < OID2 : Map | >
         msg [OID3, TT] from OID3 to OID
         =>
         < OID : Robot | >
         < OID2 : Map | >
-        dly(msg bid cost(calculatePathLength(< OID : Robot | >, [OID3, TT], < OID2 : Map | >)) on [OID3, TT] from OID to OID3, MSG-DELAY)
+        unicast(OID, bid cost(calculatePathLength(< OID : Robot | >, [OID3, TT], < OID2 : Map | >)) on [OID3, TT], OID3)
         if not mustRejectTask(< OID : Robot | >) and compatibleTaskType(< OID : Robot | >, TT) .
 
     ***Handling of detected object
@@ -1074,6 +1071,8 @@ omod ROBOT is
 
 
     ***TODO: fix up safetychecks to not always prevent collision
+    ***safetyChecks(< OID : Robot | detected : REPS >, {OID2 : Robot | FUNC , IS}, < OID3 : Map | >) .
+
     rl [detectFunctioningRobot] :
         < OID : Robot | detected : ({OID2 : Robot | FUNC , IS} , REPS) >
         < OID3 : Map | >
@@ -1081,15 +1080,13 @@ omod ROBOT is
         if needNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC , IS}, < OID3 : Map | >)
         then
             startNegotiation(< OID : Robot | detected : REPS >, {OID2 : Robot | FUNC , IS}, < OID3 : Map | >)
-            < OID3 : Map | > .
+            < OID3 : Map | >
         else
             < OID : Robot | detected : REPS >
             < OID3 : Map | >
         fi .
-        safetyChecks(< OID : Robot | detected : REPS >, {OID2 : Robot | FUNC , IS}, < OID3 : Map | >)
 
-
-    crl [detectCapable] :
+    crl [detectFixCapable] :
         < OID : Robot | state : FUNC, 
             coordinate : (X,Y), 
             detected : (REP , REPS), 
@@ -1108,7 +1105,7 @@ omod ROBOT is
             and not getRepCoord(REP) in LCO . 
 
     ***Detect obstruction that is in the way and cannot be removed.
-    crl [detectIncapableObstructed] : 
+    crl [detectFixIncapableObstructed] : 
         < OID : Robot | state : moving,
             coordinate : (X,Y),
             remainingPath : LCO,
@@ -1126,11 +1123,11 @@ omod ROBOT is
             CONF
         )
         CONF
-        if between(getRepCoord(REP), (X,Y) LCO) =/= nil
+        if findPathPair(getRepCoord(REP), (X,Y) LCO) =/= nil
             and not canComplete(< OID : Robot | >, [getRepOid(REP), fixAt getRepCoord(REP)]) .
 
-    crl [detectIncapableUnobstructed] :
-        < OID : Robot | state : STATE
+    crl [detectFixIncapableUnobstructed] :
+        < OID : Robot | state : STATE,
             coordinate : (X,Y),
             remainingPath : LCO, 
             detected : (REP , REPS),
@@ -1148,7 +1145,7 @@ omod ROBOT is
         CONF
         if not canComplete(< OID : Robot | >, [getRepOid(REP), fixAt getRepCoord(REP)]) 
             and (STATE =/= moving or 
-                (STATE == moving and between(getRepCoord(REP), (X,Y) LCO) == nil)) .
+                (STATE == moving and findPathPair(getRepCoord(REP), (X,Y) LCO) == nil)) .
 
 
     crl [startObstacleRemoval] :
@@ -1189,6 +1186,17 @@ omod ROBOT is
         < OID : Robot | speed : 0, state : resupplying, workState : [OID2, resupplyTask, RESUPPLY-TIME] > 
         < OID2 : ResupplyStation | >
         if needsResupply(< OID : Robot | >, TID) and FUNC =/= resupplying .
+
+    ***Rule for an incapacitated robot starting an auction for requesting help.
+    crl [requestHelp] :
+        < OID : Robot | state : INC, coordinate : (X,Y), activeTasks : TTS >
+        CONF
+        =>
+        < OID : Robot | activeTasks : fixAt (X,Y) , TTS >
+        CONF
+        initiateAuction(< OID : Robot | >, [OID, fixAt (X,Y)], CONF)
+        if not fixAt (X,Y) in TTS .
+        
 
     rl [finishResupply] :
         < OID : Robot | coordinate : (X,Y), state : resupplying, curTask : [OID2, TT], workState : [OID3, resupplyTask, 0] >

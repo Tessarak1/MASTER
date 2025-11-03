@@ -15,7 +15,7 @@ omod TIMER is
 
     eq reset([cur: TIME - base: TIME2]) = [cur: TIME2 - base: TIME2] .
 
-    eq dec([cur: TIME - base: TIME2], TIME3) = [cur: TIME monus TIME3 - base: TIME2] .
+    eq dec([cur: TIME - base: TIME2], TIME3) = [cur: TIME - TIME3 - base: TIME2] .
 
     eq expired([cur: TIME - base: TIME2]) = TIME == 0 .
 endom
@@ -35,7 +35,6 @@ omod TIMER-MSET is
     var MSTR : MSet{TimerElt} .
     vars TIME TIME2 : Time .
 
-    ***TODO: move this operation to superclass of field and robot.
     op decTimers : Object Time -> Object .
 
     eq minTimer(empty) = ratInf .
