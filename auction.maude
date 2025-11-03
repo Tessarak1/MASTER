@@ -32,8 +32,6 @@ omod AUCTION is
 
     ***A robot can place a bid on a task.
     op [_bids_] : Oid Cost -> Bid [ctor] .
-    ***A winner rejects the task if it has become occupied before the auction
-    op [_rejects] : Oid -> Bid [ctor] .
 
     ***An auction consists of the task that is bidded on, a timer for when the auction closes and the received bids.
     op [Task:__|_] : Tid Timer Set{BidElt} -> Auction [ctor] .

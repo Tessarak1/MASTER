@@ -762,14 +762,7 @@ omod ROBOT is
         < OID : Robot | >
         msg won TID from OID2 to OID
         =>
-        if mustRejectTask(< OID : Robot | >)
-        then
-            < OID : Robot | >
-            unicast(OID, reject TID, OID2)
-        else
-            < OID : Robot | state : planningPath, speed : 0, curTask : TID >
-            unicast(OID, accept TID, OID2)
-        fi .
+        < OID : Robot | state : planningPath, speed : 0, curTask : TID > .
     
     ***A robot that has a task and is not involved in resolving a conflict will path towards task
     ***TODO: Prevent it from this being applicable if it is where it needs to be.

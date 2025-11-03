@@ -13,7 +13,7 @@ omod AUCTIONEER is
 
     ***Message content to facilitate auctions
     op bid_on_ : Cost Tid -> MsgContent [ctor] .
-    ops won_ reject_ accept_ : Tid -> MsgContent [ctor] .
+    ops won_ : Tid -> MsgContent [ctor] .
 
     ***Creates an auction for every task in the TidSet and broadcasts it within range.
     op initiateAuction : Object Tid Configuration -> Configuration .
@@ -67,22 +67,4 @@ omod AUCTIONEER is
         msg bid COST on TID from OID2 to OID
         =>
         < OID : Auctioneer | auctions : ([Task: TID TR | ([OID2 bids COST], BS)], AUS) > .
-
-    ***Close the auction when a winner has accepted the task.
-    rl [rcvAcceptMsg] :
-        < OID : Auctioneer | auctions : ([Task: TID TR | BS], AUS) >
-        msg accept TID from OID2 to OID
-        =>
-        < OID : Auctioneer | auctions : AUS > .
-
-    ***If the winner of the auction has become unable to complete the task, determine another winner or retry the auction.
-    rl [rcvRejectMsg] :
-        < OID : Auctioneer | auctions : ([Task: TID TR | ([OID2 bids COST], BS)], AUS) >
-        CONF
-        msg reject TID from OID2 to OID
-        =>
-        retryAuction(< OID : Auctioneer | auctions : AUS >, CONF, [Task: TID TR | BS])
-        CONF .
-
-    ***Rule for ignoring bids on closed auctions.
 endom
