@@ -21,7 +21,7 @@ omod MESSAGE is
   protecting COORDINATE-LIST .
   protecting TASK-MSET .
   protecting TIME-INF .
-  protecting NEGOTIATION .
+  protecting NEGOTIATION-SET .
   
   sort DlyMsg .
   

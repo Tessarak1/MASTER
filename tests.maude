@@ -15,10 +15,10 @@ omod BASE is
   op map1 : -> Object .
   op base1 : -> ClockedConfiguration .
 
-  eq robotAttrs = transRange : 200, maxSpeed : 1, detected : empty, auctions : empty, curTask : noTask,
-    handledTime : false, workState : noWork, detectionRange : 10, obsCoords : nil, negotiations : none, yieldStatus : noYieldInfo, waitingStatus : noWaitingInfo .
-  ***eq workerAttrs = cargoLevel : emptyCargo .
+  eq robotAttrs = transRange : 200, maxSpeed : 1, detected : empty, auctions : empty, activeTasks : empty,
+    handledTime : false, workState : noWork, obsCoords : nil, negotiations : empty, yieldStatus : noYieldInfo, waitingStatus : noWaitingInfo .
   eq transporterAttrs = cargoLevel : emptyCargo .
+  eq workerAttrs = cargoLevel : full .
   eq fieldAttrs = handledTime : false, transRange : 200, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 500 - base: 500],
     fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 1200 - base: 1200], reserved : false, auctions : empty, activeTasks : empty .
 
@@ -29,15 +29,15 @@ omod BASE is
   eq I5 = < "I5" : PassIntersection | coordinate : (200, 0), neighbors : "I2" > .
   eq I6 = < "I6" : PassIntersection | coordinate : (100,100), neighbors : "I2" > .
 
-  eq resupply = < "Resupply" : ResupplyStation | coordinate : (-50, -100), neighbors : "I3" > .
-  eq collection = < "Collection" : CollectionStation | coordinate : (100,-150), neighbors : "I4", collections : 0 > .
+  eq resupply = < "Resupply" : ResupplySite | coordinate : (-50, -100), neighbors : "I3" > .
+  eq collection = < "Collection" : CollectionSite | coordinate : (100,-150), neighbors : "I4", collections : 0 > .
   eq intersections1 = I1 I2 I3 I4 I5 I6 resupply collection GL1 GL2 .
 
   eq GL1 = < "GL1" : Field | coordinate : (0, 100), neighbors : "I1", growingArea : area(((-1, 100), (1,100), (-1, 101), (1, 101))), fieldAttrs > .
   eq GL2 = < "GL2" : Field | coordinate : (150, -100), neighbors : "I4", growingArea : area(((150,-101), (150, -99), (151,-101), (151, -99))), fieldAttrs > .
   
-  eq rob = < "W1" : Worker | curCargo : water, speed : 1, coordinate : (30,-100), state : idle, direction : west, remainingPath : nil, robotAttrs, workerAttrs > .
-  eq rob2 = < "T1" : Transporter | speed : 0, coordinate : (10,-100), state : idle, direction : east, remainingPath : nil, robotAttrs, transporterAttrs > .
+  eq rob = < "W1" : Worker | curCargo : water, detectionRange : 10, speed : 1, coordinate : (30, 0), state : moving, direction : west, remainingPath : (0,0) (0,-100), curTask : ["GL1", wateringTask], robotAttrs, workerAttrs > .
+  eq rob2 = < "T1" : Transporter | speed : 0, detectionRange : 5, coordinate : (0,-1), state : idle, direction : east, remainingPath : nil, robotAttrs, transporterAttrs > .
 
   eq map1 = < "Map" : Map | intersections : intersections1, roads : createRoadSet(intersections1) > .
   
@@ -45,155 +45,8 @@ omod BASE is
   eq base1 = farm1 rob rob2 @ 0 .
 endom
 
-omod HIERARCHY-TESTS is
-  protecting BASE .
-
-  ops taskRob1 taskRob2 taskRob3 taskRob4 taskRob5 taskRob6 : -> Object .
-  ops customAttrs customFieldAttrs : -> AttributeSet .
-  ops taskFarm taskFarm2 : -> Configuration .
-  ops taskTest taskTest2 : -> ClockedConfiguration .
-  ops yieldRob1 yieldRob2 yieldRob3 : -> Object .
-  ops yieldAttrs : -> AttributeSet .
-  op yieldFarm : -> Configuration .
-  op yieldTest : -> ClockedConfiguration .
-
-  eq customAttrs = transRange : 200, maxSpeed : 1, detected : empty, auctions : empty,  handledTime : false, 
-    detectionRange : 10, obsCoords : nil .
-  eq customFieldAttrs = waterLevel : low, waterTimer : [cur: 0 - base: 1000] .
-
-  eq yieldAttrs = transRange : 200, maxSpeed : 1, detected : empty, auctions : empty, handledTime : false,
-    detectionRange : 10, obsCoords : nil, cargoLevel : emptyCargo, workState : noWork, waitingStatus : noWaitingInfo,
-    negotiations : none .
-
-  ***Coordinates around single entrance to Resupply
-  eq taskRob1 = < "W1" : Worker | curCargo : water, speed : 1, coordinate : (-40,-100), 
-    state : moving, curTask : ["GL2", wateringTask], direction : west, yieldStatus : noYieldInfo, 
-    remainingPath : (-50,-100) (0,-100) (100,-100) (150, -100), customAttrs, cargoLevel : emptyCargo, workState : noWork > .
-  eq taskRob2 = < "W2" : Worker | curCargo : fertilizer, speed : 1, coordinate : (-10,-100),
-    state : moving, curTask : ["GL1", fertilizeTask], direction : west, yieldStatus : noYieldInfo, 
-    remainingPath : (-50, -100) (0,-100) (0,0) (0,100), customAttrs, cargoLevel : emptyCargo, workState : noWork > .
-
-  eq taskRob3 = < "W3" : Worker | curCargo : water, speed : 0, coordinate : (99,0),
-    state : idle, curTask : noTask, direction : west, yieldStatus : [Oid: YIELD-PLACEHOLDER | [cur: 100 - base: 100]],
-    remainingPath : nil, customAttrs, cargoLevel : full, workState : noWork > .
-  eq taskRob4 = < "W4" : Transporter | curCargo : produce, speed : 1, coordinate : (20, 0),
-    state : moving, curTask : ["Collection", unloadTask], direction : east, yieldStatus : noYieldInfo,
-    remainingPath : (100,0) (100,-100) (100,-150), customAttrs, cargoLevel : full, workState : noWork > .
-
-  eq taskRob5 = < "W3" : Worker | curCargo : water, speed : 0, coordinate : (-49,-100),
-    state : negotiating, curTask : ["GL2", wateringTask], direction : west, yieldStatus : noYieldInfo,
-    remainingPath : nil, customAttrs, cargoLevel : emptyCargo, workState : noWork, waitingStatus : noWaitingInfo,
-    negotiations : ["Placeholder" | (200,200) | noCost] > .
-  eq taskRob6 = < "W4" : Transporter | curCargo : produce, speed : 1, coordinate : (-10, -100),
-    state : moving, curTask : ["Collection", unloadTask], direction : west, yieldStatus : [Oid: YIELD-PLACEHOLDER | [cur: 100 - base: 100]],
-    remainingPath : (-50,-100), customAttrs, cargoLevel : full, workState : noWork, waitingStatus : noWaitingInfo,
-    negotiations : none > .
-  eq taskFarm = farm1 taskRob1 taskRob2 .
-  eq taskTest = taskFarm @ 0 .
-
-  eq taskFarm2 = farm1 taskRob5 taskRob6 .
-  eq taskTest2 = taskFarm2 @ 0 .
-
-  eq yieldRob1 = < "Y2" : Worker | curCargo : water, speed : 1, coordinate : (90,0), remainingPath : (100,0) (120,0),
-    direction : east, state : moving, curTask : noTask, yieldStatus : [Oid: "placeholder" | [cur: 100 - base: 100]], yieldAttrs > .
-
-  eq yieldRob2 = < "Y1" : Transporter | curCargo : produce, speed : 1, coordinate : (108,0), remainingPath : nil,
-    direction : west, state : idle, curTask : noTask, yieldStatus : [Oid: "placeholder" | [cur: 100 - base: 100]], yieldAttrs > .
-
-  eq yieldRob3 = < "TASK" : Worker | curCargo : water, speed : 1, coordinate : (90,0), remainingPath : (100,0) (110,0),
-    direction : east, curTask : ["GL2", wateringTask], state : moving, yieldStatus : noYieldInfo, yieldAttrs > .
-
-  eq yieldFarm = farm1 yieldRob1 yieldRob2 .
-  eq yieldTest = yieldFarm @ 0 .
-endom
-
-omod ROW-TESTS is
-  protecting BASE .
-  ***Checks behavior when multiple robots are headed towards each other.
-  ops rowRob1 rowRob2 rowRob3 rowRob4 : -> Object .
-  op rowAttrs : -> AttributeSet .
-  op rowTest : -> LimitClockedConfiguration .
-  op obstacle1 : -> Object .
-
-  eq rowAttrs = transRange : 200, maxSpeed : 1, detected : empty, auctions : empty, handledTime : false,
-    detectionRange : 10, obsCoords : nil, cargoLevel : full, workState : noWork, waitingStatus : noWaitingInfo,
-    negotiations : none .
-
-  eq rowRob1 = < "R1" : Worker | curCargo : water, speed : 1, coordinate : (10,0), remainingPath : (100,0) (100,-100) (150,-100),
-    direction : east, state : moving, curTask : ["GL2", wateringTask], yieldStatus : noYieldInfo, rowAttrs > .
-  eq rowRob2 = < "R2" : Worker | curCargo : water, speed : 1, coordinate : (20,0), remainingPath : (100,0) (100,-100) (150,-100),
-    direction : east, state : moving, curTask : ["GL2", fertilizeTask], yieldStatus : noYieldInfo, rowAttrs > .
-  eq rowRob3 = < "R3" : Worker | curCargo : water, speed : 1, coordinate : (90,0), remainingPath : (0,0) (0,-5),
-    direction : west, state : moving, curTask : noTask, yieldStatus : [Oid: "placeholder" | [cur: 100 - base: 100]], rowAttrs > .
-  eq rowRob4 = < "R4" : Worker | curCargo : water, speed : 1, coordinate : (100,0), remainingPath : (0,0) (0,-2),
-    direction : west, state : moving, curTask : noTask, yieldStatus : [Oid: "placeholder" | [cur: 100 - base: 100]], rowAttrs > .
-  
-
-  eq obstacle1 = < "O" : Obstacle | coordinate : (30,0) > .
-
-
-  eq rowTest = farm1 rowRob2 obstacle1 @ 0 [LIMIT: 1000] .
-endom
-
-omod SMALL-TESTS is
-  protecting TIMED-FARM .
-
-  ops robotAttrs workerAttrs transporterAttrs : -> AttributeSet .
-  op fieldAttrs : -> AttributeSet .
-  ops rob rob2 : -> Object .
-  ops I1 : -> Object .
-  op resupply : -> Object .
-  op collection : -> Object .
-  ops GL1 GL2 : -> Object .
-  ops intersections1 : -> Configuration .
-  op farm1 : -> Configuration .
-  op map1 : -> Object .
-  op base1 : -> ClockedConfiguration .
-
-  eq robotAttrs = transRange : 200, maxSpeed : 1, 
-    detected : empty, auctions : empty, 
-    handledTime : false, workState : noWork, 
-    detectionRange : 10, obsCoords : nil, 
-    negotiations : none, yieldStatus : noYieldInfo, 
-    waitingStatus : noWaitingInfo,
-    cargoLevel : full .
-***  eq transporterAttrs = cargoLevel : emptyCargo .
-  eq fieldAttrs = handledTime : false, transRange : 200, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 500 - base: 500],
-    fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 1200 - base: 1200], reserved : false, auctions : empty, activeTasks : empty .
-
-  eq I1 = < "I1" : PassIntersection | coordinate : (0,0), neighbors : ("Resupply", "GL1") > .
-
-  eq resupply = < "Resupply" : ResupplyStation | coordinate : (-50, 0), neighbors : "I1" , "Collection" > .
-  eq collection = < "Collection" : CollectionStation | coordinate : (-100,0), neighbors : "Resupply", collections : 0 > .
-  eq intersections1 = I1 collection GL1 resupply .
-
-  eq GL1 = < "GL1" : Field | coordinate : (0, 100), neighbors : "I1", growingArea : area(((-1, 100), (1,100), (-1, 101), (1, 101))), fieldAttrs > .
-  
-  eq rob = < "W1" : Worker | curCargo : water, speed : 1, coordinate : (-10,0), state : moving, direction : east, remainingPath : (0,0), robotAttrs > .
-  eq rob2 = < "T1" : Worker | speed : 1, coordinate : (0,3), state : moving, direction : north, remainingPath : (0,10), robotAttrs > .
-
-  eq map1 = < "Map" : Map | intersections : intersections1, roads : createRoadSet(intersections1) > .
-  
-  eq farm1 = map1 collection resupply .
-  eq base1 = farm1 GL1 @ 0 .
-endom
-
-***Defines the test scenarios with small configurations to run specific tests on. 
-omod SMALL-SCENARIOS is
-  protecting SMALL-TESTS .
-
-  ops obstacleTest repairTest test3 test4 test5 test6 test7 : -> LimitClockedConfiguration .
-  ops timeRob1 timeRob2 : -> Object .
-  ops timeTest : -> LimitClockedConfiguration .
-
-  eq timeRob1 = < "W1" : Worker | curCargo : water, speed : 1, coordinate : (0,0), state : moving, direction : west, remainingPath : (-100,0), curTask : ["GL1", wateringTask], robotAttrs > .
-  eq timeRob2 = < "W2" : Worker | speed : 100, coordinate : (-99,0), state : moving, direction : east, remainingPath : (0,0), curTask : noTask, robotAttrs > .
-
-  eq timeTest = farm1 timeRob2 timeRob1 @ 0 [LIMIT: 100] .
-  eq obstacleTest = farm1 rob  @ 0 [LIMIT: 1000] .
-  eq repairTest = map1 collection resupply rob rob2 @ 0 [LIMIT: 100] .
-endom
-red unicast("W1", requestPath, "W2") timeRob1 timeRob2 rob rob2 .
-***time testing
-***search [1] repairTest =>* C:Configuration < "T1" : Worker | state : idle, AS:AttributeSet > @ T:Time [LIMIT: T2:Time] .
-***Detection when idle, dont start negotiation, but add to obs points or something, need to track it.
+red mte(rob rob2) .
+red $mteRobot(rob, rob2) .
+red $destinationTime(rob, rob2) .
+red quadTime(rob, rob2) .
+***not calling quadTime from destinationTime.

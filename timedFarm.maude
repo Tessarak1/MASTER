@@ -290,7 +290,7 @@ omod TIMED-FARM is
             fi 
         fi .
 
-    ***Time to reach next waypoint when there is no other object in the way
+    ***Time to reach next waypoint if there are no objects on connecting roads.
     eq $destinationTime(
          < OID : Robot | 
             coordinate : (X, Y), 
@@ -301,13 +301,14 @@ omod TIMED-FARM is
        =
        distance((X, Y), (X2, Y2)) / SP .
 
-    ***what about an object that is leaving?
+    ***For robots, do setDirection instead of direction, as it may not have updated
     eq $destinationTime(
-        < OID : Robot | direction : D >,
-        < OID2 : Robot | direction : D2 > CONF
+        < OID : Robot | coordinate : (X,Y), 
+            remainingPath : (X2,Y2) LCO >,
+        < OID2 : Robot | coordinate : (X3,Y3) > CONF
         ) 
         =
-        if differentAxes(D, D2)
+        if differentAxes(setDirection((X,Y), (X2,Y2)), setDirection((X2,Y2), (X3,Y3)))
         then
             min(
                 quadTime(< OID : Robot | >, < OID2 : Robot | >),
@@ -354,23 +355,23 @@ omod TIMED-FARM is
     ***Needs to potentially change directions
     eq $mteRobot(< OID : Robot | state : moving, coordinate : (X,Y), remainingPath : (X,Y) LCO >, CONF) = 0 .
     ***Needs to stop negotiating
-    eq $mteRobot(< OID : Robot | state : negotiating, negotiations : none >,  CONF) = 0 .
+    eq $mteRobot(< OID : Robot | state : negotiating, negotiations : empty >,  CONF) = 0 .
     ***Needs to transition to planningPath
     eq $mteRobot(< OID : Robot | state : idle, remainingPath : nil, yieldStatus : noYieldInfo, curTask : TID >,  CONF) = 0 .
     ***Needs to stop waiting
     eq $mteRobot(< OID : Robot | state : waiting, waitingStatus : noWaitingInfo >, CONF) = 0 .
     ***Allow robot to start resupplying if needed
     ceq $mteRobot(< OID : Robot | coordinate : (X,Y), state : FUNC, curTask : TID >,
-    < OID2 : ResupplyStation | coordinate : (X,Y) > CONF) = 0 if needsResupply(< OID : Robot | >, TID) and (FUNC =/= resupplying) .
+    < OID2 : ResupplySite | coordinate : (X,Y) > CONF) = 0 if $needResupply(< OID : Robot | >, TID) and (FUNC =/= resupplying) .
     ***finish resupply.
     eq $mteRobot(< OID : Robot | coordinate : (X,Y), state : resupplying, workState : [OID2, resupplyTask, 0] >,
-      < OID2 : ResupplyStation | coordinate : (X,Y) > CONF) = 0 .
+      < OID2 : ResupplySite | coordinate : (X,Y) > CONF) = 0 .
     ***Need to start unloading
     eq $mteRobot(< OID : Robot | coordinate : (X,Y), state : FUNC, cargoLevel : full, workState : noWork >,
-        < OID2 : CollectionStation | coordinate : (X,Y) > CONF) = 0 .
+        < OID2 : CollectionSite | coordinate : (X,Y) > CONF) = 0 .
     ***Need to finish unloading
     eq $mteRobot(< OID : Robot | coordinate : (X,Y), state : unloading, cargoLevel : full, workState : [OID2, unloadTask, 0] >,
-        < OID2 : CollectionStation | coordinate : (X,Y) > CONF) = 0 .
+        < OID2 : CollectionSite | coordinate : (X,Y) > CONF) = 0 .
     ***Needs to start replanning path.
     eq $mteRobot(< OID : Robot | state : planningPath >, CONF) = 0 .
     ***Needs to start movement
@@ -387,11 +388,11 @@ omod TIMED-FARM is
     ***Unobstructed movement
     ***If it is moving uninterrupted towards an intersection then check until it may detect other robots that are close to that intersection
     ceq $mteRobot(
-        < OID : Robot | 
-            state : moving, 
-            coordinate : (X,Y), 
-            remainingPath : (X2,Y2) LCO >,
-        CONF
+            < OID : Robot | 
+                state : moving, 
+                coordinate : (X,Y), 
+                remainingPath : (X2,Y2) LCO >,
+            CONF
         )
         =
         $destinationTime(

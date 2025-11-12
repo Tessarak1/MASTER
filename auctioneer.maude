@@ -22,19 +22,13 @@ omod AUCTIONEER is
     op winAuction : Object Tid -> Configuration .
 
     ***Object tries an auction again.
-    op retryAuction : Object Configuration Auction -> Object .
+    op finishedAuction : Object Configuration Auction -> Object .
 
     vars OID OID2 : Oid .
-    var R : Rat .
     var TID : Tid .
-    var TIDS : MSet{TidElt} .
     var AUS : Set{AuctionElt} .
-    var MSG : Msg .
     var TR : Timer .
-    vars TIME TIME2 TIME3 : Time .
     var BS : Set{BidElt} .
-    var TPT : TransporterTask .
-    var WT : WorkerTask .
     var CONF : Configuration .
     vars COST : Cost .
 
@@ -43,10 +37,10 @@ omod AUCTIONEER is
         broadcast(OID, TID, < OID : Auctioneer | > CONF)  .
 
     ***No winner, so restart the auction.
-    eq retryAuction(< OID : Auctioneer | >, CONF, [Task: TID TR | empty]) =
+    eq finishedAuction(< OID : Auctioneer | >, CONF, [Task: TID TR | empty]) =
         initiateAuction(< OID : Auctioneer | >, TID, CONF) .
-    ***we have a winner, so send to that winner.
-    eq retryAuction(< OID : Auctioneer | auctions : AUS >, CONF, [Task: TID TR | BS]) =
+
+    eq finishedAuction(< OID : Auctioneer | auctions : AUS >, CONF, [Task: TID TR | BS]) =
         < OID : Auctioneer | auctions : ([Task: TID TR | BS], AUS) >
         unicast(OID, won TID, auctionWinner(BS, "",cost(ratInf))) [owise] .
 
@@ -55,16 +49,24 @@ omod AUCTIONEER is
         < OID : Auctioneer | auctions : ([Task: TID TR | BS], AUS) >
         CONF
         =>
-        retryAuction(< OID : Auctioneer | auctions : AUS >, 
+        finishedAuction(< OID : Auctioneer | auctions : AUS >, 
             CONF, 
             [Task: TID TR | BS])
         CONF
         if expired(TR) .
 
     ***Adds bid to the auction
-    rl [rcvBidMsg] :
+    rl [rcvBidMsgAuction] :
         < OID : Auctioneer | auctions : ([Task: TID TR | BS], AUS) >
         msg bid COST on TID from OID2 to OID
         =>
         < OID : Auctioneer | auctions : ([Task: TID TR | ([OID2 bids COST], BS)], AUS) > .
+    
+    ***Ignores bid if no corresponding auction exists.
+    crl [rcvBidMsgNoAuction] :
+        < OID : Auctioneer | auctions : AUS >
+        msg bid COST on TID from OID2 to OID
+        =>
+        < OID : Auctioneer | auctions : AUS >
+        if not auctionExists(TID, AUS) .
 endom

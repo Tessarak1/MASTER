@@ -27,9 +27,9 @@ omod MAP is
     op $newIntersection : Object Coordinate Road Nat Bool -> Object .
     op $newIntersectionCounter : Object List-Coordinate Nat Bool -> Object .
     ***Updates the map with an intersection for each coordinate in the list.
-    op newPassIntersection : Object List-Coordinate -> Object .
+    op addPassIntersections : Object List-Coordinate -> Object .
     ***Updates the map with an impassable intersection for each coordinate in the list.
-    op newObsIntersection : Object List-Coordinate -> Object .
+    op addObsIntersections : Object List-Coordinate -> Object .
     ***Adds PassIntersections with locations from the first list, and ObsIntersections from the second to the map.
     ***Is used when a robot needs to find a path to a goal, and needs to temporarily update the map due to detected obstacles.
     op modifyMap : Object List-Coordinate List-Coordinate -> Object .
@@ -82,10 +82,10 @@ omod MAP is
             $newIntersectionCounter($newIntersection(removeNeighbor(< OID : Map | >, (X,Y)), (X,Y), findRoad((X,Y), RS), N, B), LCO, N + 1, B)
         fi .
 
-    eq newPassIntersection(< OID : Map | >, LCO) =
+    eq addPassIntersections(< OID : Map | >, LCO) =
         $newIntersectionCounter(< OID : Map | >, LCO, 0, true) .
 
-    eq newObsIntersection(< OID : Map | >, LCO) =
+    eq addObsIntersections(< OID : Map | >, LCO) =
         $newIntersectionCounter(< OID : Map | >, LCO, 0, false) .
 
     eq $removeNeighbor(empty, CONF) = CONF .
@@ -107,5 +107,5 @@ omod MAP is
     eq outsideMap((X,Y), RS) = true [owise] .
 
     eq modifyMap(< OID : Map | >, LCO, LCO2) = 
-        newObsIntersection(newPassIntersection(< OID : Map | >, LCO), LCO2) .
+        addObsIntersections(addPassIntersections(< OID : Map | >, LCO), LCO2) .
 endom

@@ -46,10 +46,10 @@ fmod COORDINATE-LIST is
     op last : List-Coordinate -> Coordinate  .
     op _in_ : Coordinate List-Coordinate -> Bool .
     op remove : List-Coordinate List-Coordinate -> List-Coordinate .
-    ***Checks if a given locations is between two neighboring locations in the list, and returns them if they exist.
+    ***Checks if a given location is between two neighboring locations in the list, and returns them if they exist.
     op findPathPair : Coordinate List-Coordinate -> List-Coordinate .
     ***The total distance required to traverse the entire list.
-    op listLength : List-Coordinate -> Rat .
+    op pathLength : List-Coordinate -> Rat .
     ***Checks for overlap between two paralell lines represented by two locations
     op overlap : List-Coordinate List-Coordinate -> Bool [comm] .
     ***removes duplicate elements that are right next to each other
@@ -84,9 +84,9 @@ fmod COORDINATE-LIST is
     eq remove(LCO (X,Y) LCO2, LCO3 (X,Y) LCO4) = remove(LCO LCO2, LCO3 LCO4) .
     eq remove(LCO, LCO2) = LCO [owise] .
 
-    eq listLength((X,Y) (X2,Y2) LCO) = distance((X,Y), (X2,Y2)) + listLength((X2,Y2) LCO) .
-    eq listLength((X,Y) (X2,Y2)) = distance((X,Y), (X2,Y2)) .
-    eq listLength(LCO) = 0 [owise] .
+    eq pathLength((X,Y) (X2,Y2) LCO) = distance((X,Y), (X2,Y2)) + pathLength((X2,Y2) LCO) .
+    eq pathLength((X,Y) (X2,Y2)) = distance((X,Y), (X2,Y2)) .
+    eq pathLength(LCO) = 0 [owise] .
 
     eq overlap((X,Y) (X,Y2), (X,Y3) (X,Y4)) = max(min(Y,Y2), min(Y3,Y4)) <= min(max(Y,Y2), max(Y3,Y4)) .
     eq overlap((X,Y) (X2,Y), (X3,Y) (X4,Y)) = max(min(X,X2), min(X3,X4)) <= min(max(X,X2), max(X3,X4)) .
