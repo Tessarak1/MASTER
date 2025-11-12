@@ -4,7 +4,7 @@ load message .
 load map .
 load field .
 load obstacle .
-load buildings .
+load sites .
 load auctioneer .
 load entity .
 load systemVars .
@@ -18,7 +18,7 @@ omod ROBOT is
     protecting TIME-INF .
     protecting FIELD .
     protecting PATH-PLANNER .
-    protecting BUILDINGS .
+    protecting SITES .
     protecting ENTITY .
     protecting SYSTEM-VARS .
     protecting DIRECTION .

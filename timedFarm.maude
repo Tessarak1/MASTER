@@ -1,7 +1,7 @@
 load robot .
 load time-inf .
 load obstacle . 
-load buildings .
+load sites .
 load quadratic-solver .
 omod TIMED-FARM is
     protecting ROBOT .
@@ -9,7 +9,7 @@ omod TIMED-FARM is
     protecting MAP .
     protecting FIELD .
     protecting OBSTACLE .
-    protecting BUILDINGS .
+    protecting SITES .
     protecting QUADRATIC-SOLVER .
 
     sorts ClockedConfiguration LimitClockedConfiguration .

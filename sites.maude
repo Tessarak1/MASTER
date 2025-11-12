@@ -1,6 +1,5 @@
 load intersection .
-
-omod BUILDINGS is
+omod SITES is
     protecting INTERSECTION .
     protecting NAT .
     class CollectionSite | collections : Nat .
