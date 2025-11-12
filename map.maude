@@ -1,81 +1,111 @@
-load intersection
-load path
-***allIntersections is a config, that consist exclusively of Intersection objects
+load intersection .
+load road .
+
 omod MAP is 
     protecting INTERSECTION .
-    protecting LIST-LOCATION .
-    protecting PATH .
-    class Map | allIntersections : Configuration, paths : PathSet .
+    protecting COORDINATE-LIST .
+    protecting ROAD-SET .
 
-    ***return intersection with given location.
-    op returnByLocation : Configuration List-Location -> Configuration .
-    op returnByLocation : Configuration PathSet -> Configuration .
-    op $removeConnection : PathSet Configuration -> Configuration .
-    op removeConnection : PathSet Object -> Object .
-    op removeConnection : Object List-Location -> Object .
-    op newNeighbor : String OidSet Configuration -> Configuration .
-    op createPathSet : Configuration -> PathSet .
-    op findPath : List-Location PathSet -> PathSet .
+    ***A map contains all the intersections and the roads connecting them
+    class Map | intersections : Configuration, roads : Set{RoadElt} .
+
+    ***creates a road set based on a configuration consisting of intersections
+    op createRoadSet : Configuration -> Set{RoadElt} .
     op getIntersections : Object -> Configuration .
-    op getPathSet : Object -> PathSet .
-    op $newIntersection : Location Path Object Nat -> Object .
-    op $newIntersectionCounter : List-Location Object Nat -> Object .
-    op newIntersection : Object List-Location -> Object .
-    op $addPath : Location Path PathSet -> PathSet .
-    op addPath : Location Path PathSet -> PathSet .
-    op outsideMap : Location PathSet -> Bool .
-    op addAndRemove : Object List-Location List-Location -> Object .
+    op getRoads : Object -> Set{RoadElt} .
+    ***Checks if a coordinate is not on a road.
+    op outsideMap : Coordinate Set{RoadElt} -> Bool .
+    ***Adds the first Oid as a neighbor to every intersection with an Oid in the Set{RoadElt}
+    ***is used in new neighbor to update which intersections are connected.
+    op newNeighbor : Oid Set{OidElt} Configuration -> Configuration .
+    ***removes intersections as neighbors if they are connected by a road that overlaps with one of the locations in the list.
+    op removeNeighbor : Object List-Coordinate -> Object .
+    op $removeNeighbor : Set{RoadElt} Configuration -> Configuration .
+    op removeNeighbor : Set{RoadElt} Object -> Object .
+    ***Adds new intersections with the given locations to the map. Has to be on existing roads.
+    ***The added intersection is an ObsIntersection if the Bool is false, and a normal intersection if not.
+    op $newIntersection : Object Coordinate Road Nat Bool -> Object .
+    op $newIntersectionCounter : Object List-Coordinate Nat Bool -> Object .
+    ***Updates the map with an intersection for each coordinate in the list.
+    op addPassIntersections : Object List-Coordinate -> Object .
+    ***Updates the map with an impassable intersection for each coordinate in the list.
+    op addObsIntersections : Object List-Coordinate -> Object .
+    ***Adds PassIntersections with locations from the first list, and ObsIntersections from the second to the map.
+    ***Is used when a robot needs to find a path to a goal, and needs to temporarily update the map due to detected obstacles.
+    op modifyMap : Object List-Coordinate List-Coordinate -> Object .
 
     vars X X2 X3 Y Y2 Y3 : Rat .
-    vars OID OID2 : String .
+    vars OID OID2 : Oid .
     var CONF : Configuration .
     var O : Object .
-    vars OS OS2 : OidSet .
-    vars LL LL2 : List-Location .
-    var L : Location .
-    var PS PS2 : PathSet .
+    vars OS OS2 : Set{OidElt} .
+    vars LCO LCO2 : List-Coordinate .
+    var L : Coordinate .
+    var RS : Set{RoadElt} .
     var AS : AttributeSet .
     var N : Nat .
+    var B : Bool .
 
-    eq addAndRemove(< OID : Map | >, LL, LL2) = removeConnection(newIntersection(< OID : Map | >, LL), LL2) .
-    ceq outsideMap((X,Y), {(X2,Y2) (X3,Y3)} PS) = false if between((X,Y), (X2,Y2) (X3,Y3)) =/= nil .
-    eq outsideMap((X,Y), PS) = true [owise] .
-    eq returnByLocation(< OID : Intersection | location : (X, Y) > CONF, (X, Y) LL) = < OID : Intersection | > returnByLocation(CONF, LL) .
-    eq returnByLocation(< OID : Intersection | location : (X, Y) > < OID2 : Intersection | location : (X2, Y2) > CONF, {(X, Y) (X2, Y2)} PS) = < OID : Intersection | > < OID2 : Intersection | > returnByLocation(CONF, PS) .
-    eq returnByLocation(CONF, LL) = none [owise] .
-    eq $removeConnection(es, CONF) = CONF .
-    eq $removeConnection({(X,Y) (X2,Y2)} PS, < OID : Intersection | location : (X,Y), neighbors : OID2 OS > < OID2 : Intersection | location : (X2,Y2), neighbors : OID OS2 > CONF) =
-        $removeConnection(PS, < OID : Intersection | neighbors : OS > < OID2 : Intersection | neighbors : OS2 > CONF) .
-    eq removeConnection(< OID : Map | allIntersections : CONF, paths : PS >, LL) =
-        < OID : Map | allIntersections : $removeConnection(findPath(LL, PS), CONF), paths : PS \ findPath(LL, PS) > .
-    eq newNeighbor(OID, none, CONF) = CONF .
-    eq newNeighbor(OID, OID2 OS, < OID2 : Intersection | neighbors : OS2 > CONF) = < OID2 : Intersection | neighbors : OID OS2 > newNeighbor(OID, OS, CONF) .
-    eq createPathSet(none) = es .
-    eq createPathSet(< OID : Intersection | neighbors : none > CONF) = createPathSet(CONF) .
-    eq createPathSet(< OID : Intersection | location : (X,Y), neighbors : OID2 OS > < OID2 : Intersection | location : (X2,Y2), neighbors : OID OS2 > CONF) =
-        {(X,Y) (X2,Y2)} createPathSet(< OID : Intersection | neighbors : OS > < OID2 : Intersection | neighbors : OS2 > CONF) .
-    eq findPath((X,Y) LL, es) = es .
-    eq findPath(nil, PS) = es .
-    ceq findPath((X,Y) LL, {(X2,Y2) (X3,Y3)} PS) = {(X2,Y2) (X3,Y3)} findPath(LL, PS) if (X,Y) inRange({(X2,Y2) (X3,Y3)}) .
-    eq findPath((X,Y) LL, {(X,Y) (X2,Y2)} PS) = {(X,Y) (X2,Y2)} findPath((X,Y) LL, PS) .
-    eq findPath((X,Y) LL, {(X2,Y2) (X3,Y3)} PS) = findPath(LL, {(X2,Y2) (X3,Y3)} PS) [owise] .
-    eq addPath((X,Y), {(X2,Y2) (X3,Y3)}, {(X2,Y2) (X3,Y3)} PS) = {(X,Y) (X2,Y2)} {(X,Y) (X3,Y3)} PS .
-    eq addPath((X,Y), {(X2,Y2) (X3,Y3)}, PS) = {(X,Y) (X2,Y2)} {(X,Y) (X3,Y3)} PS [owise] .
-    eq $newIntersection((X,Y), {(X2,Y2) (X3,Y3)}, < OID : Map | allIntersections : CONF, paths : PS >, N) =
-        < OID : Map | allIntersections : < string(N, 10) : Intersection | location : (X,Y), neighbors : oidSet(returnByLocation(CONF, (X2,Y2) (X3,Y3))) > 
-            newNeighbor(string(N, 10), oidSet(returnByLocation(CONF, (X2,Y2) (X3,Y3))), CONF),
-            paths : addPath((X,Y), {(X2,Y2) (X3,Y3)}, PS) > .
-    eq $newIntersectionCounter(nil, < OID : Map | >, N) = < OID : Map | > .
-    eq $newIntersectionCounter((X,Y) LL, < OID : Map | allIntersections : CONF, paths : PS >, N) =
-        if (findPath((X,Y), PS) == es) or (returnByLocation(CONF, (X,Y)) =/= none)
+    eq createRoadSet(none) = empty .
+    eq createRoadSet(< OID : Intersection | neighbors : empty > CONF) = createRoadSet(CONF) .
+    eq createRoadSet(< OID : Intersection | coordinate : (X,Y), neighbors : (OID2 , OS) >
+        < OID2 : Intersection | coordinate : (X2,Y2), neighbors : (OID, OS2) > CONF) 
+        =
+        {(X,Y) (X2,Y2)} , createRoadSet(< OID : Intersection | neighbors : OS >
+        < OID2 : Intersection | neighbors : OS2 > CONF) .
+
+    eq getIntersections(< OID : Map | intersections : CONF >) = CONF .
+
+    eq getRoads(< OID : Map | roads : RS >) = RS .
+
+    eq newNeighbor(OID, empty, CONF) = CONF .
+    eq newNeighbor(OID, (OID2, OS), 
+        < OID2 : Intersection | neighbors : OS2 > CONF)
+        = 
+        < OID2 : Intersection | neighbors : (OID, OS2) > newNeighbor(OID, OS, CONF) .
+
+    eq $newIntersection(< OID : Map | intersections : CONF, roads : RS >, (X,Y), {(X2,Y2) (X3,Y3)}, N, true) =
+        < OID : Map | intersections : < "Pass " + string(N, 10) : PassIntersection | coordinate : (X,Y), neighbors : getOidSet(intersectionWithLocation(CONF, (X2,Y2) (X3,Y3))) > 
+            newNeighbor("Pass " + string(N, 10), getOidSet(intersectionWithLocation(CONF, (X2,Y2) (X3,Y3))), CONF),
+            roads : splitRoad((X,Y), {(X2,Y2) (X3,Y3)}, RS) > . 
+    eq $newIntersection(< OID : Map | intersections : CONF, roads : RS >, (X,Y), {(X2,Y2) (X3,Y3)}, N, false) =
+        < OID : Map | intersections : < "Obs " + string(N, 10) : ObsIntersection | coordinate : (X,Y), neighbors : getOidSet(intersectionWithLocation(CONF, (X2,Y2) (X3,Y3))) > 
+            newNeighbor("Obs " + string(N, 10), getOidSet(intersectionWithLocation(CONF, (X2,Y2) (X3,Y3))), CONF),
+            roads : splitRoad((X,Y), {(X2,Y2) (X3,Y3)}, RS) > .
+
+    eq $newIntersectionCounter(< OID : Map | >, nil, N, B) = < OID : Map | > .
+    eq $newIntersectionCounter(< OID : Map | intersections : CONF, roads : RS >, (X,Y) LCO, N, B) =
+        if (findRoad((X,Y), RS) == empty) or (intersectionWithLocation(CONF, (X,Y)) =/= none)
         then
-            $newIntersectionCounter(LL, < OID : Map | >, N)
+            $newIntersectionCounter(< OID : Map | >, LCO, N, B)
         else
-            $newIntersectionCounter(LL, $newIntersection((X,Y), findPath((X,Y), PS), removeConnection(< OID : Map | >, (X,Y)), N), N + 1)
+            $newIntersectionCounter($newIntersection(removeNeighbor(< OID : Map | >, (X,Y)), (X,Y), findRoad((X,Y), RS), N, B), LCO, N + 1, B)
         fi .
-    eq newIntersection(< OID : Map | >, LL) =
-        $newIntersectionCounter(LL, < OID : Map | >, 0) .
 
-    eq getIntersections(< OID : Map | allIntersections : CONF >) = CONF .
-    eq getPathSet(< OID : Map | paths : PS >) = PS .
+    eq addPassIntersections(< OID : Map | >, LCO) =
+        $newIntersectionCounter(< OID : Map | >, LCO, 0, true) .
+
+    eq addObsIntersections(< OID : Map | >, LCO) =
+        $newIntersectionCounter(< OID : Map | >, LCO, 0, false) .
+
+    eq $removeNeighbor(empty, CONF) = CONF .
+    eq $removeNeighbor(({(X,Y) (X2,Y2)} , RS),
+        < OID : Intersection | coordinate : (X,Y), neighbors : (OID2, OS) > 
+        < OID2 : Intersection | coordinate : (X2,Y2), neighbors : (OID, OS2) >
+        CONF)
+        =
+        $removeNeighbor(RS, 
+            < OID : Intersection | neighbors : OS >
+            < OID2 : Intersection | neighbors : OS2 > 
+            CONF) .
+
+    eq removeNeighbor(< OID : Map | intersections : CONF, roads : RS >, LCO) =
+        < OID : Map | intersections : $removeNeighbor(findRoad(LCO, RS), CONF), 
+            roads : RS \ findRoad(LCO, RS) > .
+
+    ceq outsideMap((X,Y), ({(X2,Y2) (X3,Y3)} , RS)) = false if findPathPair((X,Y), (X2,Y2) (X3,Y3)) =/= nil .
+    eq outsideMap((X,Y), RS) = true [owise] .
+
+    eq modifyMap(< OID : Map | >, LCO, LCO2) = 
+        addObsIntersections(addPassIntersections(< OID : Map | >, LCO), LCO2) .
 endom

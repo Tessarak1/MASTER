@@ -1,0 +1,141 @@
+load map .
+load rat-inf .
+
+omod DIJKSTRA-NODE is
+    protecting MAP .
+    protecting AREA .
+    protecting RAT-INF .
+    
+    sort DijkstraNode .
+    ***Intersection, current calculated distance to it
+    ***and Oid of previous intersection of shortest path to it.
+    op [_,_,_] : Object RatInf Oid -> DijkstraNode [ctor] .
+endom
+
+omod PRIORITY-QUEUE is
+    protecting DIJKSTRA-NODE .
+
+    sort PQueue .
+    subsort DijkstraNode < PQueue .
+
+    ***basic list constructors
+    op noQueue : -> PQueue [ctor] .
+    op __ : PQueue PQueue -> PQueue [assoc id: noQueue ctor] .
+
+    ***adds node to list, sorted by current shortest distance to node.
+    op put : DijkstraNode PQueue -> PQueue .
+
+    var DN : DijkstraNode .
+    var PQ : PQueue .
+    vars O O2 : Object .
+    var OID OID2 : Oid .
+    vars RI RI2 : RatInf .
+
+    eq put(DN, noQueue) = DN .
+    eq put([O, RI, OID], [O2, RI2, OID2] PQ) =
+        if (RI < RI2)
+        then
+            [O, RI, OID] [O2, RI2, OID2] PQ
+        else
+            [O2, RI2, OID2] put([O, RI, OID], PQ)
+        fi .
+endom
+
+omod PATH-PLANNER is
+    protecting PRIORITY-QUEUE .
+
+    ***Converts a set of intersections into a priority queue starting with the intersection with the given coordinate.
+    op PQConvert : Configuration Coordinate -> PQueue .
+
+    ***Updates the distances for a priority queue.
+    op $updateDistances : PQueue DijkstraNode -> PQueue .
+    op updateDistances : PQueue -> PQueue .
+
+    ***construct path from goal node to starting node.
+    ***Starts from goal node and traces back previous nodes until starting node is reached.
+    ***returns nil if no path is possible
+    op buildPath : Oid PQueue -> List-Coordinate .
+
+    ***Constructs shortest path from intersection with first oid to intersection with second oid.
+    ***can also do dijkstra search from coordinate to coordinate
+    op dijkstraSearch : Configuration Oid Oid -> List-Coordinate .
+    op dijkstraSearch : Configuration Coordinate Coordinate -> List-Coordinate .
+
+    ***Performs consecutive dijkstra searches when a sequence of locations need to be visited in order
+    op dijkstraChain : Configuration List-Coordinate -> List-Coordinate .
+
+    ***Creates a path that covers a square area and returns to a given beginning point
+    ops coverVertical coverHorizontal : List-Coordinate List-Coordinate -> List-Coordinate .
+    op backToStart : Coordinate Coordinate -> List-Coordinate .
+    ops coverArea $coverArea : Coordinate Area -> List-Coordinate .
+
+    vars I I2 : Object .
+    var CONF : Configuration .
+    vars OS OS2 : Set{OidElt} .
+    vars X X2 X3 X4 Y Y2 Y3 Y4 : Rat .
+    vars OID OID2 OID3 OID4 : Oid .
+    vars PQ PQ2 : PQueue .
+    var R : Rat .
+    vars RI RI2 : RatInf .
+    var DN : DijkstraNode .
+    var A : Area .
+    var LCO : List-Coordinate .
+    var CID : Cid .
+
+    eq PQConvert(none, (X,Y)) = noQueue .
+    eq PQConvert(< OID : Intersection | coordinate : (X,Y) > CONF, (X,Y)) = [< OID : Intersection | >, 0, "Start"] PQConvert(CONF, (X,Y)) .   
+    eq PQConvert(I2 CONF, (X,Y)) = [I2, ratInf, "Placeholder"] PQConvert(CONF, (X,Y)) [owise] .
+        
+    eq $updateDistances(PQ [< OID : Intersection | coordinate : (X,Y), neighbors : (OID3 , OS) >, RI, OID2] PQ2,
+        [< OID3 : Intersection | coordinate : (X2,Y2) >, RI2, OID4]) =
+            if (distance((X,Y), (X2,Y2)) + RI2) < RI
+            then
+                put([< OID : Intersection | neighbors : OS >, distance((X,Y), (X2,Y2)) + RI2, OID3], PQ PQ2)
+            else
+                PQ [< OID : Intersection | neighbors : OS >, RI, OID2] PQ2
+            fi .
+
+    eq updateDistances(PQ [< OID : PassIntersection | coordinate : (X,Y), neighbors : (OID2 , OS) >, R, OID3] PQ2) = 
+        updateDistances($updateDistances(PQ [< OID : PassIntersection | neighbors : OS >, R, OID3] PQ2, 
+            [< OID : PassIntersection | coordinate : (X,Y), neighbors : (OID2 , OS) >, R, OID3])) .
+    eq updateDistances(PQ) = PQ [owise] .
+    
+    eq buildPath(OID, PQ [< OID : Intersection | >, ratInf, OID2] PQ2) = nil .
+    eq buildPath(OID, PQ [< OID : Intersection | coordinate : (X,Y) >, R, "Start"] PQ2) = (X,Y) .
+    ceq buildPath(OID, PQ [< OID : Intersection | coordinate : (X,Y) >, R, OID2] PQ2) = buildPath(OID2, PQ PQ2) (X,Y) if OID2 =/= "Start" .
+    eq buildPath(OID, PQ [< OID : Intersection | coordinate : (X,Y) >, R, OID2] PQ2) = buildPath(OID2, PQ) (X,Y) .
+
+    eq dijkstraSearch(< OID : Intersection | coordinate : (X,Y) > CONF, OID, OID2) = buildPath(OID2, updateDistances(PQConvert(< OID : Intersection | > CONF, (X,Y)))) .
+    eq dijkstraSearch(CONF, (X,Y), (X,Y)) = nil .
+    eq dijkstraSearch(< OID : Intersection | coordinate : (X,Y) > < OID2 : Intersection | coordinate : (X2,Y2) > CONF, (X,Y), (X2,Y2)) =
+        dijkstraSearch(< OID : Intersection | coordinate : (X,Y) > < OID2 : Intersection | coordinate : (X2,Y2) > CONF, OID, OID2) .
+
+    eq dijkstraChain(CONF, (X,Y) (X2,Y2) LCO) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) dijkstraChain(CONF, (X2,Y2) LCO) .
+    eq dijkstraChain(CONF, (X,Y) (X2,Y2)) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) .
+
+    eq backToStart((X,Y), (X2,Y2)) = (X,Y2) (X2,Y2) .
+    eq coverHorizontal((X,Y) (X2, Y), (X,Y) (X2,Y)) = nil .
+    eq coverHorizontal((X,Y) (X2, Y), (X2,Y) (X,Y)) = nil .
+    eq coverHorizontal((X,Y) (X2,Y), (X3,Y2) (X4,Y2)) =
+        if Y < Y2
+        then 
+            (X2, Y + 1) (X, Y + 1) coverHorizontal((X2, Y + 1) (X, Y + 1), (X,Y2) (X2,Y2))
+        else 
+            (X2, Y - 1) (X, Y - 1) coverHorizontal((X2, Y - 1) (X, Y - 1), (X,Y2) (X2,Y2))
+        fi .
+    
+    eq coverVertical((X,Y) (X, Y2), (X,Y) (X,Y2)) = nil .
+    eq coverVertical((X,Y) (X,Y2), (X,Y2) (X,Y)) = nil .
+    eq coverVertical((X,Y) (X,Y2), (X2,Y3) (X2, Y4)) = 
+        if X < X2
+        then 
+            (X + 1, Y2) (X + 1, Y) coverVertical((X + 1, Y2) (X + 1, Y), (X2,Y) (X2, Y2))
+        else 
+            (X - 1, Y2) (X - 1, Y) coverVertical((X - 1, Y2) (X - 1, Y), (X2,Y) (X2, Y2))
+        fi .
+
+    eq $coverArea((X,Y3), area(((X,Y), (X2,Y), (X,Y2), (X2,Y2)))) = (X,Y) (X,Y2) coverVertical((X,Y) (X,Y2), (X2,Y) (X2,Y2)) .
+    eq $coverArea((X3,Y), area(((X,Y), (X2,Y), (X,Y2), (X2,Y2)))) = (X,Y) (X2,Y) coverHorizontal((X,Y) (X2,Y), (X,Y2) (X2,Y2)).
+    
+    eq coverArea((X,Y), A) = $coverArea((X,Y), A) backToStart(last($coverArea((X,Y), A)), (X,Y)) .
+endom   

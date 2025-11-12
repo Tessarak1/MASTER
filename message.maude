@@ -1,37 +1,87 @@
-load location .
+load locatable .
 load task .
 load time-inf .
+load negotiation .
+load systemVars .
 ***Code for message-wrapper is taken from assignment 3 regarding sliding window in maude.
 omod MESSAGE-WRAPPER is
   protecting OID-SET .
 
-  sort MsgContent .
+  sorts MsgContent MsgContentSet .
 
-  op noContent : -> MsgContent [ctor] .
-  op _§_ : MsgContent MsgContent -> MsgContent [assoc comm ctor id: noContent] .
-  op msg_from_to_ : MsgContent Oid Oid -> Msg [ctor] .
+  subsort MsgContent < MsgContentSet .
+
+  op noContent : -> MsgContentSet [ctor] .
+  op _&_ : MsgContentSet MsgContentSet -> MsgContentSet [assoc comm ctor id: noContent] .
+  op msg_from_to_ : MsgContentSet Oid Oid -> Msg [ctor] .
 endom
  
-omod MESSAGE is including MESSAGE-WRAPPER .
-  protecting LIST-LOCATION .
-  protecting TASK .
+omod MESSAGE is
+  protecting MESSAGE-WRAPPER .
+  protecting COORDINATE-LIST .
+  protecting TASK-MSET .
   protecting TIME-INF .
+  protecting NEGOTIATION-SET .
   
   sort DlyMsg .
+  
   subsort Msg < DlyMsg < Configuration .
-  subsort TidSet < MsgContent .
+  subsort Tid < MsgContent .
 
   op dly : Msg Time -> DlyMsg [ctor right id: 0] .
-  ops obstacleAt_ removed_ : Location -> MsgContent .
-  op path : List-Location -> MsgContent .
-  op requestPath : -> MsgContent .
-  op broadcast : Oid MsgContent OidSet -> Configuration .
-  op MSG-DELAY : -> Time .
-  vars OID OID2 : Oid .
-  var MC : MsgContent .
-  var OIDS : OidSet .
 
-  eq MSG-DELAY = 1 .
-  eq broadcast(OID, MC, none) = none .
-  eq broadcast(OID, MC, OID2 OIDS) = dly((msg MC from OID to OID2), MSG-DELAY) broadcast(OID, MC, OIDS) .
+  ops yielding_ : Coordinate -> MsgContent [ctor] .
+  ops path conflictYield : List-Coordinate -> MsgContent [ctor] .
+  op pathCost : Cost -> MsgContent [ctor] .
+  ops requestPath noConflict completedYield noYield : -> MsgContent [ctor] .
+endom
+omod MESSENGER is
+  protecting MESSAGE .
+  protecting LOCATABLE .
+  protecting SYSTEM-VARS .
+
+  ***Objects of this class can communicate with one another.
+  ***Each object has a range that they can communicate within. 
+  class Messenger | transRange : Rat .
+  
+  subclass Messenger < Locatable .
+
+  ***Creates a message from Oid to everyone in the Set{OidElt}.
+  ***need to add transmission delay to each message sent.
+  ***Check range on both and add a constant delay.
+  ***one common operator
+  ***eq attemptTrans(MSG, O, OS) if distance O OS then msg else none.
+  op attemptTrans : Oid MsgContentSet Set{OidElt} -> Configuration .
+  op broadcast : Oid MsgContentSet Configuration -> Msg .
+  op unicast : Oid MsgContentSet Oid -> Msg .
+  ***returns the oids of messengers.
+  op messengerOids : Configuration -> Set{OidElt} .
+
+  vars OID OID2 : Oid .
+  var OIDS : Set{OidElt} .
+  var R : Rat .
+  var MC : MsgContent .
+  var MCS : MsgContentSet .
+  var CONF : Configuration .
+  var TIDS : MSet{TidElt} .
+
+  eq messengerOids(< OID : Messenger | > CONF) = (OID , messengerOids(CONF)) .
+  eq messengerOids(CONF) = empty [owise] .
+
+  eq attemptTrans(OID, MCS, empty) = none .
+  eq attemptTrans(OID, MCS, (OID2 , OIDS)) < OID : Messenger | transRange : R >
+    < OID2 : Messenger | > 
+    =
+    attemptTrans(OID, MCS, OIDS)
+    < OID : Messenger | > < OID2 : Messenger | >
+    if distance(< OID : Messenger | >, < OID2 : Messenger | >) <= R
+    then
+      dly(msg MCS from OID to OID2, MSG-DELAY)
+    else
+      none
+    fi .
+
+  eq unicast(OID, MCS, OID2) = attemptTrans(OID, MCS, OID2) .
+
+  eq broadcast(OID, MCS, CONF) = attemptTrans(OID, MCS, messengerOids(CONF)) .
 endom

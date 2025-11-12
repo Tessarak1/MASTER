@@ -1,0 +1,38 @@
+load timer .
+omod SYSTEM-VARS is
+    protecting TIMER .
+    protecting STRING .
+
+    subsort String < Oid .
+
+    ops SAFE-SPEED MAX-SPEED FIELD-SPEED : -> Rat .
+    ops SAFE-TIME EMERGENCY-TIME REMOVAL-TIME REPAIR-TIME : -> Time .
+    ops RESUPPLY-TIME UNLOAD-TIME : -> Time .
+    ops WORK-RANGE FINAL-RANGE : -> Rat .
+    op MSG-DELAY : -> Time .
+    ops ROBOT-SIZE YIELD-GAP : -> Rat .
+    op YIELD-PLACEHOLDER : -> Oid .
+
+    ops AUCTION-TIMER YIELD-TIMER CONFLICT-YIELD-TIMER RESCAN-TIMER WAITING-TIMER : -> Timer .
+
+    eq AUCTION-TIMER = [cur: 100 - base: 100] .
+    eq YIELD-TIMER = [cur: 100 - base: 100] .
+    eq RESCAN-TIMER = [cur: 1 - base: 1] .
+    eq WAITING-TIMER = [cur: 15 - base: 15] .
+    eq FIELD-SPEED = 1 .
+    eq WORK-RANGE = 1 .
+    eq REMOVAL-TIME = 5 .
+    eq REPAIR-TIME = 5 .
+    eq RESUPPLY-TIME = 10 .
+    eq UNLOAD-TIME = 7 .
+    eq SAFE-SPEED = 1 .
+    eq MAX-SPEED = 5 .
+    eq SAFE-TIME = 5 .
+    eq EMERGENCY-TIME = 3 .
+    eq ROBOT-SIZE = 1 .
+    eq MSG-DELAY = 1 .
+    eq FINAL-RANGE = 3 .
+    eq YIELD-GAP = 5 .
+
+***    eq YIELD-PLACEHOLDER = "Yield Placeholder" .
+endom    

@@ -1,35 +1,36 @@
+load rat-inf .
+
 fmod TIME-INF is 
-    protecting RAT .
+    protecting RAT-INF .
+
     sorts Time TimeInf .
-    subsorts Rat < Time < TimeInf .
 
-    sort timeInterval .
-
-    op inf : -> TimeInf [ctor] .
-    op interval : TimeInf TimeInf -> timeInterval [ctor] .
-    op intervalOverlap : timeInterval timeInterval -> Bool [comm] .
+    subsort Rat < Time .
+    subsorts RatInf Time < TimeInf .
 
     op _<_ : TimeInf TimeInf -> Bool [ditto] .
     op _<=_ : TimeInf TimeInf -> Bool [ditto] .
     op _>_ : TimeInf TimeInf -> Bool [ditto] .
     op _>=_ : TimeInf TimeInf -> Bool [ditto] .
-    vars T T' T2 T2' : Time .
+    op _monus_ : Time Time -> Time .
+    ops min max : TimeInf TimeInf -> TimeInf [ditto] .
+
+    vars TIME TIME' TIME2 TIME2' : Time .
     vars INF INF' : TimeInf .
 
-    eq T < inf = true .
-    eq inf < INF = false .
-    eq INF <= inf = true .
-    eq inf <= T = false .
-    eq inf > T = true . 
-    eq INF > inf = false .
-    eq inf >= INF = true .
-    eq T >= inf = false .
+    eq TIME < ratInf = true .
+    eq ratInf < INF = false .
+    eq INF <= ratInf = true .
+    eq ratInf <= TIME = false .
+    eq ratInf > TIME = true . 
+    eq INF > ratInf = false .
+    eq ratInf >= INF = true .
+    eq TIME >= ratInf = false .
 
-    ops min max : TimeInf TimeInf -> TimeInf [ditto] .
-    eq max(INF, inf) = inf .
-    eq min(INF, inf) = INF .
+    
+    eq max(INF, ratInf) = ratInf .
+    eq min(INF, ratInf) = INF .
 
-    ceq intervalOverlap(interval(T, T'), interval(T2, T2')) = true if T <= T2 and T2 <= T' .
-    eq intervalOverlap(interval(T, T'), interval(T2, T2')) = false [owise] .
+    eq TIME monus TIME2 = if (TIME - TIME2) < 0 then 0 else TIME - TIME2 fi .
 endfm 
 

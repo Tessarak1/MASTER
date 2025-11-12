@@ -1,0 +1,57 @@
+load coordinate .
+fmod ROAD is
+    protecting RAT .
+    protecting COORDINATE-LIST .
+
+    sort Road .
+    
+    op {__} : Coordinate Coordinate -> Road [ctor comm] .
+ 
+    ***Checks if the first rat is in the interval between the two others.
+    ***TODO replace inrange with ininterval from coordinate, maybe come up with new name.
+    ***Declare other fucntion for coordiante road version
+
+    op _inRange(_,_) : Rat Rat Rat -> Bool .
+    op _inRange(_) : Coordinate Road -> Bool .
+    op commonIntersection : Road Road -> List-Coordinate  [comm] .
+
+    vars R R2 R3 : Rat .
+    vars X X2 X3 Y Y2 Y3 : Rat .
+    vars RO RO2 : Road .
+
+    ceq R inRange(R2, R3) = true if R <= max(R2,R3) and R >= min(R2,R3) .
+    eq R inRange(R2, R3) = false [owise] .
+    ceq (X,Y) inRange({(X2,Y2) (X3,Y3)}) = true if X inRange(X2,X3) and Y inRange(Y2,Y3) .
+    eq (X,Y) inRange({(X2,Y2) (X3,Y3)}) = false [owise] .
+
+
+    eq commonIntersection({(X,Y) (X2,Y2)}, {(X2,Y2) (X3,Y3)}) = (X2,Y2) .
+    eq commonIntersection(RO, RO2) = nil [owise] .
+endfm
+
+view RoadElt from TRIV to ROAD is
+    sort Elt to Road .
+endv
+
+
+fmod ROAD-SET is
+    protecting SET{RoadElt} .
+
+    op findRoad : List-Coordinate Set{RoadElt} -> Set{RoadElt} .
+    op splitRoad : Coordinate Road Set{RoadElt} -> Set{RoadElt} .
+
+    vars R R2 R3 : Rat .
+    vars X X2 X3 Y Y2 Y3 : Rat .
+    vars RS RS2 : Set{RoadElt} .
+    vars RO RO2 : Road .
+    var LCO : List-Coordinate .
+
+    eq findRoad((X,Y) LCO, empty) = empty .
+    eq findRoad(nil, RS) = empty .
+    ceq findRoad((X,Y) LCO, (RO , RS)) = (RO , findRoad((X,Y) LCO, RS))
+        if (X,Y) inRange(RO) .
+    eq findRoad((X,Y) LCO, RS) = findRoad(LCO, RS) [owise] .
+
+    eq splitRoad((X,Y), {(X2,Y2) (X3,Y3)}, ({(X2,Y2) (X3,Y3)} , RS)) = ({(X,Y) (X2,Y2)} , {(X,Y) (X3,Y3)} , RS) .
+    eq splitRoad((X,Y), {(X2,Y2) (X3,Y3)}, RS) = ({(X,Y) (X2,Y2)} , {(X,Y) (X3,Y3)} , RS) [owise] .
+endfm

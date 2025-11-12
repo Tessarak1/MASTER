@@ -1,0 +1,44 @@
+load cost .
+load coordinate .
+
+omod NEGOTIATION is 
+    protecting COORDINATE-LIST .
+    protecting COST .
+
+    sort Negotiation .
+
+    subsort String < Oid .
+
+    op [_|_|_] : Oid Coordinate Cost -> Negotiation [ctor] .
+endom
+
+view NegotiationElt from TRIV to NEGOTIATION is
+    sort Elt to Negotiation .
+endv
+
+omod NEGOTIATION-SET is
+    protecting SET{NegotiationElt} .
+
+    ***Creates a new negotiation with another robot, or updates an existing one.
+    op addNegotiation : Set{NegotiationElt} Negotiation -> Set{NegotiationElt} .
+    ***Removes a negotiation with the given Oid from the negotiation set.
+    op endNegotiation : Set{NegotiationElt} Oid -> Set{NegotiationElt} .
+
+    ***returns if the given oid is in the Set{NegotiationElt}.
+    op inNegotiationSet : Set{NegotiationElt} Oid -> Bool .
+
+    var OID : Oid .
+    vars X X2 Y Y2 : Rat .
+    var NS : Set{NegotiationElt} .
+    vars COST COST2 : Cost .
+    var LCO : List-Coordinate .
+
+    eq addNegotiation(([OID | (X,Y) | COST] , NS), [OID | (X2,Y2) | COST2]) = [OID | (X2,Y2) | COST2] , NS .
+    eq addNegotiation(NS, [OID | (X,Y) | COST]) = [OID | (X,Y) | COST] , NS [owise] .
+
+    eq endNegotiation(([OID | (X,Y) | COST] , NS), OID) = NS .
+    eq endNegotiation(NS, OID) = NS [owise] .
+
+    eq inNegotiationSet(([OID | (X,Y) | COST] , NS), OID) = true .
+    eq inNegotiationSet(NS, OID) = false [owise] .
+endom

@@ -3,13 +3,14 @@ fmod RAT-INF is
     sort RatInf .
     subsort Rat < RatInf .
 
-    op ratInf : -> RatInf [ctor] .
+    ops ratInf -ratInf : -> RatInf [ctor] .
     
     op _<_ : RatInf RatInf -> Bool [ditto] .
     op _<=_ : RatInf RatInf -> Bool [ditto] .
     op _>_ : RatInf RatInf -> Bool [ditto] .
     op _>=_ : RatInf RatInf -> Bool [ditto] .
     op _+_ : RatInf RatInf -> RatInf [ditto] .
+    op _-_ : RatInf RatInf -> RatInf [ditto] .
 
     ops min max : RatInf RatInf -> RatInf [ditto] .
 
@@ -25,8 +26,7 @@ fmod RAT-INF is
     eq ratInf >= INF = true .
     eq R >= ratInf = false .
     eq R + ratInf = ratInf .
-    ***maybe implement rest of ratinf operators for negative ratinf, but is never used.
-
+    
     eq max(INF, ratInf) = ratInf .
     eq min(INF, ratInf) = INF .
 endfm 

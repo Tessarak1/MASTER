@@ -1,0 +1,63 @@
+load entity .
+load obstacle .
+
+***import state here, or do something else, moving, unmoving , broken?
+omod REPRESENTATION-SORTS is
+    protecting COORDINATE .
+    protecting DIRECTION .
+    protecting ENTITY .
+
+    sorts Info Representation .
+    subsorts Coordinate Direction State < Info .
+    
+    op detectedSpeed : Rat -> Info [ctor] . 
+endom
+
+view InfoElt from TRIV to REPRESENTATION-SORTS is
+    sort Elt to Info .
+endv
+
+omod REPRESENTATION is
+    protecting SET{InfoElt} .
+    protecting OBSTACLE .
+
+    op {_:_|_} : Oid Cid Set{InfoElt} -> Representation [ctor] .
+
+    op getRepCoord : Representation -> Coordinate .
+    op getRepOid : Representation -> Oid .
+    op isFixable : Representation -> Bool .
+
+    var REP : Representation .
+    var OID : Oid .
+    var CID : Cid .
+    var IS : Set{InfoElt} .
+    var CO : Coordinate .
+    var INC : IncapacitatedState .
+
+    eq getRepCoord({OID : CID | CO , IS}) = CO .
+    eq getRepOid({OID : CID | IS}) = OID .
+    
+    eq isFixable({OID : CID | INC , IS}) = true .
+    eq isFixable({OID : Obstacle | IS}) = true .
+    eq isFixable(REP) = false [owise] .
+endom
+
+
+view RepresentationElt from TRIV to REPRESENTATION-SORTS is
+    sort Elt to Representation .
+endv
+
+omod REPRESENTATION-SET is
+    protecting REPRESENTATION .
+    protecting SET{RepresentationElt} .
+
+    op _in_ : Oid Set{RepresentationElt} -> Bool .
+
+    var OID : Oid .
+    var CID : Cid .
+    var REPS : Set{RepresentationElt} .
+    var IS : Set{InfoElt} .
+    
+    eq OID in ({OID : CID | IS} , REPS) = true .
+    eq OID in REPS = false [owise] .
+endom

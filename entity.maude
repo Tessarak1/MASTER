@@ -1,65 +1,80 @@
-load physicalObject .
+load direction
+load physicalObject
+
+***Merge this into Entity?
 omod ENTITY is
     protecting PHYSICAL-OBJ .
-    protecting LIST-LOCATION .
+    protecting COORDINATE-LIST .
+    protecting DIRECTION .
     
-    sorts IncapacitatedState FunctioningState State .
-    sort Direction .
+    sorts IncapacitatedState FunctioningState TimedWorkState State .
 
     subsort IncapacitatedState FunctioningState < State .
+    subsort TimedWorkState < FunctioningState .
 
-    class Entity | direction : Direction, speed : Rat, maxSpeed : Rat, remainingPath : List-Location, state : State .
+    class Entity | 
+        handledTime : Bool, 
+        direction : Direction,
+        speed : Rat, 
+        maxSpeed : Rat, 
+        remainingPath : List-Coordinate, 
+        state : State .
     subclass Entity < PhysicalObj .    
 
     ops crashed failed : -> IncapacitatedState [ctor] .
-    ops moving idle waiting resupplying repairing removing unloading planningPath : -> FunctioningState [ctor] .
-    op setDirection : Location Location -> Direction .
-    ops inFront : Object Object -> Object [comm] .
-    op _isBehind_ : Object Object -> Bool .
-    op stoppingDistance : Object -> Rat .
-    ops north east south west : -> Direction [ctor] .
-    op opposite : Direction Direction -> Bool [comm] .
-    op differentAxes : Direction Direction -> Bool [comm] .
+    ops moving deadlocked waiting idle negotiating planningPath : -> FunctioningState [ctor] .
+    ops resupplying fixing unloading : -> TimedWorkState [ctor] .
 
-    vars S S2 : String .
+    op stoppingDistance : Object -> Rat .
+
+    op headedTowards : Object Coordinate -> Bool . 
+
+    vars OID OID2 : Oid .
     vars X X2 Y Y2 : Rat .
     var SP : Rat .
-    var LL : List-Location .
+    var LCO : List-Coordinate .
     var CONF : Configuration .
     var STATE : State .
-    vars D D2 : Direction .
 
-    eq opposite(north, south) = true .
-    eq opposite(east, west) = true .
-    eq opposite(D, D2) = false [owise] .
-    eq differentAxes(north, west) = true .
-    eq differentAxes(north, east) = true .
-    eq differentAxes(south, west) = true .
-    eq differentAxes(south, east) = true .
-    eq differentAxes(D, D2) = false [owise] .
-    ceq setDirection((X,Y), (X,Y2)) = north if Y2 > Y .
-    ceq setDirection((X,Y), (X2,Y)) = east if X2 > X .
-    ceq setDirection((X,Y), (X,Y2)) = south if Y2 < Y .
-    ceq setDirection((X,Y), (X2,Y)) = west if X2 < X .
+    eq headedTowards(< OID : Entity | state : moving, coordinate : (X,Y), direction : north >, (X,Y2)) = Y2 > Y .
+    eq headedTowards(< OID : Entity | state : moving, coordinate : (X,Y), direction : east >, (X2,Y)) = X2 > X .
+    eq headedTowards(< OID : Entity | state : moving, coordinate : (X,Y), direction : south >, (X,Y2)) = Y > Y2 .
+    eq headedTowards(< OID : Entity | state : moving, coordinate : (X,Y), direction : west >, (X2,Y)) = X > X2 .
+    eq headedTowards(< OID : Entity | >, (X,Y)) = false [owise] .
 
-    ceq < S : Entity | location : (X,Y), direction : north > isBehind < S2 : Entity | location : (X2,Y2), direction : north > = true if Y < Y2 .
-    ceq < S : Entity | location : (X,Y), direction : east > isBehind < S2 : Entity | location : (X2,Y2), direction : east > = true if X < X2 .
-    ceq < S : Entity | location : (X,Y), direction : south > isBehind < S2 : Entity | location : (X2,Y2), direction : south > = true if Y > Y2 .
-    ceq < S : Entity | location : (X,Y), direction : west > isBehind < S2 : Entity | location : (X2,Y2), direction : west > = true if X > X2 .
+    eq stoppingDistance(< OID : Entity | speed : SP >) =  ((SP / 5) ^ 2) / 2 .
 
-    eq < S : Entity | > isBehind < S2 : Entity | > = false [owise] .
-    eq stoppingDistance(< S : Entity | speed : SP >) =  ((SP / 5) ^ 2) / 2 .
+    rl [startTravel] :
+        < OID : Entity | coordinate : (X,Y), 
+            remainingPath : (X2,Y2) LCO, 
+            state : idle, 
+            maxSpeed : SP >
+        =>
+        if (X,Y) == (X2,Y2)
+        then
+            < OID : Entity | remainingPath : LCO >
+        else
+            < OID : Entity | state : moving,
+                direction : setDirection((X,Y), (X2,Y2)),
+                speed : SP >
+        fi .
+
+    rl [nextIntersection] :
+        < OID : Entity | 
+            state : moving,
+            coordinate : (X,Y),
+            remainingPath : (X,Y) (X2,Y2) LCO > 
+        =>
+        < OID : Entity |
+            direction : setDirection((X,Y), (X2,Y2)), 
+            remainingPath : (X2,Y2) LCO > .
 
     rl [finish] :
-        < S : Entity | location : (X, Y), remainingPath : (X,Y), state : moving >
+        < OID : Entity | coordinate : (X,Y), 
+            remainingPath : (X,Y), 
+            state : moving >
         =>
-        < S : Entity | speed : 0, remainingPath : nil, state : idle > .
-    rl [nextIntersection] :
-        < S : Entity | location : (X , Y), remainingPath : (X , Y) (X2, Y2) LL > 
-        =>
-        < S : Entity | direction : setDirection((X , Y), (X2, Y2)), remainingPath : (X2,Y2) LL > .
-    rl [startTravel] :
-        < S : Entity | location : (X,Y), remainingPath : (X2,Y2) LL, state : idle, maxSpeed : SP >
-        =>
-        < S : Entity | state : moving, direction : setDirection((X,Y), (X2,Y2)), remainingPath : (X2,Y2) LL, speed : SP > .
+        < OID : Entity | speed : 0, 
+            remainingPath : nil, 
+            state : idle > .
 endom

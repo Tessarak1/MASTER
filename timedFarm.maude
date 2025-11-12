@@ -1,58 +1,64 @@
 load robot .
 load time-inf .
 load obstacle . 
-load listRat .
+load sites .
+load quadratic-solver .
 omod TIMED-FARM is
     protecting ROBOT .
     protecting TIME-INF .
     protecting MAP .
     protecting FIELD .
     protecting OBSTACLE .
-    protecting LIST-RAT .
+    protecting SITES .
+    protecting QUADRATIC-SOLVER .
 
-    sort ClockedConfiguration .
+    sorts ClockedConfiguration LimitClockedConfiguration .
 
     op  _@_ : Configuration Time -> ClockedConfiguration [ctor] .
-    op $mteRobot : Oid Configuration -> Time .
-    op mte : Configuration -> Time .
+    op _[LIMIT:_] : ClockedConfiguration Time -> LimitClockedConfiguration [ctor] .
+    op $mteRobot : Object Configuration -> TimeInf .
+    op $mteField : Object -> TimeInf .
+    op mte : Configuration -> TimeInf .
 
-    op $destinationTimeAdvance : Object Configuration -> Time .
-    op $quadraticSolveAdvance : Object Object -> Time .
+    op $destinationTime : Object Configuration -> Time .
+    op quadFormulaValidation : Rat Rat Rat -> Time .
+    op quadTime : Object Object -> Time .
     op $coefficientA : Rat Rat -> Rat .
     op $coefficientB : Rat Rat Rat Rat -> Rat .
     op $coefficientC : Rat Rat Rat -> Rat .
 
-    op timeEffect : Object Time -> Object .
-    op $calculateAdvance : Object Object Rat -> Time .
-    op calculateAdvance : Object Object -> Time .
+    op timeEffect : Configuration Time -> Configuration .
+    ops move $timeEffectField : Object Time -> Object .
+
+    op $linearTime : Object Object Rat -> Time .
+    op linearTime : Object Object -> Time .
     op collision : Configuration Object -> Configuration .
     op handleCollisions : Configuration -> Configuration .
     op updateLocation : Object -> Object .
-    op detect : Configuration -> Configuration .
     op unavoidableCrash : Object Object -> Bool .
-    op _detects_ : Object Object -> Bool .
 
     vars CONF CONF2 CONF3 : Configuration .
     var OBS : Configuration .
+    var AUS : Set{AuctionElt} .
     vars TIME TIME2 : Time .
-    var PS : PathSet .
+    var ROS : Set{RoadElt} .
     vars TR TR2 TR3 TR4 : Timer .
     var O : Object .
-    vars S S2 S3 : String .
+    vars OID OID2 OID3 : String .
     vars X X2 Y Y2 X3 Y3 : Rat .
     vars SP SP2 : Rat .
     vars DIST DIST2 : Rat .
     vars T T2 : Rat .
     vars N N' N2 N3 N4 : Nat .
     vars L L2 : Level .
-    vars LL LL2 : List-Location .
+    vars LCO LCO2 : List-Coordinate .
     vars I I2 : Int .
     vars D D2 : Direction .
     var STATE : State .
-    vars R R2 : Rat .
+    vars R R2 R3 : Rat .
+    vars A B C : Rat .
     var GS : GrowingState .
-    var REP : Representation .
-    var C : Cargo .
+    var REPS : Set{RepresentationElt} .
     var FUNC : FunctioningState .
     var INC : IncapacitatedState .
     var MSG : Msg .
@@ -60,74 +66,154 @@ omod TIMED-FARM is
     vars WS WS2 : WorkState .
     var TID : Tid .
     var TT : TaskType .
+    var WT : WorkerTask .
+    var TPT : TransporterTask .
+    var YIS : YieldInfoSet .
+    var WI : WaitingInfo .
+    var BIS : BaseInfoSet .
 
     eq $coefficientA(SP, SP2) = (SP ^ 2) + (SP2 ^ 2) .
     eq $coefficientB(SP, DIST, SP2, DIST2) = -2 * ((SP * DIST) + (SP2 * DIST2)) .
     eq $coefficientC(DIST, DIST2, T) = (DIST ^ 2) + (DIST2 ^ 2 ) + (-1 * (T ^ 2)) .
-    eq $quadraticSolveAdvance(< S : Robot | location : (X,Y), speed : SP, remainingPath : (X2,Y2) LL, detectionRange : T >, < S2 : Robot | location : (X3,Y3), speed : SP2, remainingPath : (X2,Y2) LL2, detectionRange : T2 >) =
-        if distance((X,Y), (X3,Y3)) > max(T, T2)
+
+    eq quadFormulaValidation(A, B, C) =
+        if posOnly(quadFormula(A, B, C)) == noResult
         then
-            minElement(
-                posOnly(
-                    quadraticFormula(
-                        $coefficientA(SP, SP2),
-                        $coefficientB(SP, distance((X,Y), (X2,Y2)), SP2, distance((X3,Y3), (X2,Y2))),
-                        $coefficientC(distance((X,Y), (X2,Y2)), distance((X3,Y3), (X2,Y2)), max(T,T2))
-                    ) 
-                )
-            )
- 
+            ratInf
         else
-            if distance((X,Y), (X3,Y3)) > min(T, T2)
-            then
-                minElement(
-                    posOnly(
-                        quadraticFormula(
-                            $coefficientA(SP, SP2),
-                            $coefficientB(SP, distance((X,Y), (X2,Y2)), SP2, distance((X3,Y3), (X2,Y2))),
-                            $coefficientC(distance((X,Y), (X2,Y2)), distance((X3,Y3), (X2,Y2)), min(T,T2))
-                        )   
-                    )
-                )
-            else
-                distance((X,Y), (X2,Y2)) / SP
-            fi
+            minElement(posOnly(quadFormula(A, B, C)))
         fi .
-    
-    eq < S : Robot | curTask : [S2, TT, N] > detects < S2 : Locatable | > = false .
-    eq < S : Robot | location : (X,Y), detected : REP, detectionRange : T > detects < S2 : Locatable | location : (X2,Y2) > = (S2 notIn REP) and ((X2,Y2) inArea(makeArea((X,Y), T))) .
-    eq < S : Robot | > detects < S2 : Locatable | > = true [owise] .
 
-    eq updateLocation(< S : Robot | location : (X, Y), direction : north >) = < S : Robot | location : (X, Y - 1) > .
-    eq updateLocation(< S : Robot | location : (X, Y), direction : east >) = < S : Robot | location : (X - 1, Y) > .
-    eq updateLocation(< S : Robot | location : (X, Y), direction : south >) = < S : Robot | location : (X, Y + 1) > .
-    eq updateLocation(< S : Robot | location : (X, Y), direction : west >) = < S : Robot | location : (X + 1, Y) > .
+    ceq quadTime(
+            < OID : Robot | 
+                coordinate : (X,Y), 
+                speed : SP, 
+                remainingPath : (X2,Y2) LCO, 
+                detectionRange : T 
+            >,
+            < OID2 : Robot | 
+                coordinate : (X3,Y3), 
+                speed : SP2, 
+                detectionRange : T2 
+            >
+        )
+        =
+        quadFormulaValidation(
+            $coefficientA(
+                SP,
+                SP2
+            ),
+            $coefficientB(
+                SP,
+                distance((X,Y), (X2,Y2)),
+                SP2,
+                distance((X3,Y3), (X2,Y2))
+            ),
+            $coefficientC(
+                distance((X,Y), (X2,Y2)),
+                distance((X3,Y3), (X2,Y2)),
+                max(T, T2)
+            )
+        )
+        if distance((X,Y), (X3,Y3)) > max(T, T2) .
 
-    eq collision(< S : Robot | location : (X, Y) > < S2 : Obstacle | >, < S3 : Map | >) =  updateLocation(< S : Robot | speed : 0, state : crashed >) < S2 : Obstacle | > .
-    ceq collision(< S : Robot | speed : SP > < S2 : Robot | speed : SP2 >, < S3 : Map | paths : PS >) = 
-        updateLocation(< S : Robot | state : crashed, speed : 0 >) < S2 : Robot | speed : 0, state : crashed >
-        if outsideMap(getLocation(updateLocation(< S : Robot | >)), PS) == false .
+    ceq quadTime(
+            < OID : Robot | coordinate : (X,Y), speed : SP, remainingPath : (X2,Y2) LCO, detectionRange : T >,
+            < OID2 : Robot | coordinate : (X3,Y3), speed : SP2, detectionRange : T2 >)
+        =
+        quadFormulaValidation(
+            $coefficientA(SP, SP2),
+            $coefficientB(SP, distance((X,Y), (X2,Y2)), SP2, distance((X3,Y3), (X2,Y2))),
+            $coefficientC(distance((X,Y), (X2,Y2)), distance((X3,Y3), (X2,Y2)), min(T,T2))
+        )
+        if distance((X,Y), (X3,Y3)) <= max(T, T2) and distance((X,Y), (X3,Y3)) > min(T, T2) .
 
-    eq handleCollisions(< S : Robot | location : (X, Y) > < S2 : PhysicalObj | location : (X, Y) >  < S3 : Map | > CONF) = collision(< S : Robot | > < S2 : PhysicalObj | >, < S3 : Map | >) handleCollisions(CONF) .
+    ceq quadTime(
+            < OID : Robot | coordinate : (X,Y), speed : SP, remainingPath : (X2,Y2) LCO, detectionRange : T >,
+            < OID2 : Robot | coordinate : (X3,Y3), speed : SP2, detectionRange : T2 >)
+        =
+        quadFormulaValidation(
+            $coefficientA(SP, SP2),
+            $coefficientB(SP, distance((X,Y), (X2,Y2)), SP2, distance((X3,Y3), (X2,Y2))),
+            $coefficientC(distance((X,Y), (X2,Y2)), distance((X3,Y3), (X2,Y2)), FINAL-RANGE)
+        )
+        if distance((X,Y), (X3,Y3)) <= min(T, T2) and distance((X,Y), (X2,Y2)) > FINAL-RANGE .
+
+    eq quadTime(
+            < OID : Robot | coordinate : (X,Y), speed : SP, remainingPath : (X2,Y2) LCO, detectionRange : T >,
+            < OID2 : Robot | coordinate : (X3,Y3), speed : SP2, detectionRange : T2 >)
+        =
+        distance((X,Y), (X2,Y2)) / SP [owise] .
+
+    ceq quadTime(
+            < OID : Robot | 
+                coordinate : (X,Y), speed : SP,
+                remainingPath : (X2,Y2) LCO, 
+                detectionRange : T >,
+            < OID2 : Obstacle | coordinate : (X3,Y3) >)
+        =
+        quadFormulaValidation(
+            $coefficientA(SP, 0),
+            $coefficientB(SP, distance((X,Y), (X2,Y2)), 0, distance((X3,Y3), (X2,Y2))),
+            $coefficientC(distance((X,Y), (X2,Y2)), distance((X3,Y3), (X2,Y2)), T)
+        )
+        if distance((X,Y), (X3,Y3)) > T .
+
+    ceq quadTime(
+            < OID : Robot | 
+                coordinate : (X,Y), speed : SP,
+                remainingPath : (X2,Y2) LCO, 
+                detectionRange : T >,
+            < OID2 : Obstacle | coordinate : (X3,Y3) >)
+        =
+        quadFormulaValidation(
+            $coefficientA(SP, 0),
+            $coefficientB(SP, distance((X,Y), (X2,Y2)), 0, distance((X3,Y3), (X2,Y2))),
+            $coefficientC(distance((X,Y), (X2,Y2)), distance((X3,Y3), (X2,Y2)), FINAL-RANGE)
+        )
+        if distance((X,Y), (X3,Y3)) <= T and distance((X,Y), (X3,Y3)) > FINAL-RANGE .
+
+    eq quadTime(
+            < OID : Robot | 
+                coordinate : (X,Y), speed : SP,
+                remainingPath : (X2,Y2) LCO, 
+                detectionRange : T >,
+            < OID2 : Obstacle | coordinate : (X3,Y3) >)
+        =
+        distance((X,Y), (X2,Y2)) / SP
+        [owise] .
+
+    eq updateLocation(< OID : Robot | coordinate : (X, Y), direction : north >) = < OID : Robot | coordinate : (X, Y - ROBOT-SIZE) > .
+    eq updateLocation(< OID : Robot | coordinate : (X, Y), direction : east >) = < OID : Robot | coordinate : (X - ROBOT-SIZE, Y) > .
+    eq updateLocation(< OID : Robot | coordinate : (X, Y), direction : south >) = < OID : Robot | coordinate : (X, Y + ROBOT-SIZE) > .
+    eq updateLocation(< OID : Robot | coordinate : (X, Y), direction : west >) = < OID : Robot | coordinate : (X + ROBOT-SIZE, Y) > .
+
+    eq collision(< OID : Robot | coordinate : (X, Y) > < OID2 : Obstacle | >, < OID3 : Map | >) =  updateLocation(< OID : Robot | speed : 0, state : crashed >) < OID2 : Obstacle | > .
+    ceq collision(< OID : Robot | speed : SP > < OID2 : Robot | speed : SP2 >, < OID3 : Map | roads : ROS >) = 
+        updateLocation(< OID : Robot | state : crashed, speed : 0 >) < OID2 : Robot | speed : 0, state : crashed >
+        if outsideMap(getLocation(updateLocation(< OID : Robot | >)), ROS) == false .
+
+    ***TODO: Each colliding robot should broadcast its own request of being crashed or failed
+    eq handleCollisions(< OID : Robot | coordinate : (X, Y) > < OID2 : PhysicalObj | coordinate : (X, Y) >  < OID3 : Map | > CONF) = collision(< OID : Robot | > < OID2 : PhysicalObj | >, < OID3 : Map | >) handleCollisions(< OID3 : Map | > CONF) .
     eq handleCollisions(CONF) = CONF [owise] .
 
-    eq unavoidableCrash(< S : Robot | >, none) = false .
-    eq unavoidableCrash(< S : Robot | speed : 0 >, O) = false .
-    ceq unavoidableCrash(< S : Robot | state : moving, location : (X, Y), direction : D, speed : SP >, < S2 : Robot | state : moving, location : (X2, Y2), direction : D2, speed : SP2 >) = 
-        if distance((X, Y), (X2, Y2)) <= stoppingDistance(< S : Robot | >) + stoppingDistance(< S2 : Robot | >) then
+    eq unavoidableCrash(< OID : Robot | >, none) = false .
+    eq unavoidableCrash(< OID : Robot | speed : 0 >, O) = false .
+    ceq unavoidableCrash(< OID : Robot | state : moving, coordinate : (X, Y), direction : D, speed : SP >, < OID2 : Robot | state : moving, coordinate : (X2, Y2), direction : D2, speed : SP2 >) = 
+        if distance((X, Y), (X2, Y2)) <= stoppingDistance(< OID : Robot | >) + stoppingDistance(< OID2 : Robot | >) then
             true
         else
             false
         fi
-    if opposite(D, D2) .
-    eq unavoidableCrash(< S : Robot | location : (X, Y) >, < S2 : PhysicalObj | location : (X2, Y2) >) = 
-        if distance((X, Y), (X2, Y2)) <= stoppingDistance(< S : Robot | >)
+    if oppositeDirections(D, D2) .
+    eq unavoidableCrash(< OID : Robot | coordinate : (X, Y) >, < OID2 : PhysicalObj | coordinate : (X2, Y2) >) = 
+        if distance((X, Y), (X2, Y2)) <= stoppingDistance(< OID : Robot | >)
         then
             true
         else
             false
         fi .
-    ceq unavoidableCrash(< S : Robot | state : moving, location : (X,Y), direction : D, remainingPath : (X2,Y2) LL, speed : SP >, < S2 : Robot | state : moving, location : (X3,Y3), direction : D2, remainingPath : (X2,Y2) LL2, speed : SP2 >) =
+    ceq unavoidableCrash(< OID : Robot | state : moving, coordinate : (X,Y), direction : D, remainingPath : (X2,Y2) LCO, speed : SP >, < OID2 : Robot | state : moving, coordinate : (X3,Y3), direction : D2, remainingPath : (X2,Y2) LCO2, speed : SP2 >) =
         if (distance((X,Y), (X2,Y2)) / SP) == distance((X3,Y3), (X2,Y2))
         then
             true
@@ -136,100 +222,296 @@ omod TIMED-FARM is
         fi
         if differentAxes(D, D2) .
 
-    eq $calculateAdvance(< S : Robot | location : (X,Y), detectionRange : T >, < S2 : Robot | location : (X2,Y2), detectionRange : T2 >, SP) =
-        if unavoidableCrash(< S : Robot | >, < S2 : Robot | >)
-        then
-            distance((X,Y), (X2,Y2)) / SP
-        else
-            if distance((X,Y), (X2,Y2)) > max(T, T2)
-            then
-                (distance((X,Y), (X2,Y2)) - max(T,T2)) / SP
-            else
-                if distance((X,Y), (X2,Y2)) > min(T,T2)
-                then
-                    (distance((X,Y), (X2,Y2)) - min(T,T2)) / SP
-                else
-                    if distance((X,Y), (X2,Y2)) > FINAL-RANGE
-                    then
-                        (distance((X,Y), (X2,Y2)) - FINAL-RANGE) / SP
-                    else
-                        distance((X,Y), (X2,Y2)) / SP
-                    fi
-                fi
-            fi
-        fi .
-    eq calculateAdvance(< S : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, speed : SP >, none) = distance((X,Y), (X2,Y2)) / SP .
-    eq calculateAdvance(< S : Robot | speed : SP, direction : D >, < S2 : Robot | state : moving, speed : SP2, direction : D >) = 
+    ***Calculates time until intersection with one of the detection borders.
+    ceq $linearTime(< OID : Robot | coordinate : (X,Y), detectionRange : T >,
+            < OID2 : Robot | coordinate : (X2,Y2), detectionRange : T2 >, SP)
+        =
+        (distance((X,Y), (X2,Y2)) - max(T,T2)) / SP
+        if distance((X,Y), (X2,Y2)) > max(T, T2) .
+    
+    ceq $linearTime(< OID : Robot | coordinate : (X,Y), detectionRange : T >,
+            < OID2 : Robot | coordinate : (X2,Y2), detectionRange : T2 >, SP)
+        =
+        (distance((X,Y), (X2,Y2)) - min(T,T2)) / SP
+        if (distance((X,Y), (X2,Y2)) > min(T, T2)) and (distance((X,Y), (X2,Y2)) < max(T, T2)) .
+    
+    ceq $linearTime(< OID : Robot | coordinate : (X,Y), detectionRange : T >,
+            < OID2 : Robot | coordinate : (X2,Y2), detectionRange : T2 >, SP)
+        =
+        (distance((X,Y), (X2,Y2)) - FINAL-RANGE) / SP
+        if (distance((X,Y), (X2,Y2)) > FINAL-RANGE) and (distance((X,Y), (X2,Y2)) < min(T, T2)) .
+    
+    eq $linearTime(< OID : Robot | coordinate : (X,Y) >,
+            < OID2 : Robot | coordinate : (X2,Y2) >, SP)
+        =
+        distance((X,Y), (X2,Y2)) / SP [owise] .
+
+    ***If a robot is behind another in the same direction check time until detection happens.
+    ***What if moving out of detection range?
+    ***TODO: Incorporate unavoidableCrash here.
+    ***Not true collision modelling, since a lower time interruption can cause detection.
+    ***Ignore detection if true collision is unavoidable for sensors?
+    ***Or mention it as a weakness.
+    eq linearTime(< OID : Robot | speed : SP, direction : D >, 
+            < OID2 : Robot | state : moving, speed : SP2, direction : D >) 
+        = 
         if SP2 >= SP then
-            inf
+            ratInf  
         else
-            $calculateAdvance(< S : Robot | >, < S2 : Robot | >, SP - SP2)
+            $linearTime(< OID : Robot | >, < OID2 : Robot | >, SP - SP2)
         fi .
-    ceq calculateAdvance(< S : Robot | speed : SP, direction : D >, < S2 : Robot | state : moving, speed : SP2, direction : D2 >) = 
-        $calculateAdvance(< S : Robot | >, < S2 : Robot | >, SP + SP2)
-        if opposite(D,D2) .
-    ceq calculateAdvance(< S : Robot | speed : SP >, < S2 : Robot | state : STATE >) =
-        $calculateAdvance(< S : Robot | >, < S2 : Robot | >, SP)
+    ***Check detection if two robots are moving towards one another
+    ceq linearTime(< OID : Robot | state : moving, speed : SP, direction : D >, 
+            < OID2 : Robot | state : moving, speed : SP2, direction : D2 >) 
+        = 
+        $linearTime(< OID : Robot | >, < OID2 : Robot | >, SP + SP2)
+        if oppositeDirections(D,D2) .
+    ***If the second robot is unmoving, check time until detection happens based on first robot's speed.
+    ceq linearTime(< OID : Robot | state : moving, speed : SP >, 
+            < OID2 : Robot | state : STATE >) 
+        =
+        $linearTime(< OID : Robot | >, < OID2 : Robot | >, SP)
         if STATE =/= moving .
-    ceq calculateAdvance(< S : Robot | direction : D >, < S2 : Robot | state : moving, direction : D2 >) =
-        $quadraticSolveAdvance(< S : Robot | >, < S2 : Robot | >)
-        if differentAxes(D, D2) .
-    eq calculateAdvance(< S : Robot | location : (X, Y), speed : SP, detectionRange : T >, < S2 : Obstacle | location : (X2,Y2) >) = 
-        if unavoidableCrash(< S : Robot | >, < S2 : Obstacle | >) then
+    
+    eq linearTime(< OID : Robot | state : moving, coordinate : (X, Y), speed : SP, detectionRange : T >,
+        < OID2 : Obstacle | coordinate : (X2,Y2) >) = 
+        if unavoidableCrash(< OID : Robot | >, < OID2 : Obstacle | >) then
             distance((X, Y), (X2,Y2)) / SP
         else
             if (distance((X, Y), (X2,Y2)) > T) then
                 (distance((X, Y), (X2,Y2)) - T) / SP
             else
-                distance((X, Y), (X2,Y2)) / SP
+                if distance((X,Y), (X2,Y2)) > FINAL-RANGE
+                then
+                    (distance((X,Y), (X2,Y2)) - FINAL-RANGE) / SP
+                else
+                    distance((X,Y), (X2,Y2)) / SP
+                fi
             fi 
         fi .
-    eq $destinationTimeAdvance(< S : Robot | location : (X,Y), remainingPath : (X2,Y2) LL, speed : SP >, none) = distance((X,Y), (X2,Y2)) / SP .
-    eq $destinationTimeAdvance(< S : Robot | >, < S2 : Robot | > CONF) = min(calculateAdvance(< S : Robot | >, < S2 : Robot | >), $destinationTimeAdvance(< S : Robot | >, CONF)) .
-    
-    ceq $mteRobot(S, < S : Robot | detected : REP > CONF) = 0 if REP =/= nil .
-    eq $mteRobot(S, < S : Robot | location : (X,Y), remainingPath : (X,Y) LL > CONF) = 0 .
-    ceq $mteRobot(S, < S : Robot | location : (X,Y), state : FUNC, curTask : TID > < S2 : ResupplySite | location : (X,Y) > CONF) = 0 if needsResupply(< S : Robot | >, TID) and (FUNC =/= resupplying) .
-    ceq $mteRobot(S,< S : Robot | state : FUNC, location : (X,Y), curTask : [S2, TT, N], workState : noWork > < S2 : Field | location : (X,Y) > CONF) = 0 if canCompleteNow(< S : Robot | >, [S2, TT, N]) .
-    ceq $mteRobot(S, < S : Robot | state : STATE > CONF) = 0 if STATE == planningPath .
-    eq $mteRobot(S, < S : Robot | state : INC, detected : nil > CONF) = inf .
-    eq $mteRobot(S, < S : Robot | state : idle, remainingPath : nil, detected : nil > CONF) = inf .
-    ceq $mteRobot(S, < S : Robot | state : idle, remainingPath : LL, detected : nil > CONF) = 0 if LL =/= nil .
-    ceq $mteRobot(S, < S : Robot | state : STATE, workState : [S2 TT TIME], detected : nil > CONF) = TIME if (STATE == repairing) or (STATE == removing) .
-    ceq $mteRobot(S, < S : Robot | location : (X,Y), remainingPath : (X2,Y2) LL > CONF) = 
-        $destinationTimeAdvance(< S : Robot | >, remove(S, closest((X2,Y2), none, sameDestination((X2,Y2), CONF))))
+
+    ***Time to reach next waypoint if there are no objects on connecting roads.
+    eq $destinationTime(
+         < OID : Robot | 
+            coordinate : (X, Y), 
+            remainingPath : (X2, Y2) LCO, 
+            speed : SP >,
+         none
+       )
+       =
+       distance((X, Y), (X2, Y2)) / SP .
+
+    ***For robots, do setDirection instead of direction, as it may not have updated
+    eq $destinationTime(
+        < OID : Robot | coordinate : (X,Y), 
+            remainingPath : (X2,Y2) LCO >,
+        < OID2 : Robot | coordinate : (X3,Y3) > CONF
+        ) 
+        =
+        if differentAxes(setDirection((X,Y), (X2,Y2)), setDirection((X2,Y2), (X3,Y3)))
+        then
+            min(
+                quadTime(< OID : Robot | >, < OID2 : Robot | >),
+                $destinationTime(< OID : Robot | >, CONF)
+            )
+        else
+            min(
+                linearTime(< OID : Robot | >, < OID2 : Robot | >),
+                $destinationTime(< OID : Robot | >, CONF)
+            )
+        fi .
+
+    eq $destinationTime(
+        < OID : Robot | 
+            coordinate : (X,Y), 
+            remainingPath : (X2,Y2) LCO >,
+        < OID2 : Obstacle | coordinate : (X3,Y3) > CONF
+        ) 
+        =
+        if differentAxes(setDirection((X,Y), (X2,Y2)), setDirection((X2,Y), (X3,Y3)))
+        then
+            min(
+                quadTime(< OID : Robot | >, < OID2 : Obstacle | >),
+                $destinationTime(< OID : Robot | >, CONF)
+            )       
+        else
+            min(
+                linearTime(< OID : Robot | >, < OID2 : Obstacle | >),
+                $destinationTime(< OID : Robot | >, CONF)
+            )
+        fi .
+
+    ***Needs to start working on a field
+    ceq $mteRobot(< OID : Robot | coordinate : (X,Y), curTask : [OID2, TT], workState : noWork >,
+        < OID2 : Field | coordinate : (X,Y) > CONF) = 
+        0 if canComplete(< OID : Robot | >, [OID2, TT]) .
+    ***Needs to finish working on a field.
+    eq $mteRobot(< OID : Worker | coordinate : (X,Y), state : FUNC, remainingPath : nil, workState : [OID2, WT], cargoLevel : full >,
+      < OID2 : Field | coordinate : (X,Y) > CONF) = 0 .
+    eq $mteRobot(< OID : Transporter | coordinate : (X,Y), state : FUNC, remainingPath : nil, workState : [OID2, TPT], cargoLevel : emptyCargo >,
+        < OID2 : Field | coordinate : (X,Y) > CONF) = 0 .
+    ***Don't advance time if a robot needs to parse through detections
+    ceq $mteRobot(< OID : Robot | detected : REPS >, CONF) = 0 if REPS =/= empty .    
+    ***Needs to potentially change directions
+    eq $mteRobot(< OID : Robot | state : moving, coordinate : (X,Y), remainingPath : (X,Y) LCO >, CONF) = 0 .
+    ***Needs to stop negotiating
+    eq $mteRobot(< OID : Robot | state : negotiating, negotiations : empty >,  CONF) = 0 .
+    ***Needs to transition to planningPath
+    eq $mteRobot(< OID : Robot | state : idle, remainingPath : nil, yieldStatus : noYieldInfo, curTask : TID >,  CONF) = 0 .
+    ***Needs to stop waiting
+    eq $mteRobot(< OID : Robot | state : waiting, waitingStatus : noWaitingInfo >, CONF) = 0 .
+    ***Allow robot to start resupplying if needed
+    ceq $mteRobot(< OID : Robot | coordinate : (X,Y), state : FUNC, curTask : TID >,
+    < OID2 : ResupplySite | coordinate : (X,Y) > CONF) = 0 if $needResupply(< OID : Robot | >, TID) and (FUNC =/= resupplying) .
+    ***finish resupply.
+    eq $mteRobot(< OID : Robot | coordinate : (X,Y), state : resupplying, workState : [OID2, resupplyTask, 0] >,
+      < OID2 : ResupplySite | coordinate : (X,Y) > CONF) = 0 .
+    ***Need to start unloading
+    eq $mteRobot(< OID : Robot | coordinate : (X,Y), state : FUNC, cargoLevel : full, workState : noWork >,
+        < OID2 : CollectionSite | coordinate : (X,Y) > CONF) = 0 .
+    ***Need to finish unloading
+    eq $mteRobot(< OID : Robot | coordinate : (X,Y), state : unloading, cargoLevel : full, workState : [OID2, unloadTask, 0] >,
+        < OID2 : CollectionSite | coordinate : (X,Y) > CONF) = 0 .
+    ***Needs to start replanning path.
+    eq $mteRobot(< OID : Robot | state : planningPath >, CONF) = 0 .
+    ***Needs to start movement
+    ceq $mteRobot(< OID : Robot | state : idle, remainingPath : LCO, detected : empty >, CONF) = 0 if LCO =/= nil .
+    ***Not relevant if incapacitated, negotiating, idle or waiting
+    ***An explanation for this, it cannot move
+    eq $mteRobot(< OID : Robot | state : INC, detected : empty >, CONF) = ratInf .
+    eq $mteRobot(< OID : Robot | state : negotiating, detected : empty >, CONF) = ratInf .
+    eq $mteRobot(< OID : Robot | state : idle, remainingPath : nil, detected : empty >, CONF) = ratInf .
+    eq $mteRobot(< OID : Robot | state : waiting, waitingStatus : [BIS | TR | TR2] >, CONF) = ratInf .
+    ***time until timedWork is completed.
+    eq $mteRobot(< OID : Robot | state : FUNC, workState : [OID2, TT, TIME], detected : empty >, CONF) = TIME .
+
+    ***Unobstructed movement
+    ***If it is moving uninterrupted towards an intersection then check until it may detect other robots that are close to that intersection
+    ceq $mteRobot(
+            < OID : Robot | 
+                state : moving, 
+                coordinate : (X,Y), 
+                remainingPath : (X2,Y2) LCO >,
+            CONF
+        )
+        =
+        $destinationTime(
+            < OID : Robot | >,
+            closestPhysObjs((X2,Y2), none, getPhysObjs(CONF))
+        )
         if (objectInWay((X,Y), (X2,Y2), CONF) == none) .
-    eq $mteRobot(S, < S : Robot | state : moving, location : (X, Y), speed : SP, remainingPath : (X2, Y2) LL, detected : nil > CONF)
-    =
-    calculateAdvance(< S : Robot | >, objectInWay((X, Y), (X2,Y2), CONF)) [owise] .
 
-    eq mte(< S : Map | > CONF) = mte(CONF) .
-    eq mte(< S : Field | > CONF) = min(minExpire(< S : Field | >), mte(CONF)) .
-    eq mte(< S : Robot | handledTime : false > CONF) = min($mteRobot(S, < S : Robot | > CONF), mte(< S : Robot | handledTime : true > CONF)) .
+    ***The previous equation won't apply if there is a robot located at the intersection the robot is moving away from it.
+    ***This equation ensures that destinationTimeAdvance is still applied in such a scenario.
+    ***The condition checks if the first object in the way is a robot 
+    ceq $mteRobot(
+            < OID : Robot | 
+                state : moving, 
+                coordinate : (X,Y), 
+                remainingPath : (X2,Y2) LCO, 
+                direction : D >,
+            < OID2 : Robot | 
+                state : moving, 
+                coordinate : (X2,Y2), 
+                direction : D2 > 
+            CONF
+        )
+        =
+        $destinationTime(
+            < OID : Robot | >,
+            closestPhysObjs((X2,Y2), none, getPhysObjs(CONF))
+        )
+        if (getOid(objectInWay((X,Y), (X2,Y2), < OID2 : Robot | > CONF)) == OID2)
+            and not oppositeDirections(D, D2) .
+
+    eq $mteRobot(
+            < OID : Robot | state : moving, coordinate : (X,Y),
+                remainingPath : (X2, Y2) LCO, detected : empty >,
+            CONF
+        )
+        =
+        linearTime(< OID : Robot | >, objectInWay((X,Y), (X2,Y2), CONF)) [owise] .
+
+    eq $mteField(< OID : Field | auctions : AUS >) = 
+        minTimer(getTimers(AUS) 
+            activeWaterTimer(< OID : Field | >) 
+            activeFertilizerTimer(< OID : Field | >) 
+            activeGrowTimer(< OID : Field | >)) .
+
+    eq mte(< OID : Robot | handledTime : false > CONF) =
+        min(minTimer(getTimers(< OID : Robot | >)),
+        min($mteRobot(< OID : Robot | >, CONF),
+        mte(< OID : Robot | handledTime : true > CONF))) .
+    eq mte(< OID : Field | > CONF) =
+        min($mteField(< OID : Field | >), mte(CONF)) .
+
     eq mte(dly(MSG, TIME) CONF) = min(TIME, mte(CONF)).
-    eq mte(CONF) = inf [owise] .
+    eq mte(CONF) = ratInf [owise] .
 
+    eq move(< OID : Robot | state : moving, 
+            coordinate : (X, Y), 
+            direction : north, 
+            speed : SP, 
+            remainingPath : (X2,Y2) LCO >, 
+        TIME) 
+        = 
+        < OID : Robot | coordinate : (X, Y + (SP * TIME)) > .
+
+    eq move(< OID : Robot | state : moving, 
+            coordinate : (X, Y), 
+            direction : east, 
+            speed : SP, 
+            remainingPath : (X2,Y2) LCO >, 
+        TIME) 
+        = 
+        < OID : Robot | coordinate : (X + (SP * TIME), Y) > .
+
+    eq move(< OID : Robot | state : moving, 
+            coordinate : (X, Y), 
+            direction : south, 
+            speed : SP, 
+            remainingPath : (X2,Y2) LCO >, 
+        TIME) 
+        = 
+        < OID : Robot | coordinate : (X, Y - (SP * TIME)) > .
+
+    eq move(< OID : Robot | state : moving, 
+            coordinate : (X, Y), 
+            direction : west, 
+            speed : SP, 
+            remainingPath : (X2,Y2) LCO >, 
+        TIME) 
+        = 
+        < OID : Robot | coordinate : (X - (SP * TIME), Y) > .
+
+    ceq move(< OID : Robot | state : STATE >, 
+        TIME) 
+        = 
+        < OID : Robot | > 
+        if STATE =/= moving .
+
+    eq timeEffect(< OID : Robot | > CONF, TIME) 
+        = 
+        move(
+            decTimers(< OID : Robot | >, TIME),
+            TIME
+        ) 
+        timeEffect(CONF, TIME) .
+    eq timeEffect(< OID : Field | > CONF, TIME) = decTimers(< OID : Field | >, TIME) timeEffect(CONF, TIME) .
     eq timeEffect(dly(MSG, TIME) CONF, TIME2) = dly(MSG, TIME monus TIME2) timeEffect(CONF, TIME) .
-
-    ceq timeEffect(< S : Robot | state : STATE > CONF, TIME) = decreaseTimers(< S : Robot | >, TIME) timeEffect(CONF, TIME) if STATE =/= moving and STATE =/= crashed .
-    eq timeEffect(< S : Robot | state : crashed > CONF, TIME) = < S : Robot | > timeEffect(CONF,TIME) .
-    eq timeEffect(< S : Robot | state : moving, location : (X, Y), direction : north, speed : SP, remainingPath : (X2,Y2) LL > CONF, R) = decreaseTimers(< S : Robot | location : (X, Y + (SP * R)) >, R) timeEffect(CONF, R) .
-    eq timeEffect(< S : Robot | state : moving, location : (X, Y), direction : east, speed : SP, remainingPath : (X2,Y2) LL > CONF, R) = decreaseTimers(< S : Robot | location : (X + (SP * R), Y) >, R) timeEffect(CONF, R) .
-    eq timeEffect(< S : Robot | state : moving, location : (X, Y), direction : south, speed : SP, remainingPath : (X2,Y2) LL > CONF, R) = decreaseTimers(< S : Robot | location : (X, Y - (SP * R)) >, R) timeEffect(CONF, R) .
-    eq timeEffect(< S : Robot | state : moving, location : (X, Y), direction : west, speed : SP, remainingPath : (X2,Y2) LL > CONF, R) = decreaseTimers(< S : Robot | location : (X - (SP * R), Y) >, R) timeEffect(CONF, R) .
-
-    eq timeEffect(< S : Field | > CONF, TIME) = decreaseTimers(< S : Field | >, TIME) timeEffect(CONF, TIME) .
     eq timeEffect(CONF, TIME) = CONF [owise] .
 
-    ceq detect(< S : Robot | state : FUNC, detected : REP > < S2 : Obstacle | location : (X2,Y2) > CONF) =
-        detect(< S : Robot | detected : {S2 : Obstacle | (X2,Y2)} REP > < S2 : Obstacle | > CONF) if < S : Robot | > detects < S2 : Obstacle | > .
-    ceq detect(< S : Robot | detected : REP, workState : WS > < S2 : Robot | state : STATE, location : (X2,Y2), direction : D, speed : SP, workState : WS2 > CONF) =
-        detect(< S : Robot | detected : {S2 : Robot | (X2,Y2) ; D ; detectedSpeed(SP) ; STATE} REP > < S2 : Robot | > CONF) if (< S : Robot | > detects < S2 : Robot | >) .
-    eq detect(CONF) = CONF [owise] .
-
+    ***Add some sort of limiter to clocked configuration, or a new sort?
+    ***Then in the condition add monus for the limiter if mte(CONF) + TIME <= LIMIT.
     crl [timeEffect] :
-        CONF @ TIME
+        CONF @ TIME 
         =>
         detect(handleCollisions(timeEffect(CONF, mte(CONF)))) @ (TIME + mte(CONF))
-        if mte(CONF) > 0 and mte(CONF) < inf .
+        if mte(CONF) > 0 and mte(CONF) < ratInf .
+
+    crl [limitTimeEffect] :
+        CONF @ TIME [LIMIT: TIME2]
+        =>
+        detect(handleCollisions(timeEffect(CONF, mte(CONF)))) @ (TIME + mte(CONF)) [LIMIT: TIME2]
+        if mte(CONF) > 0 and mte(CONF) < ratInf and (TIME + mte(CONF) <= TIME2) .
 endom

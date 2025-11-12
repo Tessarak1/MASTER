@@ -1,0 +1,19 @@
+omod TEST is
+    protecting STRING .
+
+    class O | a : Nat .
+    subsort String < Oid .
+
+    op testA : Nat -> Configuration .
+
+    var N : Nat .
+
+    eq testA(N) = < "obj1" : O | a : N >
+        if N > 0 
+        then
+            < "obj2" : O | a : N + 100 >
+        else
+            none
+        fi  
+    .
+endom

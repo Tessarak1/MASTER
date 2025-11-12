@@ -1,15 +1,23 @@
 load locatable .
 omod INTERSECTION is
     protecting LOCATABLE .
-    protecting STRING .
-    class Intersection | neighbors : OidSet .
-    subclass Intersection < Locatable .
+    protecting COORDINATE-LIST .
 
-    op oid : Object -> Oid .
+    ***Intersections are connected to one another. ObsIntersections cannot be traveled through
+    class Intersection | neighbors : Set{OidElt} .
+    class ObsIntersection .
+    class PassIntersection .
 
-    vars S S' : String .
-    vars L L' : Location .
+    subclass ObsIntersection PassIntersection < Intersection < Locatable .
 
-    eq oid(< S : Intersection | >) = S .
-    eq distance(< S : Intersection | location : L >, < S' : Intersection | location : L' >) = distance(L, L') .
+    ***Returns the intersections with the given locations from a configuration of them.
+    op intersectionWithLocation : Configuration List-Coordinate -> Configuration .
+
+    vars OID OID2 : Oid .
+    vars X Y X2 Y2 : Rat .
+    var CONF : Configuration .
+    var LCO : List-Coordinate .
+
+    eq intersectionWithLocation(< OID : Intersection | coordinate : (X, Y) > CONF, (X, Y) LCO) = < OID : Intersection | > intersectionWithLocation(CONF, LCO) .
+    eq intersectionWithLocation(CONF, LCO) = none [owise] .
 endom
