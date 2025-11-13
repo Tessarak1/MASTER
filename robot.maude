@@ -292,7 +292,8 @@ omod ROBOT is
 
     ***There is a path conflict if the paths share an intersection from different direction
     ***or if they are headed directly towards one another.
-    ceq pathConflict((X,Y) (X2,Y2) LCO, (X3,Y3) (X2,Y2) LCO2) = true if setDirection((X,Y),(X2,Y2)) =/= setDirection((X3,Y3), (X2,Y2)) . 
+    ceq pathConflict((X,Y) (X2,Y2) LCO, (X3,Y3) (X2,Y2) LCO2) = 
+        true if setDirection((X,Y),(X2,Y2)) =/= setDirection((X3,Y3), (X2,Y2)) . 
     ceq pathConflict((X,Y) (X2,Y2) LCO, (X3,Y3) (X4,Y4) LCO2) = true if
         overlap((X,Y) (X2,Y2), (X3,Y3) (X4,Y4)) and oppositeDirections(setDirection((X,Y), (X2,Y2)), setDirection((X3,Y3), (X4,Y4))) .
     eq pathConflict(LCO, (X,Y)) = findPathPair((X,Y), LCO) =/= nil .
@@ -899,7 +900,7 @@ omod ROBOT is
 
     ***Other has requested a check for potential pathconflict. Return noConflict if either paths dont intersect, or unmoving
     crl [rcvPathNegotiationNoConflict] :
-        < OID : Robot | coordinate : (X,Y), state : STATE, remainingPath : LCO >
+        < OID : Robot | coordinate : (X,Y), remainingPath : LCO >
         msg requestPath & path(LCO2) & PS from OID2 to OID
         =>
         < OID : Robot | >
@@ -1019,6 +1020,7 @@ omod ROBOT is
         < OID : Transporter | > .
         
     ***When robot is finished with all negotiations, check if it needs to wait for someone else.
+    ***can waiting status be populated without negotiation update?
     rl [finishNegotiating] :
         < OID : Robot | state : negotiating, negotiations : empty, waitingStatus : WI >
         =>
