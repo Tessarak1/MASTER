@@ -21,7 +21,7 @@ omod ENTITY is
         state : State .
     subclass Entity < PhysicalObj .    
 
-    ops crashed failed : -> IncapacitatedState [ctor] .
+    op crashed : -> IncapacitatedState [ctor] .
     ops moving deadlocked waiting idle negotiating planningPath : -> FunctioningState [ctor] .
     ops resupplying fixing unloading : -> TimedWorkState [ctor] .
 

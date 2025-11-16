@@ -738,11 +738,11 @@ omod ROBOT is
     eq detect(CONF) = CONF [owise] .
 
     crl [rescanTimerExpire] :
-        < OID : Robot | waitingStatus : [BIS | TR | TR2] >
-        CONF
+        {< OID : Robot | waitingStatus : [BIS | TR | TR2] >
+        CONF}
         =>
-        < OID : Robot | waitingStatus : [rescanWaitingOn(BIS, inDetectionRange(< OID : Robot | >, CONF)) | reset(TR) | TR2] >
-        CONF
+        {< OID : Robot | waitingStatus : [rescanWaitingOn(BIS, inDetectionRange(< OID : Robot | >, CONF)) | reset(TR) | TR2] >
+        CONF}
         if expired(TR) .
     
     crl [waitingTimerExpire] :
@@ -781,11 +781,11 @@ omod ROBOT is
         < OID : Robot | state : planningPath, speed : 0, curTask : TID > .
     
     crl [restartTask] :
-        < OID : Robot | state : idle, remainingPath : nil, yieldStatus : noYieldInfo, curTask : TID, workState : noWork >
-        CONF
+        {< OID : Robot | state : idle, remainingPath : nil, yieldStatus : noYieldInfo, curTask : TID, workState : noWork >
+        CONF}
         =>
-        < OID : Robot | state : planningPath >
-        CONF 
+        {< OID : Robot | state : planningPath >
+        CONF}
         if not arrivedTask(< OID : Robot | >, CONF) .
 
     crl [rcvHigherCostMsg] :
@@ -1136,15 +1136,41 @@ omod ROBOT is
             and WS =/= [getRepOid(REP), fixAt getRepCoord(REP)]
             and not getRepCoord(REP) in LCO . 
 
+    crl [detectFixIncapableUnobstructed] :
+        {< OID : Robot | state : FUNC,
+            coordinate : (X,Y),
+            remainingPath : LCO, 
+            detected : (REP , REPS),
+            obsCoords : LCO2
+        >
+        CONF}
+        =>
+        {initiateAuction(
+            < OID : Robot | detected : REPS,
+                obsCoords : getRepCoord(REP) LCO2
+            >,
+            [getRepOid(REP), fixAt getRepCoord(REP)],
+            CONF
+        )
+        CONF}
+        if isFixable(REP)
+            and not canComplete(< OID : Robot | >, 
+                    [getRepOid(REP), fixAt getRepCoord(REP)]) 
+            and (FUNC =/= moving or 
+                (FUNC == moving 
+                    and 
+                    findPathPair(getRepCoord(REP), 
+                        (X,Y) LCO) == nil)) .
+
     crl [detectFixIncapableObstructed] : 
-        < OID : Robot | state : moving,
+        {< OID : Robot | state : moving,
             coordinate : (X,Y),
             remainingPath : LCO,
             detected : (REP , REPS),
             obsCoords : LCO2 >
-        CONF
+        CONF}
         =>
-        initiateAuction(
+        {initiateAuction(
             < OID : Robot | state : planningPath,
                 speed : 0,
                 detected : REPS,
@@ -1153,32 +1179,12 @@ omod ROBOT is
             [getRepOid(REP), fixAt getRepCoord(REP)],
             CONF
         )
-        CONF
+        CONF}
         if isFixable(REP)
             and findPathPair(getRepCoord(REP), (X,Y) LCO) =/= nil
-            and not canComplete(< OID : Robot | >, [getRepOid(REP), fixAt getRepCoord(REP)]) .
+            and not canComplete(< OID : Robot | >, 
+                [getRepOid(REP), fixAt getRepCoord(REP)]) .
 
-    crl [detectFixIncapableUnobstructed] :
-        < OID : Robot | state : FUNC,
-            coordinate : (X,Y),
-            remainingPath : LCO, 
-            detected : (REP , REPS),
-            obsCoords : LCO2
-        >
-        CONF
-        =>
-        initiateAuction(
-            < OID : Robot | detected : REPS,
-                obsCoords : getRepCoord(REP) LCO2
-            >,
-            [getRepOid(REP), fixAt getRepCoord(REP)],
-            CONF
-        )
-        CONF
-        if isFixable(REP)
-            and not canComplete(< OID : Robot | >, [getRepOid(REP), fixAt getRepCoord(REP)]) 
-            and (FUNC =/= moving or 
-                (FUNC == moving and findPathPair(getRepCoord(REP), (X,Y) LCO) == nil)) .
 
 
     crl [startObstacleRemoval] :
@@ -1212,15 +1218,17 @@ omod ROBOT is
         < OID : Robot | state : idle, curTask : noTask, workState : noWork > 
         < OID2 : Robot | state : idle > .
 
-
-    ***Rule for an incapacitated robot starting an auction for requesting help.
     crl [requestHelp] :
-        < OID : Robot | state : INC, coordinate : (X,Y), activeTasks : TTS >
-        CONF
+        {< OID : Robot | state : INC, 
+            coordinate : (X,Y), 
+            activeTasks : TTS >
+        CONF}
         =>
-        < OID : Robot | activeTasks : fixAt (X,Y) , TTS >
-        CONF
-        initiateAuction(< OID : Robot | >, [OID, fixAt (X,Y)], CONF)
+        {initiateAuction(< OID : Robot | 
+                activeTasks : fixAt (X,Y) , TTS >, 
+            [OID, fixAt (X,Y)], 
+            CONF)
+        CONF}
         if not fixAt (X,Y) in TTS .
 
     crl [startResupply] :

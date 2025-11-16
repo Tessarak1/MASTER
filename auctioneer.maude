@@ -1,12 +1,11 @@
 load message .
 load auction .
-
+load global-operator .
 omod AUCTIONEER is
     protecting AUCTION .
     protecting MESSENGER .
+    protecting GLOBAL-OPERATOR .
 
-    ***Auction closes when task is accepted, a winner. Need a trigger for task being complete.
-    ***TODO: Remember to implement addition and removal of corresponding activeTasks from robots too.
     class Auctioneer | auctions : Set{AuctionElt}, activeTasks : Set{TaskTypeElt} .
     
     subclass Auctioneer < Messenger .
@@ -47,13 +46,13 @@ omod AUCTIONEER is
 
     ***Determines the winner of an auction when its timer runs out.
     crl [auctionTimerExpire] :
-        < OID : Auctioneer | auctions : ([Task: TID TR | BS], AUS) >
-        CONF
+        {< OID : Auctioneer | auctions : ([Task: TID TR | BS], AUS) >
+        CONF}
         =>
-        finishedAuction(< OID : Auctioneer | auctions : AUS >, 
+        {finishedAuction(< OID : Auctioneer | auctions : AUS >, 
             CONF, 
             [Task: TID TR | BS])
-        CONF
+        CONF}
         if expired(TR) .
 
     ***Adds bid to the auction

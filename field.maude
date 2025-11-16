@@ -159,53 +159,56 @@ omod FIELD is
 
     ***Creates the relevant auction if one does not already exist.
     crl [initiateWaterAuction] :
-        < OID : Field | 
+        {< OID : Field | 
             waterLevel : low, 
             growingState : growing,
             activeTasks : TTS >
-        CONF
+        CONF}
         =>
-        initiateAuction(
+        {initiateAuction(
             < OID : Field | 
                 activeTasks : (wateringTask , TTS) >,
             [OID, wateringTask],
             CONF)
-        CONF
+        CONF}
         if not (wateringTask in TTS) .
 
     crl [initiateFertilizerAuction] :
-        < OID : Field | 
+        {< OID : Field | 
             fertilizerLevel : low,
             growingState : growing, 
             activeTasks : TTS >
-        CONF
+        CONF}
         =>
-        initiateAuction(
+        {initiateAuction(
             < OID : Field | activeTasks : fertilizeTask , TTS >, 
             [OID, fertilizeTask], 
             CONF)
-        CONF
+        CONF}
         if not (fertilizeTask in TTS) .
 
     crl [initiateHarvestAuction] :
-        < OID : Field | 
+        {< OID : Field | 
             growingState : harvest,
             activeTasks : TTS >
-        CONF
+        CONF}
         =>
-        initiateAuction(
+        {initiateAuction(
             < OID : Field | activeTasks : harvestTask , TTS >, 
             [OID, harvestTask],
             CONF)
-        CONF
+        CONF}
         if not (harvestTask in TTS) .
 
     crl [initiatePlantAuction] : 
-        < OID : Field | growingState : vacant, activeTasks : TTS >
-        CONF
+        {< OID : Field | growingState : vacant, activeTasks : TTS >
+        CONF}
         =>
-        initiateAuction(< OID : Field | activeTasks : plantTask , TTS >, [OID, plantTask], CONF)
-        CONF
+        {initiateAuction(< OID : Field | 
+                activeTasks : plantTask , TTS >, 
+            [OID, plantTask], 
+            CONF)
+        CONF}
         if not (plantTask in TTS) .
     
     rl [rcvTaskMsg] :

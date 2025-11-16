@@ -42,7 +42,7 @@ omod BASE is
   eq map1 = < "Map" : Map | intersections : intersections1, roads : createRoadSet(intersections1) > .
   
   eq farm1 = map1 collection resupply .
-  eq base1 = farm1 rob @ 0 .
+  eq base1 = {farm1 rob} @ 0  .
 endom
 
 omod TESTS is
@@ -59,7 +59,7 @@ omod TESTS is
   eq testGL = < "GL1" : Field | coordinate : (0, 100), neighbors : "I1", growingArea : area(((-1, 100), (1,100), (-1, 101), (1, 101))), fieldAttrs > .
   eq testGL2 = < "GL2" : Field | coordinate : (150, -100), neighbors : "I4", growingArea : area(((150,-101), (150, -99), (151,-101), (151, -99))), fieldAttrs > .
   op test1 : -> ClockedConfiguration .
-  eq test1 = farm1 testGL testGL2 rob rob2 @ 0 .
+  eq test1 = {farm1 testGL testGL2 rob rob2} @ 0 .
 endom
 
 --- search [1] test1 [LIMIT: 700] =>* C:Configuration < "Collection" : CollectionSite

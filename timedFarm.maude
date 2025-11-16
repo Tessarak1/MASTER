@@ -14,7 +14,7 @@ omod TIMED-FARM is
 
     sorts ClockedConfiguration LimitClockedConfiguration .
 
-    op  _@_ : Configuration Time -> ClockedConfiguration [ctor] .
+    op _@_ : GlobalConfiguration Time -> ClockedConfiguration [ctor] .
     op _[LIMIT:_] : ClockedConfiguration Time -> LimitClockedConfiguration [ctor] .
     op $mteRobot : Object Configuration -> TimeInf .
     op $mteField : Object -> TimeInf .
@@ -193,7 +193,6 @@ omod TIMED-FARM is
         updateLocation(< OID : Robot | state : crashed, speed : 0 >) < OID2 : Robot | speed : 0, state : crashed >
         if outsideMap(getLocation(updateLocation(< OID : Robot | >)), ROS) == false .
 
-    ***TODO: Each colliding robot should broadcast its own request of being crashed or failed
     eq handleCollisions(< OID : Robot | coordinate : (X, Y) > < OID2 : PhysicalObj | coordinate : (X, Y) >  < OID3 : Map | > CONF) = collision(< OID : Robot | > < OID2 : PhysicalObj | >, < OID3 : Map | >) handleCollisions(< OID3 : Map | > CONF) .
     eq handleCollisions(CONF) = CONF [owise] .
 
@@ -511,8 +510,8 @@ omod TIMED-FARM is
     eq timeEffect(CONF, TIME) = CONF [owise] .
 
     crl [limitTimeEffect] :
-        CONF @ TIME [LIMIT: TIME2]
+        {CONF} @ TIME [LIMIT: TIME2]
         =>
-        detect(handleCollisions(timeEffect(CONF, mte(CONF)))) @ (TIME + mte(CONF)) [LIMIT: TIME2]
+        {detect(handleCollisions(timeEffect(CONF, mte(CONF))))} @ (TIME + mte(CONF)) [LIMIT: TIME2]
         if mte(CONF) > 0 and mte(CONF) < ratInf and (TIME + mte(CONF) <= TIME2) .
 endom
