@@ -1,0 +1,5 @@
+omod GLOBAL-OPERATOR is
+    sort GlobalConfiguration .
+    
+    op {_} : Configuration -> GlobalConfiguration [ctor] .
+endom

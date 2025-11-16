@@ -31,6 +31,7 @@ omod AUCTIONEER is
     var BS : Set{BidElt} .
     var CONF : Configuration .
     vars COST : Cost .
+    var TIME : Time .
 
     eq initiateAuction(< OID : Auctioneer | auctions : AUS >, TID, CONF) =
         < OID : Auctioneer | auctions  : (AUS , createAuction(TID)) >
@@ -41,7 +42,7 @@ omod AUCTIONEER is
         initiateAuction(< OID : Auctioneer | >, TID, CONF) .
 
     eq finishedAuction(< OID : Auctioneer | auctions : AUS >, CONF, [Task: TID TR | BS]) =
-        < OID : Auctioneer | auctions : ([Task: TID TR | BS], AUS) >
+        < OID : Auctioneer | auctions : AUS >
         unicast(OID, won TID, auctionWinner(BS, "",cost(ratInf))) [owise] .
 
     ***Determines the winner of an auction when its timer runs out.

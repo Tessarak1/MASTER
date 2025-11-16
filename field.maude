@@ -123,9 +123,11 @@ omod FIELD is
             fertilizerTimer : dec(TR2, TIME) >, TIME) .
 
     eq activeWaterTimer(< OID : Field | activeTasks : (wateringTask , TTS) >) = empty .
+    ceq activeWaterTimer(< OID : Field | growingState : GS >) = empty if GS == vacant or GS == harvest .
     eq activeWaterTimer(< OID : Field | waterTimer : TR >) = TR [owise] .
 
     eq activeFertilizerTimer(< OID : Field | activeTasks : (fertilizeTask , TTS) >) = empty .
+    ceq activeFertilizerTimer(< OID : Field | growingState : GS >) = empty if GS == vacant or GS == harvest .
     eq activeFertilizerTimer(< OID : Field | fertilizerTimer : TR >) = TR [owise] .
 
     ceq activeGrowTimer(< OID : Field | activeTasks : TTS >) = empty if (harvestTask in TTS) or (plantTask in TTS) .

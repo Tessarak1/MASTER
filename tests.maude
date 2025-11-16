@@ -15,12 +15,12 @@ omod BASE is
   op map1 : -> Object .
   op base1 : -> ClockedConfiguration .
 
-  eq robotAttrs = transRange : 200, maxSpeed : 1, detected : empty, auctions : empty, activeTasks : empty,
+  eq robotAttrs = transRange : 1000, maxSpeed : 1, detected : empty, auctions : empty, activeTasks : empty,
     handledTime : false, workState : noWork, obsCoords : nil, negotiations : empty, yieldStatus : noYieldInfo, waitingStatus : noWaitingInfo .
   eq transporterAttrs = cargoLevel : emptyCargo .
   eq workerAttrs = cargoLevel : full .
   eq fieldAttrs = handledTime : false, transRange : 200, growingState : growing, waterLevel : good, fertilizerLevel : good, waterTimer : [cur: 500 - base: 500],
-    fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 1200 - base: 1200], reserved : false, auctions : empty, activeTasks : empty .
+    fertilizerTimer : [cur: 1000 - base: 1000], growTimer : [cur: 2000 - base: 2000], reserved : false, auctions : empty, activeTasks : empty .
 
   eq I1 = < "I1" : PassIntersection | coordinate : (0,0), neighbors : ("I2" , "I3" , "GL1") > .
   eq I2 = < "I2" : PassIntersection | coordinate : (100,0), neighbors : ("I1" , "I4" , "I5" , "I6") > .
@@ -36,17 +36,32 @@ omod BASE is
   eq GL1 = < "GL1" : Field | coordinate : (0, 100), neighbors : "I1", growingArea : area(((-1, 100), (1,100), (-1, 101), (1, 101))), fieldAttrs > .
   eq GL2 = < "GL2" : Field | coordinate : (150, -100), neighbors : "I4", growingArea : area(((150,-101), (150, -99), (151,-101), (151, -99))), fieldAttrs > .
   
-  eq rob = < "W1" : Worker | curCargo : water, detectionRange : 10, speed : 1, coordinate : (30, 0), state : moving, direction : west, remainingPath : (0,0) (0,-100), curTask : ["GL1", wateringTask], robotAttrs, workerAttrs > .
-  eq rob2 = < "T1" : Transporter | speed : 0, detectionRange : 5, coordinate : (0,-1), state : idle, direction : east, remainingPath : nil, robotAttrs, transporterAttrs > .
+  eq rob = < "W1" : Worker | curCargo : water, detectionRange : 10, speed : 1, coordinate : (30, 0), state : idle, direction : west, remainingPath : nil, curTask : noTask, robotAttrs, workerAttrs > .
+  eq rob2 = < "T1" : Transporter | curCargo : produce, speed : 0, detectionRange : 5, coordinate : (0,-1), state : idle, direction : east, remainingPath : nil, curTask : noTask,  robotAttrs, transporterAttrs > .
 
   eq map1 = < "Map" : Map | intersections : intersections1, roads : createRoadSet(intersections1) > .
   
-  eq farm1 = map1 GL1 GL2 collection resupply .
-  eq base1 = farm1 rob rob2 @ 0 .
+  eq farm1 = map1 collection resupply .
+  eq base1 = farm1 rob @ 0 .
 endom
 
-red mte(rob rob2) .
-red $mteRobot(rob, rob2) .
-red $destinationTime(rob, rob2) .
-red quadTime(rob, rob2) .
-***not calling quadTime from destinationTime.
+omod TESTS is
+  protecting BASE .
+
+  op testFieldAttrs : -> AttributeSet .
+  ops testGL testGL2 : -> Object .
+
+ eq fieldAttrs = handledTime : false, transRange : 1000, growingState : growing, waterLevel : good, fertilizerLevel : good, 
+    waterTimer : [cur: 500 - base: 5000],
+    fertilizerTimer : [cur: 700 - base: 7000], 
+    growTimer : [cur: 900 - base: 900], reserved : false, auctions : empty, activeTasks : empty .
+
+  eq testGL = < "GL1" : Field | coordinate : (0, 100), neighbors : "I1", growingArea : area(((-1, 100), (1,100), (-1, 101), (1, 101))), fieldAttrs > .
+  eq testGL2 = < "GL2" : Field | coordinate : (150, -100), neighbors : "I4", growingArea : area(((150,-101), (150, -99), (151,-101), (151, -99))), fieldAttrs > .
+  op test1 : -> ClockedConfiguration .
+  eq test1 = farm1 testGL testGL2 rob rob2 @ 0 .
+endom
+
+--- search [1] test1 [LIMIT: 700] =>* C:Configuration < "Collection" : CollectionSite
+---  | collections : 1 > @ T:Time [LIMIT: 700] .
+rew test1 [LIMIT: 7000] .

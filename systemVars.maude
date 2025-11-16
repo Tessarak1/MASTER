@@ -15,8 +15,8 @@ omod SYSTEM-VARS is
 
     ops AUCTION-TIMER YIELD-TIMER CONFLICT-YIELD-TIMER RESCAN-TIMER WAITING-TIMER : -> Timer .
 
-    eq AUCTION-TIMER = [cur: 100 - base: 100] .
-    eq YIELD-TIMER = [cur: 100 - base: 100] .
+    eq AUCTION-TIMER = [cur: 5 - base: 5] .
+    eq YIELD-TIMER = [cur: 1000 - base: 1000] .
     eq RESCAN-TIMER = [cur: 1 - base: 1] .
     eq WAITING-TIMER = [cur: 15 - base: 15] .
     eq FIELD-SPEED = 1 .

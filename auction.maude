@@ -17,7 +17,6 @@ view AuctionElt from TRIV to AUCTION-SORTS is
     sort Elt to Auction .
 endv
 
-***How to separate this into parameterized set support?
 omod AUCTION is
     protecting TIMER-MSET .
     protecting TASK-MSET .
@@ -27,45 +26,23 @@ omod AUCTION is
     protecting SET{AuctionElt} .
     protecting SET{BidElt} .
 
-    ***Tasks are assigned based on auctions. Each participant bids on a task based on traveling distance to complete the task.
-    ***Cost function is required distance to travel to complete the task, so a lower bid is better.
-
-    ***A robot can place a bid on a task.
     op [_bids_] : Oid Cost -> Bid [ctor] .
-
-    ***An auction consists of the task that is bidded on, a timer for when the auction closes and the received bids.
     op [Task:__|_] : Tid Timer Set{BidElt} -> Auction [ctor] .
-
-    ***Returns the Oid of the lowest bid.
     op auctionWinner : Set{BidElt} Oid Cost -> Oid .
-
     op createAuction : Tid -> Auction .
-
     op auctionExists : Tid Set{AuctionElt} -> Bool .
-
-    ***Checks if a task is up for auction in an auction set.
-    ***Used to prevent duplication of auctions when a robot discovers a task.
     op closed : Tid Set{AuctionElt} -> Bool .
-    ***returns the Oids of received bids.
     op bidders : Set{BidElt} -> Set{OidElt} .
-
-    ***Returns the auctions' timers
     op getTimers : Set{AuctionElt} -> MSet{TimerElt} .
-
-    ***Decreases the timers of the active auctions.
     op decTimers : Set{AuctionElt} Time -> Set{AuctionElt} .
 
     var TID : Tid .
-    var TIDS : MSet{TidElt} .
     var TR : Timer .
-    var B : Bid .
     var BS : Set{BidElt} .
     var AUS : Set{AuctionElt} .
-    var OS : Set{OidElt} .
     vars OID OID2 : Oid .
     var COST : Cost .
     vars RI RI2 : RatInf .
-    var TIME-INF : TimeInf .
     vars TIME TIME2 TIME3 : Time .
 
     eq auctionWinner(empty, OID, COST) = OID .
@@ -89,9 +66,9 @@ omod AUCTION is
     eq getTimers(([Task: TID TR | BS], AUS)) = TR getTimers(AUS) .
 
     eq decTimers(empty, TIME) = empty .
-    eq decTimers(([Task: TID TR | BS], AUS), TIME3) =
-        ([Task: TID dec(TR, TIME3) | BS],
-        decTimers(AUS, TIME3)) .
+    eq decTimers(([Task: TID TR | BS], AUS), TIME) =
+        ([Task: TID dec(TR, TIME) | BS],
+        decTimers(AUS, TIME)) .
 
     eq auctionExists(TID, ([Task: TID TR | BS] , AUS)) = true .
     eq auctionExists(TID, AUS) = false [owise] .

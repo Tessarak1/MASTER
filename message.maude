@@ -69,6 +69,7 @@ omod MESSENGER is
   eq messengerOids(CONF) = empty [owise] .
 
   eq attemptTrans(OID, MCS, empty) = none .
+  eq attemptTrans(OID, MCS, (OID , OIDS)) = attemptTrans(OID, MCS, OIDS) .
   eq attemptTrans(OID, MCS, (OID2 , OIDS)) < OID : Messenger | transRange : R >
     < OID2 : Messenger | > 
     =

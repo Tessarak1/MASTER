@@ -11,11 +11,10 @@ omod TIMER is
     op expired : Timer -> Bool .
 
     vars TIME TIME2 TIME3 : Time .
-    var TR : Timer .
 
     eq reset([cur: TIME - base: TIME2]) = [cur: TIME2 - base: TIME2] .
 
-    eq dec([cur: TIME - base: TIME2], TIME3) = [cur: TIME - TIME3 - base: TIME2] .
+    eq dec([cur: TIME - base: TIME2], TIME3) = [cur: TIME monus TIME3 - base: TIME2] .
 
     eq expired([cur: TIME - base: TIME2]) = TIME == 0 .
 endom
@@ -27,15 +26,12 @@ endv
 omod TIMER-MSET is
     protecting MSET{TimerElt} .
 
-    ***TODO: rename minTimer to indicate it returns a timevalue not  a timer.
     op minTimer : MSet{TimerElt} -> Time .
     op getTimers : Object -> MSet{TimerElt} .
+    op decTimers : Object Time -> Object .
 
-    ***Gettimers and decTimers should be moved to superclass of Field and Robot.
     var MSTR : MSet{TimerElt} .
     vars TIME TIME2 : Time .
-
-    op decTimers : Object Time -> Object .
 
     eq minTimer(empty) = ratInf .
     eq minTimer(([cur: TIME - base: TIME2] MSTR)) = min(TIME, minTimer(MSTR)) .

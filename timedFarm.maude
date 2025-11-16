@@ -45,7 +45,7 @@ omod TIMED-FARM is
     vars TR TR2 TR3 TR4 : Timer .
     var O : Object .
     vars OID OID2 OID3 : String .
-    vars X X2 Y Y2 X3 Y3 : Rat .
+    vars X X2 Y Y2 X3 Y3 X4 Y4 : Rat .
     vars SP SP2 : Rat .
     vars DIST DIST2 : Rat .
     vars T T2 : Rat .
@@ -233,13 +233,13 @@ omod TIMED-FARM is
             < OID2 : Robot | coordinate : (X2,Y2), detectionRange : T2 >, SP)
         =
         (distance((X,Y), (X2,Y2)) - min(T,T2)) / SP
-        if (distance((X,Y), (X2,Y2)) > min(T, T2)) and (distance((X,Y), (X2,Y2)) < max(T, T2)) .
+        if (distance((X,Y), (X2,Y2)) > min(T, T2)) and (distance((X,Y), (X2,Y2)) <= max(T, T2)) .
     
     ceq $linearTime(< OID : Robot | coordinate : (X,Y), detectionRange : T >,
             < OID2 : Robot | coordinate : (X2,Y2), detectionRange : T2 >, SP)
         =
         (distance((X,Y), (X2,Y2)) - FINAL-RANGE) / SP
-        if (distance((X,Y), (X2,Y2)) > FINAL-RANGE) and (distance((X,Y), (X2,Y2)) < min(T, T2)) .
+        if (distance((X,Y), (X2,Y2)) > FINAL-RANGE) and (distance((X,Y), (X2,Y2)) <= min(T, T2)) .
     
     eq $linearTime(< OID : Robot | coordinate : (X,Y) >,
             < OID2 : Robot | coordinate : (X2,Y2) >, SP)
@@ -290,7 +290,6 @@ omod TIMED-FARM is
             fi 
         fi .
 
-    ***Time to reach next waypoint if there are no objects on connecting roads.
     eq $destinationTime(
          < OID : Robot | 
             coordinate : (X, Y), 
@@ -301,11 +300,21 @@ omod TIMED-FARM is
        =
        distance((X, Y), (X2, Y2)) / SP .
 
-    ***For robots, do setDirection instead of direction, as it may not have updated
+    ***ignore robots that are moving away from next intersection
+    ceq $destinationTime(
+            < OID : Robot | 
+                coordinate : (X,Y), 
+                remainingPath : (X2,Y2) LCO >,
+            < OID2 : Robot | coordinate : (X3,Y3), state : moving, remainingPath : (X4,Y4) LCO2 > CONF
+        ) 
+        =
+        $destinationTime(< OID : Robot | >, CONF)
+        if setDirection((X3,Y3), (X4,Y4)) =/= setDirection((X3,Y3), (X2,Y2)) .
+
     eq $destinationTime(
-        < OID : Robot | coordinate : (X,Y), 
-            remainingPath : (X2,Y2) LCO >,
-        < OID2 : Robot | coordinate : (X3,Y3) > CONF
+            < OID : Robot | coordinate : (X,Y), 
+                remainingPath : (X2,Y2) LCO >,
+            < OID2 : Robot | coordinate : (X3,Y3) > CONF
         ) 
         =
         if differentAxes(setDirection((X,Y), (X2,Y2)), setDirection((X2,Y2), (X3,Y3)))
@@ -319,13 +328,13 @@ omod TIMED-FARM is
                 linearTime(< OID : Robot | >, < OID2 : Robot | >),
                 $destinationTime(< OID : Robot | >, CONF)
             )
-        fi .
+        fi [owise] .
 
     eq $destinationTime(
-        < OID : Robot | 
-            coordinate : (X,Y), 
-            remainingPath : (X2,Y2) LCO >,
-        < OID2 : Obstacle | coordinate : (X3,Y3) > CONF
+            < OID : Robot | 
+                coordinate : (X,Y), 
+                remainingPath : (X2,Y2) LCO >,
+            < OID2 : Obstacle | coordinate : (X3,Y3) > CONF
         ) 
         =
         if differentAxes(setDirection((X,Y), (X2,Y2)), setDirection((X2,Y), (X3,Y3)))
@@ -347,7 +356,7 @@ omod TIMED-FARM is
         0 if canComplete(< OID : Robot | >, [OID2, TT]) .
     ***Needs to finish working on a field.
     eq $mteRobot(< OID : Worker | coordinate : (X,Y), state : FUNC, remainingPath : nil, workState : [OID2, WT], cargoLevel : full >,
-      < OID2 : Field | coordinate : (X,Y) > CONF) = 0 .
+        < OID2 : Field | coordinate : (X,Y) > CONF) = 0 .
     eq $mteRobot(< OID : Transporter | coordinate : (X,Y), state : FUNC, remainingPath : nil, workState : [OID2, TPT], cargoLevel : emptyCargo >,
         < OID2 : Field | coordinate : (X,Y) > CONF) = 0 .
     ***Don't advance time if a robot needs to parse through detections
@@ -500,14 +509,6 @@ omod TIMED-FARM is
     eq timeEffect(< OID : Field | > CONF, TIME) = decTimers(< OID : Field | >, TIME) timeEffect(CONF, TIME) .
     eq timeEffect(dly(MSG, TIME) CONF, TIME2) = dly(MSG, TIME monus TIME2) timeEffect(CONF, TIME) .
     eq timeEffect(CONF, TIME) = CONF [owise] .
-
-    ***Add some sort of limiter to clocked configuration, or a new sort?
-    ***Then in the condition add monus for the limiter if mte(CONF) + TIME <= LIMIT.
-    crl [timeEffect] :
-        CONF @ TIME 
-        =>
-        detect(handleCollisions(timeEffect(CONF, mte(CONF)))) @ (TIME + mte(CONF))
-        if mte(CONF) > 0 and mte(CONF) < ratInf .
 
     crl [limitTimeEffect] :
         CONF @ TIME [LIMIT: TIME2]

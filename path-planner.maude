@@ -110,8 +110,9 @@ omod PATH-PLANNER is
     eq dijkstraSearch(< OID : Intersection | coordinate : (X,Y) > < OID2 : Intersection | coordinate : (X2,Y2) > CONF, (X,Y), (X2,Y2)) =
         dijkstraSearch(< OID : Intersection | coordinate : (X,Y) > < OID2 : Intersection | coordinate : (X2,Y2) > CONF, OID, OID2) .
 
-    eq dijkstraChain(CONF, (X,Y) (X2,Y2) LCO) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) dijkstraChain(CONF, (X2,Y2) LCO) .
     eq dijkstraChain(CONF, (X,Y) (X2,Y2)) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) .
+    eq dijkstraChain(CONF, (X,Y) (X2,Y2) LCO) = dijkstraSearch(CONF, (X,Y), (X2,Y2)) dijkstraChain(CONF, (X2,Y2) LCO) [owise] .
+    
 
     eq backToStart((X,Y), (X2,Y2)) = (X,Y2) (X2,Y2) .
     eq coverHorizontal((X,Y) (X2, Y), (X,Y) (X2,Y)) = nil .
