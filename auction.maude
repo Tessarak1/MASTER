@@ -46,7 +46,10 @@ omod AUCTION is
     vars TIME TIME2 TIME3 : Time .
 
     eq auctionWinner(empty, OID, COST) = OID .
-    eq auctionWinner(([OID bids cost(RI)], BS), OID2, cost(RI2)) =
+    eq auctionWinner(([OID bids cost(RI)], BS), 
+            OID2, 
+            cost(RI2)) 
+        =
         if RI < RI2
         then
             auctionWinner(BS, OID, cost(RI))
@@ -54,13 +57,16 @@ omod AUCTION is
             auctionWinner(BS, OID2, cost(RI2))
         fi .
 
-    eq createAuction(TID) = [Task: TID AUCTION-TIMER | empty] .
+    eq createAuction(TID) = 
+        [Task: TID AUCTION-TIMER | empty] .
 
     eq closed(TID, ([Task: TID TR | BS], AUS)) = false .
     eq closed(TID, AUS) = true [owise] .
 
     eq bidders(empty) = empty .
-    eq bidders(([OID bids COST], BS)) = (OID, bidders(BS)) .
+    eq bidders(([OID bids COST], BS)) 
+        = 
+        (OID, bidders(BS)) .
 
     eq getTimers(empty) = empty .
     eq getTimers(([Task: TID TR | BS], AUS)) = TR getTimers(AUS) .

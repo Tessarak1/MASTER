@@ -1,7 +1,6 @@
 load entity .
 load obstacle .
 
-***import state here, or do something else, moving, unmoving , broken?
 omod REPRESENTATION-SORTS is
     protecting COORDINATE .
     protecting DIRECTION .
@@ -34,7 +33,8 @@ omod REPRESENTATION is
     var CO : Coordinate .
     var INC : IncapacitatedState .
 
-    eq getRepCoord({OID : CID | CO , IS}) = CO .
+    eq getRepCoord({OID : CID | (CO , IS)}) = CO .
+    eq getRepCoord({OID : Obstacle | CO}) = CO .
     eq getRepOid({OID : CID | IS}) = OID .
     
     eq isFixable({OID : CID | INC , IS}) = true .

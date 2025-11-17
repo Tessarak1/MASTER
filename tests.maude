@@ -5,7 +5,7 @@ omod BASE is
 
   ops robotAttrs workerAttrs transporterAttrs : -> AttributeSet .
   op fieldAttrs : -> AttributeSet .
-  ops rob rob2 : -> Object .
+  ops rob rob2 rob3 : -> Object .
   ops I1 I2 I3 I4 I5 I6 I7 : -> Object .
   op resupply : -> Object .
   op collection : -> Object .
@@ -36,8 +36,10 @@ omod BASE is
   eq GL1 = < "GL1" : Field | coordinate : (0, 100), neighbors : "I1", growingArea : area(((-1, 100), (1,100), (-1, 101), (1, 101))), fieldAttrs > .
   eq GL2 = < "GL2" : Field | coordinate : (150, -100), neighbors : "I4", growingArea : area(((150,-101), (150, -99), (151,-101), (151, -99))), fieldAttrs > .
   
-  eq rob = < "W1" : Worker | curCargo : water, detectionRange : 10, speed : 1, coordinate : (30, 0), state : idle, direction : west, remainingPath : nil, curTask : noTask, robotAttrs, workerAttrs > .
-  eq rob2 = < "T1" : Transporter | curCargo : produce, speed : 0, detectionRange : 5, coordinate : (0,-1), state : idle, direction : east, remainingPath : nil, curTask : noTask,  robotAttrs, transporterAttrs > .
+  eq rob = < "W1" : Worker | curCargo : water, detectionRange : 10, speed : 3, coordinate : (0, 30), state : idle, direction : west, remainingPath : nil, curTask : noTask, robotAttrs, workerAttrs > .
+  eq rob2 = < "T1" : Transporter | curCargo : produce, speed : 0, detectionRange : 3, coordinate : (0,-1), state : idle, direction : east, remainingPath : nil, curTask : noTask,  robotAttrs, transporterAttrs > .
+  eq rob3 = < "W2" : Worker | curCargo : fertilizer, detectionRange : 10, speed : 5, coordinate : (0,-50), state : idle, direction : west, remainingPath : nil, curTask : noTask, robotAttrs, workerAttrs > .
+
 
   eq map1 = < "Map" : Map | intersections : intersections1, roads : createRoadSet(intersections1) > .
   
@@ -59,9 +61,7 @@ omod TESTS is
   eq testGL = < "GL1" : Field | coordinate : (0, 100), neighbors : "I1", growingArea : area(((-1, 100), (1,100), (-1, 101), (1, 101))), fieldAttrs > .
   eq testGL2 = < "GL2" : Field | coordinate : (150, -100), neighbors : "I4", growingArea : area(((150,-101), (150, -99), (151,-101), (151, -99))), fieldAttrs > .
   op test1 : -> ClockedConfiguration .
-  eq test1 = {farm1 testGL testGL2 rob rob2} @ 0 .
+  eq test1 = {farm1 GL1 GL2 rob2 rob} @ 0 .
 endom
 
---- search [1] test1 [LIMIT: 700] =>* C:Configuration < "Collection" : CollectionSite
----  | collections : 1 > @ T:Time [LIMIT: 700] .
-rew test1 [LIMIT: 7000] .
+rew test1 [LIMIT: 100000] .

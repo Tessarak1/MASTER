@@ -12,9 +12,11 @@ omod TIMER is
 
     vars TIME TIME2 TIME3 : Time .
 
-    eq reset([cur: TIME - base: TIME2]) = [cur: TIME2 - base: TIME2] .
+    eq reset([cur: TIME - base: TIME2]) 
+        = [cur: TIME2 - base: TIME2] .
 
-    eq dec([cur: TIME - base: TIME2], TIME3) = [cur: TIME monus TIME3 - base: TIME2] .
+    eq dec([cur: TIME - base: TIME2], TIME3) 
+        = [cur: TIME monus TIME3 - base: TIME2] .
 
     eq expired([cur: TIME - base: TIME2]) = TIME == 0 .
 endom
@@ -34,5 +36,6 @@ omod TIMER-MSET is
     vars TIME TIME2 : Time .
 
     eq minTimer(empty) = ratInf .
-    eq minTimer(([cur: TIME - base: TIME2] MSTR)) = min(TIME, minTimer(MSTR)) .
+    eq minTimer(([cur: TIME - base: TIME2] MSTR)) 
+        = min(TIME, minTimer(MSTR)) .
 endom

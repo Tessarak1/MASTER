@@ -12,10 +12,13 @@ omod TIMED-FARM is
     protecting SITES .
     protecting QUADRATIC-SOLVER .
 
-    sorts ClockedConfiguration LimitClockedConfiguration .
+    sorts ClockedConfiguration 
+        LimitClockedConfiguration .
 
-    op _@_ : GlobalConfiguration Time -> ClockedConfiguration [ctor] .
-    op _[LIMIT:_] : ClockedConfiguration Time -> LimitClockedConfiguration [ctor] .
+    op _@_ : GlobalConfiguration Time 
+        -> ClockedConfiguration [ctor] .
+    op _[LIMIT:_] : ClockedConfiguration Time 
+        -> LimitClockedConfiguration [ctor] .
     op $mteRobot : Object Configuration -> TimeInf .
     op $mteField : Object -> TimeInf .
     op mte : Configuration -> TimeInf .
