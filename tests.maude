@@ -15,7 +15,7 @@ omod BASE is
   op map1 : -> Object .
   op base1 : -> ClockedConfiguration .
 
-  eq robotAttrs = transRange : 1000, maxSpeed : 1, detected : empty, auctions : empty, activeTasks : empty,
+  eq robotAttrs = transRange : 1000, maxSpeed : 5, detected : empty, auctions : empty, activeTasks : empty,
     handledTime : false, workState : noWork, obsCoords : nil, negotiations : empty, yieldStatus : noYieldInfo, waitingStatus : noWaitingInfo .
   eq transporterAttrs = cargoLevel : emptyCargo .
   eq workerAttrs = cargoLevel : full .

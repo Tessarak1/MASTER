@@ -98,10 +98,6 @@ omod ROBOT is
     op needNegotiation : Object Representation Object -> Bool .
     op startNegotiation : Object Representation Object -> Configuration .
     op $timeCheck : Object Oid Time -> Object .
-    op $locationChange : Object Coordinate -> Object .
-    ops $locationPrevention $speedPrevention : Object Representation -> Object .
-    op crashPrevention : Object Representation -> Object .
-    op safetyChecks : Object Representation Object -> Configuration .
 
     op calcBid : Object Tid Object -> RatInf .
 
@@ -324,77 +320,6 @@ omod ROBOT is
             pathLength(planPath(< OID : Robot | obsCoords : remove(LCO, (X,Y)) >, TID, < OID2 : Map | >))
         fi .
 
-    ***Don't apply safety checks if the robot is unmoving.
-    ***Also dont if it is unavoidable crash right.
-    ***Is crash prevention even needed as startnegotiation puts us at 0?
-    ***But how do u model crashes then?
-    ***What is the purpose of safety checks?
-        ***Need negot
-        ***AEB? But need to insure that it is not instanteneous.
-        ***Also need to store it
-        ***TODO: what if obscoords are updated on detection? That makes more sense than permanent storage and wiping. But would it not be back and forth then when trying to fix yield?
-
-    ceq safetyChecks(< OID : Robot | state : STATE >, {OID2 : Robot | IS}, < OID3 : Map | >) 
-        =
-        < OID : Robot | > if STATE =/= moving .
-    eq safetyChecks(< OID : Robot | >, {OID2 : Robot | FUNC , IS}, < OID3 : Map | >) =
-        if needNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC , IS}, < OID3 : Map | >)
-        then
-            startNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC , IS}, < OID3 : Map | >)
-        else
-            crashPrevention(< OID : Robot | >, {OID2 : Robot | FUNC , IS})
-        fi [owise] .
-    ***Crash prevention consists of changing speed and/or the remaining path if relevant.
-    ***Is this proper? Couldnt you strictly speaking just turn around?
-    eq crashPrevention(< OID : Robot | coordinate : (X,Y), remainingPath : LCO >, {OID2 : CID | (X2,Y2) , IS}) = 
-        if findPathPair((X2, Y2), (X,Y) LCO) =/= nil
-        then
-            $speedPrevention($locationPrevention(< OID : Robot | >, {OID2 : CID | (X2,Y2) , IS}), {OID2 : CID | (X2,Y2) , IS})
-        else
-            < OID : Robot | >
-        fi .
-
-    ***Coordinate change is only performed when detecting an immobile object.
-    ***If the task is to fix the robot, then we are not waiting on it, but otherwise we are.
-    ***ceq $locationPrevention(< OID : Robot | waitingStatus : OS >, {OID2 : Robot | (X2,Y2) , FUNC , IS}) = if STATE =/= moving .
-    ***TODO: change flow of crashPrevention. 
-    eq $locationPrevention(< OID : Robot | >, {OID2 : Robot | moving , IS}) = < OID : Robot | > .
-    eq $locationPrevention(< OID : Robot | coordinate : (X,Y), remainingPath : LCO >, {OID2 : Robot | (X2,Y2) , INC , IS}) = $locationChange(< OID : Robot | remainingPath : (X,Y) LCO >, (X2,Y2)) .
-    eq $locationPrevention(< OID : Robot | coordinate : (X,Y), remainingPath : LCO >, {OID2 : Obstacle | (X2,Y2)}) = $locationChange(< OID : Robot | remainingPath : (X,Y) LCO >, (X2,Y2)) .
- 
-    eq $locationChange(< OID : Robot | remainingPath : LCO (X,Y) (X,Y2) >, (X,Y2)) =
-        if Y > Y2
-        then
-            < OID : Robot | remainingPath : LCO (X,Y) (X,Y2 + ROBOT-SIZE) >
-        else
-            < OID : Robot | remainingPath : LCO (X,Y) (X,Y2 - ROBOT-SIZE) >
-        fi .
-    eq $locationChange(< OID : Robot | remainingPath : LCO (X,Y) (X2,Y) >, (X2,Y)) =
-        if X > X2
-        then
-            < OID : Robot | remainingPath : LCO (X,Y) (X2 + ROBOT-SIZE,Y) >
-        else
-            < OID : Robot | remainingPath : LCO (X,Y) (X2 - ROBOT-SIZE,Y) >
-        fi .
-
-    ***Only coordinate change is needed here to prevent the Robot's path from overlapping with the obstacle.
-    ***Speed change is dependent on the time it would take until the robot would crash with the detected object.
-    eq $speedPrevention(< OID : Robot | >, {OID2 : Obstacle | IS}) = < OID : Robot | > .
-    eq $speedPrevention(< OID : Robot | coordinate : (X,Y), direction : D, speed : SP >, {OID2 : Robot | (X2,Y2) , D , detectedSpeed(SP2) , moving , IS}) =
-        if SP2 >= SP
-        then
-            < OID : Robot | >
-        else
-            $timeCheck(< OID : Robot | >, OID2, distance((X,Y), (X2,Y2)) / (SP - SP2))
-        fi .
-    ceq $speedPrevention(< OID : Robot | coordinate : (X,Y), direction : D, speed : SP >, {OID2 : Robot | (X2, Y2) , D2 , detectedSpeed(SP2) , moving , IS}) =
-        $timeCheck(< OID : Robot | >, OID2, distance((X,Y), (X2,Y2)) / (SP + SP2))
-        if oppositeDirections(D, D2) .
-    eq $speedPrevention(< OID : Robot | >, {OID2 : Robot | IS}) = < OID : Robot | > [owise] .
-
-    ***Modifies the robot's speed based on the calculated time until crash.
-    ***But is this ever invoked? Because need negot would be called instead? which sets speed to 0 if crash is avoidable, time to react and
-    ***Stop. No movement during negotiation, as it is not in parallell.
     eq $timeCheck(< OID : Robot | >, OID2, TIME) =
         if TIME < EMERGENCY-TIME
         then
@@ -700,12 +625,6 @@ omod ROBOT is
     eq getOid([Oid: OID - (X,Y) | TR]) = OID .
     eq getOid([Oid: OID | TR]) = OID .
 
-    *** An object is not detected if it is already registered or outside detection range.
-    ***can detect, but ignore instead?
-    ***TODO: Update the handling section instead, to ignore if worked on or if part of obsCoords
-    ***This would require updating the detect rules of robots. to ignore
-***    eq < OID : Robot | curTask : [OID2, TT] > detects < OID2 : Locatable | > = false .
-***    eq < OID : Robot | obsCoords : (X,Y) LCO > detects < OID2 : Locatable | coordinate : (X,Y) > = false .
     ceq < OID : Robot | coordinate : (X,Y), detected : REPS, detectionRange : DR > 
         detects 
         < OID2 : Locatable | coordinate : (X2,Y2) > 
@@ -788,20 +707,31 @@ omod ROBOT is
         CONF}
         if not arrivedTask(< OID : Robot | >, CONF) .
 
+    ***In all cost rules, implement support if no cost has been calculated yet
     crl [rcvHigherCostMsg] :
-        < OID : Robot | state : FUNC, obsCoords : LCO, negotiations : (NS , [OID2 | (X,Y) | cost(RI)]), curTask : TID >
+        < OID : Robot | state : FUNC, 
+            obsCoords : LCO, 
+            negotiations : (NS , [OID2 | (X,Y) | cost(RI)]), 
+            curTask : TID >
         < OID3 : Map | >
         msg path((X2,Y2) LCO2) & pathCost(cost(RI2)) from OID2 to OID
         =>
-        < OID : Robot | state : planningPath, obsCoords : (X2,Y2) LCO, negotiations : NS >
+        < OID : Robot | state : planningPath, 
+            obsCoords : (X2,Y2) LCO, 
+            negotiations : NS >
         < OID3 : Map | >
         unicast(OID, noConflict, OID2) 
         if RI2 > RI .
 
     rl [rcvEqualCostMsg] :
-        < OID : Robot | state : FUNC, obsCoords : LCO, negotiations : (NS , [OID2 | (X,Y) | cost(RI)]), curTask : TID >
+        < OID : Robot | state : FUNC, 
+            obsCoords : LCO, 
+            negotiations : (NS , 
+                [OID2 | (X,Y) | cost(RI)]), 
+            curTask : TID >
         < OID3 : Map | > 
-        msg path((X2,Y2) LCO2) & pathCost(cost(RI)) from OID2 to OID
+        msg path((X2,Y2) LCO2) 
+            & pathCost(cost(RI)) from OID2 to OID
         =>
         < OID3 : Map | > 
         if RI == ratInf
@@ -809,7 +739,10 @@ omod ROBOT is
             if OID < OID2
             then
                 yieldAlgorithm(
-                    < OID : Robot | state : negotiating, speed : 0, negotiations : addNegotiation(NS, [OID2 | (X2,Y2) | cost(RI)]) >,
+                    < OID : Robot | state : negotiating, 
+                        speed : 0, 
+                        negotiations : addNegotiation(NS, 
+                            [OID2 | (X2,Y2) | cost(RI)]) >,
                     < OID3 : Map | >,
                     OID2,
                     (X2,Y2) LCO2
@@ -820,18 +753,18 @@ omod ROBOT is
         else
             if OID < OID2
             then
-                < OID : Robot | state : planningPath, obsCoords : (X2,Y2) LCO, negotiations : NS >
+                < OID : Robot | state : planningPath, 
+                    obsCoords : (X2,Y2) LCO, 
+                    negotiations : NS >
                 unicast(OID, noConflict, OID2)
             else
                 < OID : Robot | >
             fi 
         fi .
 
-
-    ***If a robot receives a lower cost message, it knows that the other should reroute
-    ***It therefore does not change beavior
     crl [rcvLowerCostMsg] :
-        < OID : Robot | negotiations : (NS , [OID2 | (X,Y) | cost(RI)]) >
+        < OID : Robot | negotiations : (NS , 
+            [OID2 | (X,Y) | cost(RI)]) >
         msg path(LCO) & pathCost(cost(RI2)) from OID2 to OID
         =>
         < OID : Robot | >
@@ -937,7 +870,10 @@ omod ROBOT is
         =>
         < OID2 : Map | >
         yieldAlgorithm(
-            < OID : Robot | state : negotiating, speed : 0, negotiations : addNegotiation(NS, [OID3 | (X2,Y2) | noCost]) >,
+            < OID : Robot | state : negotiating, 
+                speed : 0, 
+                negotiations : addNegotiation(NS, 
+                        [OID3 | (X2,Y2) | noCost]) >,
             < OID2 : Map | >,
             OID3,
             (X2,Y2) LCO2
@@ -958,6 +894,7 @@ omod ROBOT is
             & path((X2,Y2) LCO2) 
             & PS from OID3 to OID
         =>
+        < OID2 : Map | >
         < OID : Robot | state : negotiating, 
             speed : 0, 
             negotiations : addNegotiation(NS, 
@@ -973,7 +910,7 @@ omod ROBOT is
                     < OID : Robot | >, 
                     < OID2 : Map | >, 
                     (X2, Y2)))), 
-            OID2)
+            OID3)
         if pathConflict((X2,Y2) LCO2, (X,Y) LCO)
         and PS == priorityTask 
         and priorityState(< OID : Robot | 
@@ -1025,7 +962,8 @@ omod ROBOT is
             )
         fi
         if  PS == priorityYielding
-            and (priorityState(< OID : Robot | negotiations : endNegotiation(NS, OID3) >) 
+            and (priorityState(< OID : Robot | 
+                        negotiations : endNegotiation(NS, OID3) >) 
                     == priorityYielding)
             and pathConflict((X2,Y2) LCO2, (X,Y) LCO) .
 
@@ -1035,22 +973,18 @@ omod ROBOT is
         =>
         < OID : Robot  | yieldStatus : removeYieldInfo(OID2, YIS) > .
 
-    ***Workers discard transporter tasks
     rl [rcvWrongWorkerTask] :
         < OID : Worker | >
         msg [OID2, TPT] from OID3 to OID
         =>
         < OID : Worker | > .
 
-    ***Transporters discard worker tasks.
     rl [rcvWrongTransporterTask] :
         < OID : Transporter | >
         msg [OID2, WT] from OID3 to OID
         =>
         < OID : Transporter | > .
         
-    ***When robot is finished with all negotiations, check if it needs to wait for someone else.
-    ***can waiting status be populated without negotiation update?
     rl [finishNegotiating] :
         < OID : Robot | state : negotiating, negotiations : empty, waitingStatus : WI >
         =>
@@ -1093,7 +1027,9 @@ omod ROBOT is
                 [OID3, TT], < OID2 : Map | >) =/= nil) .
 
     rl [detectIgnoreFix] :
-        < OID : Robot | state : FUNC, detected : ({OID2 : CID | (X,Y) , IS} , REPS), workState : [OID2, fixAt (X,Y), TIME] >
+        < OID : Robot | state : FUNC, 
+            detected : ({OID2 : CID | (X,Y) , IS} , REPS), 
+            workState : [OID2, fixAt (X,Y), TIME] >
         =>
         < OID : Robot | state : FUNC, detected : REPS > .
 
@@ -1103,17 +1039,19 @@ omod ROBOT is
         < OID : Robot | detected : empty >
         if REPS =/= empty .
 
-    ***TODO: fix up safetychecks to not always prevent collision
-    ***safetyChecks(< OID : Robot | detected : REPS >, {OID2 : Robot | FUNC , IS}, < OID3 : Map | >) .
-
     rl [detectFunctioningRobot] :
-        < OID : Robot | state : FUNC, detected : ({OID2 : Robot | FUNC2 , IS} , REPS) >
+        < OID : Robot | state : FUNC, 
+            detected : ({OID2 : Robot | FUNC2 , IS} , REPS) >
         < OID3 : Map | >
         =>
         < OID3 : Map | >
-        if needNegotiation(< OID : Robot | >, {OID2 : Robot | FUNC2 , IS}, < OID3 : Map | >)
+        if needNegotiation(< OID : Robot | >, 
+            {OID2 : Robot | FUNC2 , IS}, 
+            < OID3 : Map | >)
         then
-            startNegotiation(< OID : Robot | detected : REPS >, {OID2 : Robot | FUNC2 , IS}, < OID3 : Map | >)
+            startNegotiation(< OID : Robot | detected : REPS >, 
+                {OID2 : Robot | FUNC2 , IS}, 
+                < OID3 : Map | >)
         else
             < OID : Robot | detected : REPS >
         fi .

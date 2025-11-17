@@ -193,35 +193,47 @@ omod TIMED-FARM is
         updateLocation(< OID : Robot | state : crashed, speed : 0 >) < OID2 : Robot | speed : 0, state : crashed >
         if outsideMap(getLocation(updateLocation(< OID : Robot | >)), ROS) == false .
 
-    eq handleCollisions(< OID : Robot | coordinate : (X, Y) > < OID2 : PhysicalObj | coordinate : (X, Y) >  < OID3 : Map | > CONF) = collision(< OID : Robot | > < OID2 : PhysicalObj | >, < OID3 : Map | >) handleCollisions(< OID3 : Map | > CONF) .
+    eq handleCollisions(< OID : Robot | coordinate : (X, Y) > 
+        < OID2 : PhysicalObj | coordinate : (X, Y) >  
+        < OID3 : Map | > 
+        CONF) 
+        = 
+        collision(< OID : Robot | > 
+            < OID2 : PhysicalObj | >, 
+            < OID3 : Map | >) 
+        handleCollisions(< OID3 : Map | > CONF) .
     eq handleCollisions(CONF) = CONF [owise] .
 
     eq unavoidableCrash(< OID : Robot | >, none) = false .
     eq unavoidableCrash(< OID : Robot | speed : 0 >, O) = false .
-    ceq unavoidableCrash(< OID : Robot | state : moving, coordinate : (X, Y), direction : D, speed : SP >, < OID2 : Robot | state : moving, coordinate : (X2, Y2), direction : D2, speed : SP2 >) = 
-        if distance((X, Y), (X2, Y2)) <= stoppingDistance(< OID : Robot | >) + stoppingDistance(< OID2 : Robot | >) then
+    ceq unavoidableCrash(< OID : Robot | state : moving, 
+                coordinate : (X, Y), 
+                direction : D, 
+                speed : SP >, 
+            < OID2 : Robot | state : moving, 
+                coordinate : (X2, Y2), 
+                direction : D2, 
+                speed : SP2 >) 
+        = 
+        if distance((X, Y), (X2, Y2)) <= 
+            (stoppingDistance(< OID : Robot | >) 
+            + stoppingDistance(< OID2 : Robot | >))
+        then
             true
         else
             false
         fi
     if oppositeDirections(D, D2) .
-    eq unavoidableCrash(< OID : Robot | coordinate : (X, Y) >, < OID2 : PhysicalObj | coordinate : (X2, Y2) >) = 
-        if distance((X, Y), (X2, Y2)) <= stoppingDistance(< OID : Robot | >)
+    eq unavoidableCrash(< OID : Robot | coordinate : (X, Y) >, 
+            < OID2 : PhysicalObj | coordinate : (X2, Y2) >) = 
+        if distance((X, Y), (X2, Y2)) <= 
+            stoppingDistance(< OID : Robot | >)
         then
             true
         else
             false
         fi .
-    ceq unavoidableCrash(< OID : Robot | state : moving, coordinate : (X,Y), direction : D, remainingPath : (X2,Y2) LCO, speed : SP >, < OID2 : Robot | state : moving, coordinate : (X3,Y3), direction : D2, remainingPath : (X2,Y2) LCO2, speed : SP2 >) =
-        if (distance((X,Y), (X2,Y2)) / SP) == distance((X3,Y3), (X2,Y2))
-        then
-            true
-        else
-            false
-        fi
-        if differentAxes(D, D2) .
 
-    ***Calculates time until intersection with one of the detection borders.
     ceq $linearTime(< OID : Robot | coordinate : (X,Y), detectionRange : T >,
             < OID2 : Robot | coordinate : (X2,Y2), detectionRange : T2 >, SP)
         =
@@ -245,12 +257,6 @@ omod TIMED-FARM is
         =
         distance((X,Y), (X2,Y2)) / SP [owise] .
 
-    ***If a robot is behind another in the same direction check time until detection happens.
-    ***What if moving out of detection range?
-    ***TODO: Incorporate unavoidableCrash here.
-    ***Not true collision modelling, since a lower time interruption can cause detection.
-    ***Ignore detection if true collision is unavoidable for sensors?
-    ***Or mention it as a weakness.
     eq linearTime(< OID : Robot | speed : SP, direction : D >, 
             < OID2 : Robot | state : moving, speed : SP2, direction : D >) 
         = 
@@ -259,13 +265,12 @@ omod TIMED-FARM is
         else
             $linearTime(< OID : Robot | >, < OID2 : Robot | >, SP - SP2)
         fi .
-    ***Check detection if two robots are moving towards one another
     ceq linearTime(< OID : Robot | state : moving, speed : SP, direction : D >, 
             < OID2 : Robot | state : moving, speed : SP2, direction : D2 >) 
         = 
         $linearTime(< OID : Robot | >, < OID2 : Robot | >, SP + SP2)
         if oppositeDirections(D,D2) .
-    ***If the second robot is unmoving, check time until detection happens based on first robot's speed.
+
     ceq linearTime(< OID : Robot | state : moving, speed : SP >, 
             < OID2 : Robot | state : STATE >) 
         =
@@ -299,7 +304,6 @@ omod TIMED-FARM is
        =
        distance((X, Y), (X2, Y2)) / SP .
 
-    ***ignore robots that are moving away from next intersection
     ceq $destinationTime(
             < OID : Robot | 
                 coordinate : (X,Y), 
